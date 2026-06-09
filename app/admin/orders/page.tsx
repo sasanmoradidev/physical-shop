@@ -1,17 +1,34 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
-export default async function AdminOrdersPage() {
-  const orders = await prisma.order.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
+type Props = {
+  searchParams: Promise<{
+    status?: string;
+  }>;
+};
 
-    include: {
-      user: true,
-      address: true,
-    },
-  });
+export default async function AdminOrdersPage({
+  searchParams,
+}: Props) {
+  const { status } = await searchParams;
+
+  const where = {
+    ...(status
+      ? { status: status as any }
+      : {}),
+  };
+
+  const orders =
+    await prisma.order.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        user: true,
+        address: true,
+      },
+    });
 
   return (
     <div>
@@ -19,15 +36,30 @@ export default async function AdminOrdersPage() {
         سفارشات
       </h1>
 
+      {/* فیلتر وضعیت */}
+      <div className="flex gap-2 mb-6">
+        <Link href="/admin/orders">
+          همه
+        </Link>
+        <Link href="/admin/orders?status=PENDING">
+          در انتظار
+        </Link>
+        <Link href="/admin/orders?status=PAID">
+          پرداخت شده
+        </Link>
+        <Link href="/admin/orders?status=SHIPPED">
+          ارسال شده
+        </Link>
+      </div>
+
+      {/* لیست سفارش‌ها */}
       <div className="space-y-4">
         {orders.map((order) => (
-          <div
+          <Link
             key={order.id}
+            href={`/admin/orders/${order.id}`}
+            className="block border rounded p-4"
           >
-            <Link
-              href={`/admin/orders/${order.id}`}
-              className="block border rounded p-4"
-            >
             <p>
               مشتری: {order.user.name}
             </p>
@@ -37,24 +69,18 @@ export default async function AdminOrdersPage() {
             </p>
 
             <p>
-              مبلغ:
-              {" "}
+              مبلغ:{" "}
               {order.totalPrice.toString()}
             </p>
 
             <p>
-              وضعیت:
-              {" "}
-              {order.status}
+              وضعیت: {order.status}
             </p>
 
             <p>
-              شهر:
-              {" "}
-              {order.address.city}
+              شهر: {order.address.city}
             </p>
-            </Link>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

@@ -4,6 +4,24 @@ import { useCartStore } from "@/store/cart-store";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
+async function handlePayment() {
+  const res = await fetch("/api/payment/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      orderId: "ORDER_ID_HERE",
+    }),
+  });
+
+  const data = await res.json();
+
+  if (data.url) {
+    window.location.href = data.url;
+  }
+}
+
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
 
@@ -30,19 +48,6 @@ export default function CheckoutPage() {
     useState("");
 
   async function submitOrder() {
-    if (items.length === 0) {
-      alert("سبد خرید خالی است");
-      return;
-    }
-
-    if (!addressId) {
-      alert("آدرس انتخاب نشده");
-      return;
-    }
-
-    // setLoading برای جلوگیری از ثبت چندباره سفارش
-    setLoading(true);
-
     const res = await fetch("/api/orders", {
       method: "POST",
       headers: {
@@ -56,18 +61,27 @@ export default function CheckoutPage() {
 
     const data = await res.json();
 
-    console.log("STATUS:", res.status);
-    console.log("DATA:", data);
-
-    if (res.ok) {
-      clearCart();
-      window.location.href =
-        `/profile/orders/${data.id}`;
-    } else {
-      alert(JSON.stringify(data));
+    if (!res.ok) {
+      alert("خطا در ثبت سفارش");
+      return;
     }
 
-    setLoading(false);
+    // 👉 بعد از ساخت order، برو پرداخت
+    const paymentRes = await fetch("/api/payment/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        orderId: data.id,
+      }),
+    });
+
+    const payment = await paymentRes.json();
+
+    if (payment.url) {
+      window.location.href = payment.url;
+    }
   }
   useEffect(() => {
     fetch("/api/addresses")

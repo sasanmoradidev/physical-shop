@@ -73,6 +73,7 @@ model Order {
   addressId  String
   updatedAt  DateTime?   @updatedAt
   address    Address     @relation(fields: [addressId], references: [id])
+  authority String?
   user       User        @relation(fields: [userId], references: [id])
   items      OrderItem[]
 }

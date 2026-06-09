@@ -2,188 +2,209 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 type Props = {
-  searchParams: Promise<{
-    page?: string;
-    q?: string;
-    category?: string;
-
-  }>;
+    searchParams: Promise<{
+        page?: string;
+        q?: string;
+        category?: string;
+        sort?: string;
+    }>;
 };
 
 const PAGE_SIZE = 12;
 
 export default async function ProductsPage({
-  searchParams,
+    searchParams,
 }: Props) {
-  const {
-    page,
-    q,
-    category,
+    const {
+        page,
+        q,
+        category,
+        sort,
     } =
-    await searchParams;
+        await searchParams;
 
-  const currentPage = Number(
-    page || "1"
-  );
+    const currentPage = Number(
+        page || "1"
+    );
 
-  const where = {
-  isActive: true,
+    const where = {
+        isActive: true,
 
-  ...(q
-    ? {
-        title: {
-          contains: q,
-          mode: "insensitive" as const,
-        },
-      }
-    : {}),
+        ...(q
+            ? {
+                title: {
+                    contains: q,
+                    mode: "insensitive" as const,
+                },
+            }
+            : {}),
 
-     ...(category
-    ? {
-        category: {
-          slug: category,
-        },
-      }
-    : {}),
+        ...(category
+            ? {
+                category: {
+                    slug: category,
+                },
+            }
+            : {}),
     };
 
-  const totalProducts =
-    await prisma.product.count({
-      where,
-    });
+    const totalProducts =
+        await prisma.product.count({
+            where,
+        });
 
-  const totalPages = Math.ceil(
-    totalProducts / PAGE_SIZE
-  );
+    const totalPages = Math.ceil(
+        totalProducts / PAGE_SIZE
+    );
+    const orderBy =
+        sort === "price_asc"
+            ? { price: "asc" as const }
+            : sort === "price_desc"
+                ? { price: "desc" as const }
+                : { createdAt: "desc" as const };
+    const products =
 
-  const products =
-    await prisma.product.findMany({
-      where,
+        await prisma.product.findMany({
+            where,
 
-      include: {
-        images: true,
-        category: true,
-      },
+            include: {
+                images: true,
+                category: true,
+            },
 
-      orderBy: {
-        createdAt: "desc",
-      },
+            orderBy,
 
-      skip:
-        (currentPage - 1) *
-        PAGE_SIZE,
+            skip:
+                (currentPage - 1) *
+                PAGE_SIZE,
 
-      take: PAGE_SIZE,
-    });
+            take: PAGE_SIZE,
+        });
     const categories =
         await prisma.category.findMany({
-        orderBy: {
-            name: "asc",
-        },
-    });
-  return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-8">
-        محصولات
-      </h1>
+            orderBy: {
+                name: "asc",
+            },
+        });
+    return (
+        <div className="container mx-auto py-10">
+            <h1 className="text-3xl font-bold mb-8">
+                محصولات
+            </h1>
 
-      <form
-        action="/products"
-        className="mb-8"
-      >
-        <input
-          type="text"
-          name="q"
-          defaultValue={q}
-          placeholder="جستجوی محصول..."
-          className="border rounded px-4 py-2 w-full"
-        />
-      <select
-        name="category"
-        defaultValue={category}
-        className="border rounded px-4 py-2 mt-3 w-full"
-        >
-        <option value="">
-            همه دسته‌بندی‌ها
-        </option>
-
-        {categories.map((cat) => (
-            <option
-            key={cat.id}
-            value={cat.slug}
+            <form
+                action="/products"
+                className="mb-8"
             >
-            {cat.name}
-            </option>
-        ))}
-        </select>
+                <input
+                    type="text"
+                    name="q"
+                    defaultValue={q}
+                    placeholder="جستجوی محصول..."
+                    className="border rounded px-4 py-2 w-full"
+                />
+                <select
+                    name="category"
+                    defaultValue={category}
+                    className="border rounded px-4 py-2 mt-3 w-full"
+                >
+                    <option value="">
+                        همه دسته‌بندی‌ها
+                    </option>
 
-        <button
-        type="submit"
-        className="border px-4 py-2 rounded mt-3"
-        >
-        اعمال فیلتر
-        </button>
-      </form>
-      
+                    {categories.map((cat) => (
+                        <option
+                            key={cat.id}
+                            value={cat.slug}
+                        >
+                            {cat.name}
+                        </option>
+                    ))}
+                </select>
+                <select
+                    name="sort"
+                    defaultValue={sort}
+                    className="border rounded px-4 py-2 mt-3 w-full"
+                >
+                    <option value="newest">
+                        جدیدترین
+                    </option>
 
-      <div className="grid md:grid-cols-4 gap-6">
-        {products.map((product) => (
-          <Link
-            key={product.id}
-            href={`/products/${product.slug}`}
-            className="border rounded-xl p-4"
-          >
-            {product.images[0] && (
-              <img
-                src={
-                  product.images[0].url
-                }
-                alt={product.title}
-                className="w-full h-48 object-cover rounded mb-3"
-              />
-            )}
+                    <option value="price_asc">
+                        ارزان‌ترین
+                    </option>
 
-            <h2 className="font-bold">
-              {product.title}
-            </h2>
+                    <option value="price_desc">
+                        گران‌ترین
+                    </option>
+                </select>
+                <button
+                    type="submit"
+                    className="border px-4 py-2 rounded mt-3"
+                >
+                    اعمال فیلتر
+                </button>
 
-            <p className="text-sm text-gray-500">
-              {
-                product.category.name
-              }
-            </p>
+            </form>
 
-            <p className="mt-3 font-bold">
-              $
-              {Number(
-                product.price
-              )}
-            </p>
-          </Link>
-        ))}
-      </div>
 
-      <div className="flex justify-center gap-2 mt-10">
-        {Array.from(
-          {
-            length: totalPages,
-          },
-          (_, i) => i + 1
-        ).map((pageNumber) => (
-          <Link
-            key={pageNumber}
-            href={`/products?page=${pageNumber}&q=${q || ""}&category=${category || ""}`}
-            className={`border px-4 py-2 rounded ${
-              pageNumber ===
-              currentPage
-                ? "bg-black text-white"
-                : ""
-            }`}
-          >
-            {pageNumber}
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
+            <div className="grid md:grid-cols-4 gap-6">
+                {products.map((product) => (
+                    <Link
+                        key={product.id}
+                        href={`/products/${product.slug}`}
+                        className="border rounded-xl p-4"
+                    >
+                        {product.images[0] && (
+                            <img
+                                src={
+                                    product.images[0].url
+                                }
+                                alt={product.title}
+                                className="w-full h-48 object-cover rounded mb-3"
+                            />
+                        )}
+
+                        <h2 className="font-bold">
+                            {product.title}
+                        </h2>
+
+                        <p className="text-sm text-gray-500">
+                            {
+                                product.category.name
+                            }
+                        </p>
+
+                        <p className="mt-3 font-bold">
+                            $
+                            {Number(
+                                product.price
+                            )}
+                        </p>
+                    </Link>
+                ))}
+            </div>
+
+            <div className="flex justify-center gap-2 mt-10">
+                {Array.from(
+                    {
+                        length: totalPages,
+                    },
+                    (_, i) => i + 1
+                ).map((pageNumber) => (
+                    <Link
+                        key={pageNumber}
+                        href={`/products?page=${pageNumber}&q=${q || ""}&category=${category || ""}&sort=${sort || "newest"}`}
+                        className={`border px-4 py-2 rounded ${pageNumber ===
+                                currentPage
+                                ? "bg-black text-white"
+                                : ""
+                            }`}
+                    >
+                        {pageNumber}
+                    </Link>
+                ))}
+            </div>
+        </div>
+    );
 }
