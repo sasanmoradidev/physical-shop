@@ -3,41 +3,72 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const mobile = await prisma.category.create({
-    data: {
-      name: "موبایل",
-      slug: "mobile",
+  const admin = await prisma.user.findFirst({
+    where: {
+      role: "ADMIN",
     },
   });
 
-  const laptop = await prisma.category.create({
-    data: {
-      name: "لپ تاپ",
-      slug: "laptop",
+  if (!admin) {
+    console.log("Admin not found");
+    return;
+  }
+
+  const address = await prisma.address.findFirst({
+    where: {
+      userId: admin.id,
     },
   });
 
-  await prisma.product.create({
-    data: {
-      title: "iPhone 15 Pro",
-      slug: "iphone-15-pro",
-      description: "Apple iPhone 15 Pro",
-      price: 999,
-      stock: 10,
-      categoryId: mobile.id,
-    },
-  });
+  if (!address) {
+    console.log("Address not found");
+    return;
+  }
 
-  await prisma.product.create({
-    data: {
-      title: "MacBook Air M3",
-      slug: "macbook-air-m3",
-      description: "Apple MacBook Air M3",
-      price: 1499,
-      stock: 5,
-      categoryId: laptop.id,
-    },
-  });
+  const products = await prisma.product.findMany();
+
+  if (products.length < 2) {
+    console.log("At least 2 products required");
+    return;
+  }
+
+  for (let i = 0; i < 20; i++) {
+    const product1 =
+      products[Math.floor(Math.random() * products.length)];
+
+    const product2 =
+      products[Math.floor(Math.random() * products.length)];
+
+    const totalPrice =
+      Number(product1.price) +
+      Number(product2.price);
+
+    await prisma.order.create({
+      data: {
+        userId: admin.id,
+        addressId: address.id,
+        totalPrice,
+        status: "PENDING",
+
+        items: {
+          create: [
+            {
+              productId: product1.id,
+              quantity: 1,
+              price: product1.price,
+            },
+            {
+              productId: product2.id,
+              quantity: 1,
+              price: product2.price,
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  console.log("20 orders created");
 }
 
 main()

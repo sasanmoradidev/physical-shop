@@ -1,41 +1,61 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const router = useRouter();
+
+  const [email, setEmail] =
+    useState("admin@test.com");
+
+  const [password, setPassword] =
+    useState("123456");
 
   async function login() {
-    console.log({
-      email,
-      password,
-    });
+    const res = await fetch(
+      "/api/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      }
+    );
+
+    if (res.ok) {
+      console.log("LOGIN SUCCESS");
+      // فعلا برای رفرش شدن منو از این کد استفاده میشه بعدا باید با zustand مدیریت state بشه
+      window.location.href = "/admin";
+    }
   }
 
   return (
-    <div className="container mx-auto py-10 max-w-md">
-      <h1 className="text-3xl font-bold mb-6">
-        ورود
-      </h1>
-
+    <div className="container mx-auto py-10">
       <input
-        className="border p-2 w-full mb-4"
-        placeholder="Email"
         value={email}
         onChange={(e) =>
           setEmail(e.target.value)
         }
+        placeholder="email"
+        className="border p-2 block mb-4"
       />
 
       <input
         type="password"
-        className="border p-2 w-full mb-4"
-        placeholder="Password"
         value={password}
         onChange={(e) =>
-          setPassword(e.target.value)
+          setPassword(
+            e.target.value
+          )
         }
+        placeholder="password"
+        className="border p-2 block mb-4"
       />
 
       <button
