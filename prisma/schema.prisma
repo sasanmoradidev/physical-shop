@@ -68,13 +68,21 @@ model Order {
   id         String      @id @default(cuid())
   userId     String
   totalPrice Decimal     @db.Decimal(12, 2)
+
   status     OrderStatus @default(PENDING)
-  createdAt  DateTime?   @default(now())
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
   addressId  String
-  updatedAt  DateTime?   @updatedAt
-  address    Address     @relation(fields: [addressId], references: [id])
-  authority String?
-  user       User        @relation(fields: [userId], references: [id])
+
+  authority  String?
+  refId      String?
+  paidAt     DateTime?
+
+  address    Address @relation(fields: [addressId], references: [id])
+  user       User    @relation(fields: [userId], references: [id])
+
   items      OrderItem[]
 }
 

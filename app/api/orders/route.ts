@@ -26,6 +26,9 @@ export async function POST(
       );
     }
 
+    const payload =
+      await verifyToken(token);
+
     if (!body.addressId) {
       return NextResponse.json(
         {
@@ -35,17 +38,27 @@ export async function POST(
       );
     }
 
-    const payload =
-      await verifyToken(token);
-
     const items = body.items;
+
+    if (
+      !Array.isArray(items) ||
+      items.length === 0
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Cart is empty",
+        },
+        { status: 400 }
+      );
+    }
 
     const products =
       await prisma.product.findMany({
         where: {
           id: {
             in: items.map(
-              (i: any) => i.id
+              (item: any) => item.id
             ),
           },
         },
@@ -62,7 +75,29 @@ export async function POST(
         { status: 400 }
       );
     }
+    for (const item of items) {
+      const product = products.find(
+        (p) => p.id === item.id
+      );
 
+      if (!product) {
+        return NextResponse.json(
+          {
+            error: "Product not found",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (product.stock < item.quantity) {
+        return NextResponse.json(
+          {
+            error: `${product.title} موجودی کافی ندارد`,
+          },
+          { status: 400 }
+        );
+      }
+    }
     const totalPrice =
       items.reduce(
         (
@@ -75,12 +110,18 @@ export async function POST(
                 p.id === item.id
             );
 
+          if (!product) {
+            throw new Error(
+              `Product ${item.id} not found`
+            );
+          }
+
           return (
             sum +
             Number(
-              product!.price
+              product.price
             ) *
-              item.quantity
+            item.quantity
           );
         },
         0
@@ -110,15 +151,21 @@ export async function POST(
                         item.id
                     );
 
+                  if (!product) {
+                    throw new Error(
+                      `Product ${item.id} not found`
+                    );
+                  }
+
                   return {
                     productId:
-                      item.id,
+                      product.id,
 
                     quantity:
                       item.quantity,
 
                     price:
-                      product!.price,
+                      product.price,
                   };
                 }
               ),

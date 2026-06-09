@@ -12,6 +12,19 @@ export default async function MyOrdersPage() {
     redirect("/login");
   }
 
+  await prisma.order.updateMany({
+    where: {
+      userId: user.id,
+      status: "PENDING",
+      createdAt: {
+        lt: new Date(Date.now() - 10 * 60 * 1000),
+      },
+    },
+    data: {
+      status: "CANCELLED",
+    },
+  });
+
   const orders = await prisma.order.findMany({
     where: {
       userId: user.id,

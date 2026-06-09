@@ -1,35 +1,54 @@
-"use client";
+import { redirect } from "next/navigation";
+import { ClearCart } from "@/components/cart/clear-cart";
 
-import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+type Props = {
+  searchParams: {
+    Authority?: string;
+    Status?: string;
+  };
+};
 
-export default function PaymentCallback() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+export default async function PaymentCallbackPage({
+  searchParams,
+}: Props) {
+  const { Authority, Status } = searchParams;
 
-  const Authority = searchParams.get("Authority");
-  const Status = searchParams.get("Status");
+  if (!Authority) {
+    redirect("/");
+  }
 
-  useEffect(() => {
-    async function verify() {
-      const res = await fetch("/api/payment/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          Authority,
-          Status,
-        }),
-      });
-
-      if (res.ok) {
-        router.push("/profile/orders");
-      }
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/verify`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        Authority,
+        Status,
+      }),
+      cache: "no-store",
     }
+  );
 
-    verify();
-  }, []);
+  const data = await response.json();
 
-  return <div>در حال بررسی پرداخت...</div>;
+  if (!response.ok) {
+    redirect("/payment/failed");
+  }
+
+  return (
+    <div className="container mx-auto py-10">
+      <ClearCart />
+
+      <h1 className="text-3xl font-bold text-green-600">
+        پرداخت با موفقیت انجام شد
+      </h1>
+
+      <p className="mt-4">
+        سفارش شما ثبت شد
+      </p>
+    </div>
+  );
 }
