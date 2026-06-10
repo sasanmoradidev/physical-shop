@@ -69,27 +69,46 @@ export async function POST(req: Request) {
         );
       }
 
-      for (const item of orderWithItems.items) {
-        await prisma.product.update({
+      await prisma.$transaction(async (tx) => {
+
+        for (const item of orderWithItems.items) {
+
+          const result =
+            await tx.product.updateMany({
+              where: {
+                id: item.productId,
+                stock: {
+                  gte: item.quantity,
+                },
+              },
+              data: {
+                stock: {
+                  decrement:
+                    item.quantity,
+                },
+              },
+            });
+
+          if (result.count === 0) {
+            throw new Error(
+              "Insufficient stock"
+            );
+          }
+        }
+
+        await tx.order.update({
           where: {
-            id: item.productId,
+            id: order.id,
           },
           data: {
-            stock: {
-              decrement:
-                item.quantity,
-            },
+            status: "PAID",
+            refId: String(
+              data.data.ref_id
+            ),
+            paidAt: new Date(),
           },
         });
-      }
 
-      await prisma.order.update({
-        where: { id: order.id },
-        data: {
-          status: "PAID",
-          refId: String(data.data.ref_id),
-          paidAt: new Date(),
-        },
       });
 
       return NextResponse.json({ ok: true });

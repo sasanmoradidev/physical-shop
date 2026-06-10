@@ -11,7 +11,8 @@ type Props = {
 export default async function PaymentCallbackPage({
   searchParams,
 }: Props) {
-  const { Authority, Status } = searchParams;
+   console.log("CALLBACK PARAMS:", await searchParams);
+  const { Authority, Status } = await searchParams;
 
   if (!Authority) {
     redirect("/");
@@ -33,6 +34,7 @@ export default async function PaymentCallbackPage({
   );
 
   const data = await response.json();
+  console.log("VERIFY RESULT:", data);
 
   if (!response.ok) {
     redirect("/payment/failed");

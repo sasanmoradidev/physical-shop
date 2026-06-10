@@ -1,6 +1,6 @@
 "use client";
 
-import { useCartStore } from "@/store/cart-store";
+import { useCartStore } from "@/stores/cart-store";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
@@ -26,10 +26,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
 
   const items = useCartStore((state) => state.items);
-  const clearCart = useCartStore(
-    (state) => state.clearCart
-  );
-
+ 
   const total = items.reduce(
     (sum, item) =>
       sum + item.price * item.quantity,

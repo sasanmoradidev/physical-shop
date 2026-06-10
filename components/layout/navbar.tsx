@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCartStore } from "@/store/cart-store";
+import { useCartStore } from "@/stores/cart-store";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 export function Navbar() {

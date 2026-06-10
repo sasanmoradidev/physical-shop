@@ -1,70 +1,77 @@
-import { redirect } from "next/navigation";
+"use client";
 
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/current-user";
-
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
-export default async function MyOrdersPage() {
-  const user = await getCurrentUser();
+type Order = {
+  id: string;
+  status: string;
+  totalPrice: number;
+  createdAt: string;
+};
 
-  if (!user) {
-    redirect("/login");
-  }
+export default function OrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
 
-  await prisma.order.updateMany({
-    where: {
-      userId: user.id,
-      status: "PENDING",
-      createdAt: {
-        lt: new Date(Date.now() - 10 * 60 * 1000),
-      },
-    },
-    data: {
-      status: "CANCELLED",
-    },
-  });
-
-  const orders = await prisma.order.findMany({
-    where: {
-      userId: user.id,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  useEffect(() => {
+    fetch("/api/orders/my")
+      .then((res) => res.json())
+      .then((data) => setOrders(data));
+  }, []);
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">
+      <h1 className="text-2xl font-bold mb-6">
         سفارش‌های من
       </h1>
 
-      {orders.map((order) => (
-        <div
-          key={order.id}
-          className="border p-4 rounded mb-4"
-        >
-          <Link
-            href={`/profile/orders/${order.id}`}
-            className="block border p-4 rounded mb-4"
+      <div className="space-y-4">
+        {orders.map((order) => (
+          <div
+            key={order.id}
+            className="border p-4 rounded"
           >
-            <p>کد سفارش: {order.id}</p>
+            <p>شناسه: {order.id}</p>
+            <p>وضعیت: {order.status}</p>
+            <p>مبلغ: {order.totalPrice}</p>
 
-            <p>
-              مبلغ:
-              {" "}
-              {order.totalPrice.toString()}
-            </p>
+            <Link
+              href={`/profile/orders/${order.id}`}
+              className="text-blue-500"
+            >
+              مشاهده جزئیات
+            </Link>
 
-            <p>
-              وضعیت:
-              {" "}
-              {order.status}
-            </p>
-          </Link>
-        </div>
-      ))}
+            {order.status === "PENDING" && (
+              <button
+                className="ml-4 border px-2 py-1"
+                onClick={async () => {
+                  const res = await fetch(
+                    "/api/payment/create",
+                    {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        orderId: order.id,
+                      }),
+                    }
+                  );
+
+                  const data = await res.json();
+
+                  if (data.url) {
+                    window.location.href = data.url;
+                  }
+                }}
+              >
+                پرداخت مجدد
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

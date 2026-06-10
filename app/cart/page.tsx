@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useCartStore } from "@/store/cart-store";
+import { useCartStore } from "@/stores/cart-store";
 
 export default function CartPage() {
     const {

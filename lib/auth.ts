@@ -1,5 +1,10 @@
 import { SignJWT, jwtVerify } from "jose";
 
+type TokenPayload = {
+  userId: string;
+  role: string;
+};
+
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET
 );
@@ -14,11 +19,13 @@ export async function createToken(payload: {
     .sign(secret);
 }
 
-export async function verifyToken(token: string) {
+export async function verifyToken(
+  token: string
+): Promise<TokenPayload> {
   const { payload } = await jwtVerify(
     token,
     secret
   );
 
-  return payload;
+  return payload as TokenPayload;
 }

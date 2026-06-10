@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useCartStore } from "@/store/cart-store";
+import { useCartStore } from "@/stores/cart-store";
 
 type Props = {
   id: string;

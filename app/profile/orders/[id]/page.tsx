@@ -1,120 +1,104 @@
-import { redirect } from "next/navigation";
+"use client";
 
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/current-user";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
-type Props = {
-  params: Promise<{
+type Order = {
+  id: string;
+  status: string;
+  totalPrice: number;
+  address: {
+    city: string;
+    province: string;
+    addressLine: string;
+  };
+  items: {
     id: string;
-  }>;
+    quantity: number;
+    price: number;
+    product: {
+      title: string;
+    };
+  }[];
 };
 
-export default async function OrderPage(
-  { params }: Props
-) {
-  const user =
-    await getCurrentUser();
+export default function OrderDetailPage() {
+  const { id } = useParams();
+  const [order, setOrder] = useState<Order | null>(null);
 
-  if (!user) {
-    redirect("/login");
-  }
+  useEffect(() => {
+    fetch(`/api/orders/${id}`)
+      .then((res) => res.json())
+      .then((data) => setOrder(data));
+  }, [id]);
 
-  const { id } = await params;
-
-  const order =
-    await prisma.order.findFirst({
-      where: {
-        id,
-        userId: user.id,
-      },
-
-      include: {
-        address: true,
-
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
-
-  if (!order) {
-    return (
-      <div className="container mx-auto py-10">
-        سفارش پیدا نشد
-      </div>
-    );
-  }
+  if (!order) return <div>Loading...</div>;
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">
-        جزئیات سفارش
+      <h1 className="text-2xl font-bold mb-6">
+        سفارش #{order.id}
       </h1>
 
-      <div className="border rounded p-4 mb-6">
-        <p>
-          وضعیت:
-          {" "}
-          {order.status}
-        </p>
+      <p>وضعیت: {order.status}</p>
 
-        <p>
-          مبلغ:
-          {" "}
-          {order.totalPrice.toString()}
-        </p>
-      </div>
+      <p>
+        آدرس: {order.address.city} -{" "}
+        {order.address.province}
+      </p>
 
-      <div className="border rounded p-4 mb-6">
-        <h2 className="font-bold mb-3">
-          آدرس ارسال
-        </h2>
+      <p className="mb-4">
+        {order.address.addressLine}
+      </p>
 
-        <p>
-          {order.address.fullName}
-        </p>
-
-        <p>
-          {order.address.phone}
-        </p>
-
-        <p>
-          {order.address.province}
-          {" - "}
-          {order.address.city}
-        </p>
-
-        <p>
-          {order.address.addressLine}
-        </p>
-      </div>
-
-      <div className="border rounded p-4">
-        <h2 className="font-bold mb-3">
-          محصولات
-        </h2>
-
+      <div className="border p-4 rounded mb-4">
         {order.items.map((item) => (
           <div
             key={item.id}
-            className="flex justify-between border-b py-2"
+            className="flex justify-between"
           >
             <span>
-              {item.product.title}
+              {item.product.title} × {item.quantity}
             </span>
 
             <span>
-              {item.quantity}
-            </span>
-
-            <span>
-              {item.price.toString()}
+              {item.price * item.quantity}
             </span>
           </div>
         ))}
       </div>
+
+      <p className="font-bold">
+        مجموع: {order.totalPrice}
+      </p>
+
+      {order.status === "PENDING" && (
+        <button
+          className="mt-4 border px-4 py-2"
+          onClick={async () => {
+            const res = await fetch(
+              "/api/payment/create",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  orderId: order.id,
+                }),
+              }
+            );
+
+            const data = await res.json();
+
+            if (data.url) {
+              window.location.href = data.url;
+            }
+          }}
+        >
+          پرداخت مجدد
+        </button>
+      )}
     </div>
   );
 }

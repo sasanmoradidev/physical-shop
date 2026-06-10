@@ -1,6 +1,13 @@
 import { createAddress } from "../actions";
+import { getCurrentUser } from "@/lib/current-user";
+import { redirect } from "next/navigation";
 
-export default function NewAddressPage() {
+export default async function NewAddressPage() {
+  const user = await getCurrentUser;
+  if (!user) {
+    redirect("/login");
+  }
+
   return (
     <form
       action={createAddress}
