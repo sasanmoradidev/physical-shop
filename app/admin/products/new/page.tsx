@@ -11,7 +11,10 @@ export default async function NewProductPage() {
         Create Product
       </h1>
 
-      <form action={createProduct}>
+      <form
+        action={createProduct}
+        encType="multipart/form-data"
+      >
         <input
           name="title"
           placeholder="Title"
@@ -57,7 +60,12 @@ export default async function NewProductPage() {
             </option>
           ))}
         </select>
-
+        <input
+          type="file"
+          name="image"
+          accept="image/*"
+          className="border p-2 block mb-4"
+        />
         <button
           className="border px-4 py-2"
           type="submit"

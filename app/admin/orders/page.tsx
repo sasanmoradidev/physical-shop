@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { OrderBadge } from "@/components/admin/order-badge";
 
 type Props = {
   searchParams: Promise<{
@@ -73,9 +74,13 @@ export default async function AdminOrdersPage({
               {order.totalPrice.toString()}
             </p>
 
-            <p>
-              وضعیت: {order.status}
-            </p>
+            <div className="flex items-center gap-2">
+              <span>وضعیت:</span>
+
+              <OrderBadge
+                status={order.status}
+              />
+            </div>
 
             <p>
               شهر: {order.address.city}

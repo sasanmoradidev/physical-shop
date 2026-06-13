@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import fs from "fs/promises";
+import path from "path";
 
 export async function createProduct(
   formData: FormData
@@ -22,6 +24,41 @@ export async function createProduct(
   const categoryId =
     formData.get("categoryId") as string;
 
+  const image =
+    formData.get("image") as File;
+
+  let imageUrl = "";
+
+  if (image && image.size > 0) {
+    const bytes =
+      await image.arrayBuffer();
+
+    const buffer =
+      Buffer.from(bytes);
+
+    const fileName =
+      `${Date.now()}-${image.name}`;
+
+    const uploadDir = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      "products"
+    );
+
+    await fs.mkdir(uploadDir, {
+      recursive: true,
+    });
+
+    await fs.writeFile(
+      path.join(uploadDir, fileName),
+      buffer
+    );
+
+    imageUrl =
+      `/uploads/products/${fileName}`;
+  }
+
   await prisma.product.create({
     data: {
       title,
@@ -30,6 +67,14 @@ export async function createProduct(
       price,
       stock,
       categoryId,
+
+      images: imageUrl
+        ? {
+          create: {
+            url: imageUrl,
+          },
+        }
+        : undefined,
     },
   });
 
