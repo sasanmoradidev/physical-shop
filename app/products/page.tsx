@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import Image from "next/image";
 
 type Props = {
     searchParams: Promise<{
@@ -155,16 +156,6 @@ export default async function ProductsPage({
                         href={`/products/${product.slug}`}
                         className="border rounded-xl p-4"
                     >
-                        {product.images[0] && (
-                            <img
-                                src={
-                                    product.images[0].url
-                                }
-                                alt={product.title}
-                                className="w-full h-48 object-cover rounded mb-3"
-                            />
-                        )}
-
                         <h2 className="font-bold">
                             {product.title}
                         </h2>
@@ -174,7 +165,13 @@ export default async function ProductsPage({
                                 product.category.name
                             }
                         </p>
+                        <Image
 
+                            src={product.images?.[0]?.url || "/placeholder.png"}
+                            alt={product.title}
+                            width={200}
+                            height={200}
+                        />
                         <p className="mt-3 font-bold">
                             $
                             {Number(
@@ -196,9 +193,9 @@ export default async function ProductsPage({
                         key={pageNumber}
                         href={`/products?page=${pageNumber}&q=${q || ""}&category=${category || ""}&sort=${sort || "newest"}`}
                         className={`border px-4 py-2 rounded ${pageNumber ===
-                                currentPage
-                                ? "bg-black text-white"
-                                : ""
+                            currentPage
+                            ? "bg-black text-white"
+                            : ""
                             }`}
                     >
                         {pageNumber}

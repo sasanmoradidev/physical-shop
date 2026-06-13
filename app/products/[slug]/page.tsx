@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+import Image from "next/image";
 
 type Props = {
     params: Promise<{
@@ -27,13 +28,13 @@ export default async function ProductPage({
 
     return (
         <div className="container mx-auto py-10">
-            {product.images[0] && (
-                <img
-                    src={product.images[0].url}
-                    alt={product.title}
-                    className="w-full max-w-md rounded-lg"
-                />
-            )}
+            <Image
+                className="w-full max-w-md rounded-lg d-block m-auto"
+                src={product.images?.[0]?.url || "/placeholder.png"}
+                alt={product.title}
+                width={200}
+                height={200}
+            />
             <h1 className="text-3xl font-bold">
                 {product.title}
             </h1>

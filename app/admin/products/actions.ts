@@ -24,12 +24,19 @@ export async function createProduct(
   const categoryId =
     formData.get("categoryId") as string;
 
-  const image =
-    formData.get("image") as File;
+  const images =
+    formData.getAll("images") as File[];
 
-  let imageUrl = "";
+  const imageRecords: {
+    url: string;
+  }[] = [];
 
-  if (image && image.size > 0) {
+  for (const image of images) {
+
+    if (image.size === 0) {
+      continue;
+    }
+
     const bytes =
       await image.arrayBuffer();
 
@@ -46,17 +53,18 @@ export async function createProduct(
       "products"
     );
 
-    await fs.mkdir(uploadDir, {
-      recursive: true,
-    });
-
     await fs.writeFile(
-      path.join(uploadDir, fileName),
+      path.join(
+        uploadDir,
+        fileName
+      ),
       buffer
     );
 
-    imageUrl =
-      `/uploads/products/${fileName}`;
+    imageRecords.push({
+      url:
+        `/uploads/products/${fileName}`,
+    });
   }
 
   await prisma.product.create({
@@ -67,14 +75,9 @@ export async function createProduct(
       price,
       stock,
       categoryId,
-
-      images: imageUrl
-        ? {
-          create: {
-            url: imageUrl,
-          },
-        }
-        : undefined,
+      images: {
+        create: imageRecords ? imageRecords : undefined,
+      },
     },
   });
 

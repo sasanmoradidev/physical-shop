@@ -62,7 +62,8 @@ export default async function NewProductPage() {
         </select>
         <input
           type="file"
-          name="image"
+          name="images"
+          multiple
           accept="image/*"
           className="border p-2 block mb-4"
         />
