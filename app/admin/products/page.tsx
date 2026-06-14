@@ -5,6 +5,7 @@ import Image from "next/image";
 
 export default async function AdminProductsPage() {
     const products = await prisma.product.findMany({
+        orderBy: { createdAt: "desc" },
         include: {
             category: true,
             images: true,
@@ -25,7 +26,7 @@ export default async function AdminProductsPage() {
                     <h3>{product.title}</h3>
                     <p>{product.category.name}</p>
                     <Image
-                    
+
                         src={product.images?.[0]?.url || "/placeholder.png"}
                         alt={product.title}
                         width={200}
