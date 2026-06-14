@@ -1,31 +1,44 @@
 import { prisma } from "@/lib/prisma";
-import { ProductCard } from "@/components/products/product-card";
+import { HeroSwiper } from "@/components/home/hero-swiper";
+import { OfferSection } from "@/components/home/offer-section";
+import { NewProducts } from "@/components/home/new-products";
 
 export default async function HomePage() {
-  const products = await prisma.product.findMany({
+  const discountProducts = await prisma.product.findMany({
+    take: 5,
+    orderBy: { createdAt: "desc" },
     include: {
-      category: true,
+      images: true,
     },
   });
 
-  return (
-    <main className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-8">
-        فروشگاه
-      </h1>
+  const safeDiscountProducts = discountProducts.map((p) => ({
+    ...p,
+    price: p.price.toNumber(),
+    images: p.images ?? [],
+  }));
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            title={product.title}
-            description={product.description}
-            category={product.category.name}
-            price={Number(product.price)}
-            slug={product.slug}
-          />
-        ))}
-      </div>
-    </main>
+  const newProducts = await prisma.product.findMany({
+    take: 10,
+    orderBy: { createdAt: "desc" },
+    include: {
+      images: true,
+    },
+  });
+
+  const safeNewProducts = newProducts.map((p) => ({
+    ...p,
+    price: p.price.toNumber(),
+    images: p.images ?? [],
+  }));
+
+  return (
+    <div>
+      <HeroSwiper />
+
+      <OfferSection products={safeDiscountProducts} />
+
+      <NewProducts products={safeNewProducts} />
+    </div>
   );
 }

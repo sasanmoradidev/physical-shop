@@ -128,3 +128,7 @@
     @apply font-sans;
   }
 }
+
+body {
+  font-family: Vazirmatn, sans-serif;
+}

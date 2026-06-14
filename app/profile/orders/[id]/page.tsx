@@ -24,6 +24,7 @@ type Order = {
 
 export default function OrderDetailPage() {
   const { id } = useParams();
+
   const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {

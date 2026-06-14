@@ -19,11 +19,11 @@ export async function GET(
     }
 
     const payload = await verifyToken(token);
-
+    const {id} = await params;
     const order = await prisma.order.findFirst({
       where: {
-        id: params.id,
-        userId: payload.userId,
+        id: id,
+        userId: payload.userId as string,
       },
       include: {
         items: {
