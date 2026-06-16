@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
+import { ProductCard } from "@/components/product/product-card";
 
 type Props = {
     searchParams: Promise<{
@@ -151,34 +152,19 @@ export default async function ProductsPage({
 
             <div className="grid md:grid-cols-4 gap-6">
                 {products.map((product) => (
-                    <Link
+
+                    <ProductCard
                         key={product.id}
-                        href={`/products/${product.slug}`}
-                        className="border rounded-xl p-4"
-                    >
-                        <h2 className="font-bold">
-                            {product.title}
-                        </h2>
+                        product={{
+                            id: product.id,
+                            title: product.title,
+                            slug: product.slug,
+                            price: Number(product.price),
+                            images: product.images,
+                            stock: product.stock,
 
-                        <p className="text-sm text-gray-500">
-                            {
-                                product.category.name
-                            }
-                        </p>
-                        <Image
-
-                            src={product.images?.[0]?.url || "/placeholder.png"}
-                            alt={product.title}
-                            width={200}
-                            height={200}
-                        />
-                        <p className="mt-3 font-bold">
-                            $
-                            {Number(
-                                product.price
-                            )}
-                        </p>
-                    </Link>
+                        }}
+                    />
                 ))}
             </div>
 

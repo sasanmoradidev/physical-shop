@@ -9,9 +9,12 @@ type ProductCardProps = {
     title: string;
     slug: string;
     price: number;
+    stock: number;
     images?: {
       url: string;
     }[];
+
+    oldPrice?: number;
   };
 };
 
@@ -22,10 +25,24 @@ export function ProductCard({
     product.images?.[0]?.url ??
     "/placeholder.png";
 
+  const hasDiscount =
+    product.oldPrice &&
+    product.oldPrice > product.price;
+
+  const discountPercent =
+    hasDiscount
+      ? Math.round(
+        ((product.oldPrice! -
+          product.price) /
+          product.oldPrice!) *
+        100
+      )
+      : 0;
   return (
     <Link
       href={`/products/${product.slug}`}
       className="
+        group
         block
         bg-white
         border
@@ -38,10 +55,31 @@ export function ProductCard({
     >
       {/* Image */}
       <div className="relative aspect-square bg-gray-50">
+
+        {hasDiscount && (
+          <div
+            className="
+        absolute
+        top-2
+        right-2
+        z-10
+        bg-red-600
+        text-white
+        text-xs
+        px-2
+        py-1
+        rounded-lg
+      "
+          >
+            %{discountPercent}-
+          </div>
+        )}
+
         <Image
           src={image}
           alt={product.title}
           fill
+          sizes="(max-width: 768px) 50vw, 25vw"
           className="
             object-contain
             p-4
@@ -66,8 +104,15 @@ export function ProductCard({
         </h3>
 
         <div className="mt-3 flex justify-between items-center">
-          <span className="text-xs text-gray-500">
-            موجود
+          <span
+            className={`text-xs ${product.stock > 0
+              ? "text-green-600"
+              : "text-red-600"
+              }`}
+          >
+            {product.stock > 0
+              ? "موجود"
+              : "ناموجود"}
           </span>
 
           <span className="text-xs">
@@ -76,6 +121,13 @@ export function ProductCard({
         </div>
 
         <div className="mt-4 text-left">
+
+          {hasDiscount && (
+            <div className="text-sm text-gray-400 line-through">
+              {product.oldPrice?.toLocaleString()}
+            </div>
+          )}
+
           <div
             className="
               font-bold
@@ -89,8 +141,24 @@ export function ProductCard({
           <div className="text-xs text-gray-500">
             تومان
           </div>
+
         </div>
 
+        <button
+          className="
+            mt-4
+            w-full
+            rounded-xl
+            bg-red-600
+            text-white
+            py-2
+            opacity-0
+            group-hover:opacity-100
+            transition
+          "
+        >
+          افزودن به سبد
+        </button>
       </div>
     </Link>
   );

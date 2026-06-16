@@ -2,8 +2,7 @@
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
-import Image from "next/image";
-import Link from "next/link";
+import { ProductCard } from "@/components/product/product-card";
 
 export function NewProducts({ products }: any) {
     return (
@@ -22,24 +21,17 @@ export function NewProducts({ products }: any) {
             >
                 {products.map((p: any) => (
                     <SwiperSlide key={p.id}>
-                        <Link
-                            href={`/products/${p.slug}`}
-                            className="border rounded-xl p-3 block"
-                        >
-                            <Image
-                                src={p.images?.[0]?.url || "/placeholder.png"}
-                                alt={p.title}
-                                width={200}
-                                height={200}
-                            />
-                            <div className="font-bold">
-                                {p.title}
-                            </div>
+                        <ProductCard
+                            product={{
+                                id: p.id,
+                                title: p.title,
+                                slug: p.slug,
+                                price: Number(p.price),
+                                images: p.images,
+                                stock: p.stock,
 
-                            <div className="text-sm text-gray-600 mt-2">
-                                {p.price.toString()} تومان
-                            </div>
-                        </Link>
+                            }}
+                        />
                     </SwiperSlide>
                 ))}
             </Swiper>

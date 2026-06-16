@@ -1,73 +1,79 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
+import { ProductCard } from "@/components/product/product-card";
 
 export function OfferSection({ products }: any) {
-    return (
-        <div className="container mx-auto mt-10">
+  return (
+    <div className="container mx-auto mt-10">
 
-            {/* TITLE */}
-            <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold">
-                    آفر ویژه
-                </h2>
+      {/* GRID */}
+      <div className="grid md:grid-cols-3 gap-4 items-stretch">
 
-                <span className="text-red-500 text-sm">
-                    تخفیف ویژه امروز
-                </span>
-            </div>
+        {/* LEFT */}
+        <div className="h-full flex flex-col">
 
-            {/* GRID */}
-            <div className="grid md:grid-cols-3 gap-4">
+          <h2 className="text-xl mb-4 font-bold">
+            آفر ویژه
+          </h2>
 
-                {/* LEFT IMAGE */}
-                <div className="relative rounded-2xl overflow-hidden md:col-span-1">
-                    <Image
-                        src="/uploads/offer.jpg"
-                        alt="offer"
-                        width={500}
-                        height={700}
-                        className="w-full h-full object-cover"
-                    />
-                </div>
+          <div className="relative flex-1 overflow-hidden rounded-xl">
 
-                {/* RIGHT SWIPER */}
-                <div className="md:col-span-2">
+            <Image
+              src="/uploads/offer02.jpg"
+              alt="offer"
+              fill
+              className="object-cover hover:scale-105 transition duration-300"
+            />
 
-                    <Swiper
-                        slidesPerView={1}
-                        spaceBetween={16}
-                    >
-                        {products.map((p: any) => (
-                            <SwiperSlide key={p.id}>
-                                <Link
-                                    href={`/products/${p.slug}`}
-                                    className="border rounded-xl p-4 block"
-                                >
-                                    <Image
-                                        src={p.images?.[0]?.url || "/placeholder.png"}
-                                        alt={p.title}
-                                        width={200}
-                                        height={200}
-                                    />
-                                    <div className="font-bold">
-                                        {p.title}
-                                    </div>
+          </div>
 
-                                    <div className="text-red-500 mt-2">
-                                        {p.price.toLocaleString()} تومان
-                                    </div>
-
-                                </Link>
-                            </SwiperSlide>
-                        ))}
-                    </Swiper>
-
-                </div>
-            </div>
         </div>
-    );
+
+        {/* RIGHT */}
+        <div className="md:col-span-2 h-full flex flex-col">
+
+          <h2 className="text-xl mb-4 text-red-500 font-bold">
+            تخفیف ویژه امروز
+          </h2>
+
+          <div className="flex-1">
+
+            <Swiper
+              slidesPerView={3}
+              spaceBetween={16}
+              className="h-full"
+              breakpoints={{
+                768: { slidesPerView: 3 },
+                0: { slidesPerView: 2 },
+              }}
+            >
+
+              {products.map((p: any) => (
+                <SwiperSlide key={p.id}>
+                  <ProductCard
+                    product={{
+                      id: p.id,
+                      title: p.title,
+                      slug: p.slug,
+                      price: Number(p.price),
+                      images: p.images,
+                      stock: p.stock, // 👈 fix typo (stck ❌)
+                    }}
+                  />
+                </SwiperSlide>
+              ))}
+
+            </Swiper>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
 }

@@ -37,7 +37,16 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b">
-
+      {/*Top Banner*/}
+      <div>
+        <Image
+          src="/uploads/topbanner.gif"
+          alt="Top Banner"
+          width={1920}
+          height={60}
+          className="w-full"
+        />
+      </div>
       {/* TOP BAR */}
       <div className="container mx-auto flex items-center gap-4 py-3">
 
