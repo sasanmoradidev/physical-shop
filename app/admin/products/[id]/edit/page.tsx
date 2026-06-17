@@ -1,76 +1,62 @@
 import { prisma } from "@/lib/prisma";
 import { updateProduct } from "../../actions";
+import { ImageManager } from "@/components/admin/image-manager";
 
 type Props = {
-  params: Promise<{
+  params: {
     id: string;
-  }>;
+  };
 };
 
-export default async function EditProductPage({
-  params,
-}: Props) {
-  const { id } = await params;
-
+export default async function EditProductPage({ params }: Props) {
+  
   const product = await prisma.product.findUnique({
-    where: {
-      id,
+    where: { id: params.id },
+    include: {
+      images: true,
     },
   });
 
-  if (!product) {
-    return <div>Product not found</div>;
-  }
+  if (!product) return <div>Product not found</div>;
 
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">
-        Edit Product
+    <div className="container max-w-5xl mx-auto py-10">
+      <h1 className="text-3xl font-bold mb-8">
+        ویرایش محصول
       </h1>
 
       <form
-        action={updateProduct.bind(
-          null,
-          product.id
-        )}
+        action={updateProduct.bind(null, product.id)}
+        className="bg-white rounded-2xl shadow border p-8 space-y-8"
       >
+        {/* INFO */}
         <input
           name="title"
           defaultValue={product.title}
-          className="border p-2 block mb-4"
-        />
-
-        <input
-          name="slug"
-          defaultValue={product.slug}
-          className="border p-2 block mb-4"
+          className="w-full border p-3 rounded-xl"
         />
 
         <textarea
           name="description"
           defaultValue={product.description}
-          className="border p-2 block mb-4"
+          className="w-full border p-3 rounded-xl"
         />
 
-        <input
-          name="price"
-          type="number"
-          defaultValue={Number(product.price)}
-          className="border p-2 block mb-4"
-        />
+        {/* IMAGES */}
+        <section>
+          <h2 className="font-bold mb-4">تصاویر</h2>
 
-        <input
-          name="stock"
-          type="number"
-          defaultValue={product.stock}
-          className="border p-2 block mb-4"
-        />
+          <ImageManager
+            initialImages={product.images}
+            onChange={() => {}}
+          />
+        </section>
 
         <button
           type="submit"
-          className="border px-4 py-2"
+          className="bg-green-600 text-white px-6 py-3 rounded-xl"
         >
-          Save
+          ذخیره
         </button>
       </form>
     </div>

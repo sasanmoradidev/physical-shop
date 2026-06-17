@@ -5,66 +5,79 @@ import { redirect } from "next/navigation";
 import fs from "fs/promises";
 import path from "path";
 
-export async function createProduct(
-  formData: FormData
-) {
+/* =========================
+   📁 UPLOAD HELPER
+========================= */
+
+async function saveImage(file: File) {
+  const uploadDir = path.join(
+    process.cwd(),
+    "public",
+    "uploads",
+    "products"
+  );
+
+  await fs.mkdir(uploadDir, { recursive: true });
+
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  const fileName = `${Date.now()}-${file.name}`;
+  const filePath = path.join(uploadDir, fileName);
+
+  await fs.writeFile(filePath, buffer);
+
+  return `/uploads/products/${fileName}`;
+}
+
+/* =========================
+   🟢 CREATE PRODUCT
+========================= */
+
+export async function createProduct(formData: FormData) {
   const title = formData.get("title") as string;
   const slug = formData.get("slug") as string;
-  const description =
-    formData.get("description") as string;
+  const description = formData.get("description") as string;
 
-  const price = Number(
-    formData.get("price")
-  );
+  const price = Number(formData.get("price"));
+  const stock = Number(formData.get("stock"));
+  const categoryId = formData.get("categoryId") as string;
+  if (!categoryId) {
+    throw new Error("Category is required");
+  }
 
-  const stock = Number(
-    formData.get("stock")
-  );
+  const offerPriceValue = formData.get("offerPrice");
+  const offerPrice =
+    offerPriceValue && offerPriceValue !== ""
+      ? Number(offerPriceValue)
+      : null;
 
-  const categoryId =
-    formData.get("categoryId") as string;
+  const offerStartsAtValue = formData.get("offerStartsAt");
+  const offerEndsAtValue = formData.get("offerEndsAt");
 
-  const images =
-    formData.getAll("images") as File[];
+  const offerStartsAt =
+    offerStartsAtValue && offerStartsAtValue !== ""
+      ? new Date(offerStartsAtValue as string)
+      : null;
 
-  const imageRecords: {
-    url: string;
-  }[] = [];
+  const offerEndsAt =
+    offerEndsAtValue && offerEndsAtValue !== ""
+      ? new Date(offerEndsAtValue as string)
+      : null;
 
-  for (const image of images) {
+  const isActive = formData.get("isActive") === "on";
+  const offerEnabled = !!offerPrice;
 
-    if (image.size === 0) {
-      continue;
-    }
+  const images = formData.getAll("images") as File[];
 
-    const bytes =
-      await image.arrayBuffer();
+  const imageRecords: { url: string }[] = [];
 
-    const buffer =
-      Buffer.from(bytes);
+  for (const file of images) {
+    if (!file || file.size === 0) continue;
 
-    const fileName =
-      `${Date.now()}-${image.name}`;
+    const url = await saveImage(file);
 
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "products"
-    );
-
-    await fs.writeFile(
-      path.join(
-        uploadDir,
-        fileName
-      ),
-      buffer
-    );
-
-    imageRecords.push({
-      url:
-        `/uploads/products/${fileName}`,
-    });
+    imageRecords.push({ url });
   }
 
   await prisma.product.create({
@@ -75,8 +88,19 @@ export async function createProduct(
       price,
       stock,
       categoryId,
+
+      isActive,
+      offerEnabled,
+
+      offerPrice,
+      offerStartsAt,
+      offerEndsAt,
+
       images: {
-        create: imageRecords ? imageRecords : undefined,
+        create:
+          imageRecords.length > 0
+            ? imageRecords
+            : undefined,
       },
     },
   });
@@ -84,31 +108,65 @@ export async function createProduct(
   redirect("/admin/products");
 }
 
+/* =========================
+   🟡 UPDATE PRODUCT
+========================= */
+
 export async function updateProduct(
   id: string,
   formData: FormData
 ) {
+  const offerPriceValue = formData.get("offerPrice");
+  const offerPrice =
+    offerPriceValue && offerPriceValue !== ""
+      ? Number(offerPriceValue)
+      : null;
+
+  const offerStartsAtValue = formData.get("offerStartsAt");
+  const offerEndsAtValue = formData.get("offerEndsAt");
+
+  const offerStartsAt =
+    offerStartsAtValue && offerStartsAtValue !== ""
+      ? new Date(offerStartsAtValue as string)
+      : null;
+
+  const offerEndsAt =
+    offerEndsAtValue && offerEndsAtValue !== ""
+      ? new Date(offerEndsAtValue as string)
+      : null;
+
+  const isActive = formData.get("isActive") === "on";
+  const offerEnabled = formData.get("offerEnabled") === "on";
+
   await prisma.product.update({
-    where: {
-      id,
-    },
+    where: { id },
     data: {
       title: formData.get("title") as string,
       slug: formData.get("slug") as string,
       description: formData.get("description") as string,
+
       price: Number(formData.get("price")),
       stock: Number(formData.get("stock")),
+
+      isActive,
+      offerEnabled,
+
+      offerPrice,
+      offerStartsAt,
+      offerEndsAt,
     },
   });
 
   redirect("/admin/products");
 }
 
+/* =========================
+   🔴 DELETE PRODUCT
+========================= */
+
 export async function deleteProduct(id: string) {
   await prisma.product.delete({
-    where: {
-      id,
-    },
+    where: { id },
   });
 
   redirect("/admin/products");

@@ -3,18 +3,28 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import {
+  getDiscountPercent,
+  getFinalPrice,
+  hasActiveOffer,
+} from "@/lib/product-price";
+
 type ProductCardProps = {
   product: {
     id: string;
     title: string;
     slug: string;
+
     price: number;
+    offerPrice: number | null;
+    offerStartsAt: Date | null;
+    offerEndsAt: Date | null;
+
     stock: number;
+
     images?: {
       url: string;
     }[];
-
-    oldPrice?: number;
   };
 };
 
@@ -26,18 +36,14 @@ export function ProductCard({
     "/placeholder.png";
 
   const hasDiscount =
-    product.oldPrice &&
-    product.oldPrice > product.price;
+    hasActiveOffer(product);
+
+  const finalPrice =
+    getFinalPrice(product);
 
   const discountPercent =
-    hasDiscount
-      ? Math.round(
-        ((product.oldPrice! -
-          product.price) /
-          product.oldPrice!) *
-        100
-      )
-      : 0;
+    getDiscountPercent(product);
+
   return (
     <Link
       href={`/products/${product.slug}`}
@@ -53,23 +59,22 @@ export function ProductCard({
         duration-300
       "
     >
-      {/* Image */}
       <div className="relative aspect-square bg-gray-50">
 
         {hasDiscount && (
           <div
             className="
-        absolute
-        top-2
-        right-2
-        z-10
-        bg-red-600
-        text-white
-        text-xs
-        px-2
-        py-1
-        rounded-lg
-      "
+              absolute
+              top-2
+              right-2
+              z-10
+              bg-red-600
+              text-white
+              text-xs
+              px-2
+              py-1
+              rounded-lg
+            "
           >
             %{discountPercent}-
           </div>
@@ -79,17 +84,16 @@ export function ProductCard({
           src={image}
           alt={product.title}
           fill
-          sizes="(max-width: 768px) 50vw, 25vw"
+          sizes="(max-width:768px) 50vw, 25vw"
           className="
             object-contain
             p-4
-            hover:scale-105
+            group-hover:scale-105
             transition
           "
         />
       </div>
 
-      {/* Content */}
       <div className="p-4">
 
         <h3
@@ -105,10 +109,11 @@ export function ProductCard({
 
         <div className="mt-3 flex justify-between items-center">
           <span
-            className={`text-xs ${product.stock > 0
-              ? "text-green-600"
-              : "text-red-600"
-              }`}
+            className={`text-xs ${
+              product.stock > 0
+                ? "text-green-600"
+                : "text-red-600"
+            }`}
           >
             {product.stock > 0
               ? "موجود"
@@ -124,18 +129,22 @@ export function ProductCard({
 
           {hasDiscount && (
             <div className="text-sm text-gray-400 line-through">
-              {product.oldPrice?.toLocaleString()}
+              {product.price.toLocaleString()}
             </div>
           )}
 
           <div
-            className="
+            className={`
               font-bold
               text-lg
-              text-red-600
-            "
+              ${
+                hasDiscount
+                  ? "text-red-600"
+                  : "text-gray-900"
+              }
+            `}
           >
-            {product.price.toLocaleString()}
+            {finalPrice.toLocaleString()}
           </div>
 
           <div className="text-xs text-gray-500">
@@ -145,20 +154,26 @@ export function ProductCard({
         </div>
 
         <button
-          className="
+          disabled={product.stock === 0}
+          className={`
             mt-4
             w-full
             rounded-xl
-            bg-red-600
-            text-white
             py-2
-            opacity-0
-            group-hover:opacity-100
             transition
-          "
+
+            ${
+              product.stock > 0
+                ? "bg-green-600 text-white opacity-0 group-hover:opacity-100"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-100"
+            }
+          `}
         >
-          افزودن به سبد
+          {product.stock > 0
+            ? "افزودن به سبد"
+            : "ناموجود"}
         </button>
+
       </div>
     </Link>
   );

@@ -3,9 +3,6 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import { ProductCard } from "./product-card";
 
-import Image from "next/image";
-import Link from "next/link";
-
 type RelatedProductsSliderProps = {
     relatedProducts: {
         id: string;
