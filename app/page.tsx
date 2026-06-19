@@ -8,7 +8,9 @@ export default async function HomePage() {
     take: 5,
     orderBy: { createdAt: "desc" },
     include: {
-      images: true,
+      images: {
+        orderBy: { order: "asc" }, // 👈 اضافه کردن ترتیب لود تصاویر
+      },
     },
   });
 
@@ -22,7 +24,9 @@ export default async function HomePage() {
     take: 10,
     orderBy: { createdAt: "desc" },
     include: {
-      images: true,
+      images: {
+        orderBy: { order: "asc" }, // 👈 اضافه کردن ترتیب لود تصاویر
+      },
     },
   });
 

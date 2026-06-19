@@ -1,11 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortableImageItem } from "./sortable-image-item";
 
 type ImageItem = {
-  id?: string;
+  id: string;
   url: string;
+  file?: File;
 };
 
 type Props = {
@@ -13,45 +26,54 @@ type Props = {
   onChange: (images: ImageItem[]) => void;
 };
 
-export function ImageManager({
-  initialImages,
-  onChange,
-}: Props) {
-  const [images, setImages] = useState<ImageItem[]>(initialImages);
+export function ImageManager({ initialImages, onChange }: Props) {
+  // تنظیم سنسور Pointer برای اینکه کلیک روی دکمه حذف باعث شروع درگ نشود
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
-  const removeImage = (index: number) => {
-    const updated = images.filter((_, i) => i !== index);
-    setImages(updated);
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = initialImages.findIndex((img) => img.id === active.id);
+      const newIndex = initialImages.findIndex((img) => img.id === over.id);
+
+      const newOrderedImages = arrayMove(initialImages, oldIndex, newIndex);
+      onChange(newOrderedImages);
+    }
+  }
+
+  const removeImage = (id: string) => {
+    const updated = initialImages.filter((img) => img.id !== id);
     onChange(updated);
   };
 
   return (
-    <div>
-      <div className="grid grid-cols-4 gap-3">
-        {images.map((img, index) => (
-          <div
-            key={index}
-            className="relative group border rounded-lg overflow-hidden"
-          >
-            <Image
-              src={img.url}
-              alt=""
-              width={150}
-              height={150}
-              className="object-cover w-full h-24"
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext
+        items={initialImages.map((img) => img.id)}
+        strategy={rectSortingStrategy}
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
+          {initialImages.map((img) => (
+            <SortableImageItem
+              key={img.id}
+              id={img.id}
+              url={img.url}
+              onRemove={() => removeImage(img.id)}
             />
-
-            {/* delete button */}
-            <button
-              type="button"
-              onClick={() => removeImage(index)}
-              className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100"
-            >
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
   );
 }

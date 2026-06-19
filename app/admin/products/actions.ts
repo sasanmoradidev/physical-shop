@@ -75,19 +75,8 @@ export async function createProduct(formData: FormData) {
   const isActive = formData.get("isActive") === "on";
   const offerEnabled = !!offerPrice;
 
-  const images = formData.getAll("images") as File[];
-
-  const imageRecords: { url: string }[] = [];
-
-  for (const file of images) {
-    if (!file || file.size === 0) continue;
-
-    const url = await saveImage(file);
-
-    imageRecords.push({ url });
-  }
-
-  await prisma.product.create({
+  // ایجاد اولیه محصول بدون تصاویر
+  const product = await prisma.product.create({
     data: {
       title,
       slug,
@@ -95,25 +84,20 @@ export async function createProduct(formData: FormData) {
       price,
       stock,
       categoryId,
-
       isActive,
       offerEnabled,
-
       offerPrice,
       offerStartsAt,
       offerEndsAt,
-
-      images: {
-        create:
-          imageRecords.length > 0
-            ? imageRecords
-            : undefined,
-      },
     },
   });
 
+  // ثبت و اعمال ترتیب تصاویر با تابع کمکی جدید
+  await processOrderedImages(formData, product.id);
+
   redirect("/admin/products");
 }
+
 /* =========================
    🟡 UPDATE PRODUCT
 ========================= */
@@ -122,6 +106,11 @@ export async function updateProduct(
   id: string,
   formData: FormData
 ) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    throw new Error("دسترسی غیرمجاز");
+  }
+
   const title = formData.get("title") as string;
   const slug = formData.get("slug") as string;
   const description = formData.get("description") as string;
@@ -150,32 +139,7 @@ export async function updateProduct(
 
   const isActive = formData.get("isActive") === "on";
 
-  // ۱. مدیریت تصاویر نگه‌داشته شده (حذف موارد پاک‌شده توسط کاربر)
-  const keptImageIdsRaw = formData.get("keptImageIds") as string;
-  const keptImageIds: string[] = keptImageIdsRaw ? JSON.parse(keptImageIdsRaw) : [];
-
-  // حذف تصاویری که کاربر در کلاینت دکمه ضربدر آن‌ها را زده است
-  await prisma.productImage.deleteMany({
-    where: {
-      productId: id,
-      id: {
-        notIn: keptImageIds,
-      },
-    },
-  });
-
-  // ۲. ذخیره تصاویر جدید آپلود شده
-  const newImages = formData.getAll("images") as File[];
-  const newImageRecords: { url: string }[] = [];
-
-  for (const file of newImages) {
-    if (!file || file.size === 0) continue;
-
-    const url = await saveImage(file);
-    newImageRecords.push({ url });
-  }
-
-  // ۳. آپدیت اطلاعات محصول و ثبت تصاویر جدید
+  // بروزرسانی فیلدهای محصول
   await prisma.product.update({
     where: { id },
     data: {
@@ -188,14 +152,11 @@ export async function updateProduct(
       offerPrice,
       offerStartsAt,
       offerEndsAt,
-      images: {
-        create:
-          newImageRecords.length > 0
-            ? newImageRecords
-            : undefined,
-      },
     },
   });
+
+  // پردازش و آپدیت ترتیب جدید تصاویر
+  await processOrderedImages(formData, id);
 
   redirect("/admin/products");
 }
@@ -215,4 +176,59 @@ export async function deleteProduct(id: string) {
   });
 
   redirect("/admin/products");
+}
+
+/* =========================
+   📁 SORTED IMAGES HELPER
+========================= */
+
+async function processOrderedImages(formData: FormData, productId: string) {
+  const imageOrderRaw = formData.get("imageOrder") as string;
+  if (!imageOrderRaw) return;
+
+  const imageOrder: string[] = JSON.parse(imageOrderRaw);
+
+  // ۱. شناسایی تصاویری که باید در دیتابیس حفظ شوند
+  const existingImageIdsToKeep = imageOrder.filter(
+    (id) => !formData.has(`file_${id}`)
+  );
+
+  // حذف تصاویری که کاربر آن‌ها را از فرم کلاینت پاک کرده است
+  await prisma.productImage.deleteMany({
+    where: {
+      productId,
+      id: {
+        notIn: existingImageIdsToKeep,
+      },
+    },
+  });
+
+  // ۲. پیمایش ترتیب جدید تصاویر و اعمال مقادیر عددی فیلد order
+  for (let index = 0; index < imageOrder.length; index++) {
+    const id = imageOrder[index];
+    const file = formData.get(`file_${id}`) as File | null;
+
+    if (file && file.size > 0) {
+      // این یک تصویر جدید است؛ آن را ذخیره و ایجاد می‌کنیم
+      const url = await saveImage(file);
+      await prisma.productImage.create({
+        data: {
+          url,
+          order: index, // ذخیره ایندکس آرایه به عنوان اولویت ترتیب
+          productId,
+        },
+      });
+    } else {
+      // این یک تصویر قدیمی است؛ فقط فیلد order (ترتیب چیدمان جدید) آن را آپدیت می‌کنیم
+      await prisma.productImage.updateMany({
+        where: {
+          productId,
+          id,
+        },
+        data: {
+          order: index,
+        },
+      });
+    }
+  }
 }

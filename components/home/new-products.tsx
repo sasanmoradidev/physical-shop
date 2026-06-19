@@ -29,6 +29,9 @@ export function NewProducts({ products }: any) {
                                 price: Number(p.price),
                                 images: p.images,
                                 stock: p.stock,
+                                offerPrice: p.offerPrice ? Number(p.offerPrice) : null,
+                                offerStartsAt: p.offerStartsAt,
+                                offerEndsAt: p.offerEndsAt,
 
                             }}
                         />

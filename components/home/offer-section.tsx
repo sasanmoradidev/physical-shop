@@ -60,7 +60,7 @@ export function OfferSection({ products }: any) {
               slidesPerView={3}
               spaceBetween={20}
               className="h-full"
-              
+
               autoplay={{
                 delay: 4000,
                 disableOnInteraction: false,
@@ -87,7 +87,10 @@ export function OfferSection({ products }: any) {
                       slug: p.slug,
                       price: Number(p.price),
                       images: p.images,
-                      stock: p.stock, // 👈 fix typo (stck ❌)
+                      stock: p.stock,
+                      offerPrice: p.offerPrice ? Number(p.offerPrice) : null,
+                      offerStartsAt: p.offerStartsAt,
+                      offerEndsAt: p.offerEndsAt,
                     }}
                   />
                 </SwiperSlide>

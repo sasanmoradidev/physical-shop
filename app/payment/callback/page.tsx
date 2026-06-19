@@ -2,16 +2,15 @@ import { redirect } from "next/navigation";
 import { ClearCart } from "@/components/cart/clear-cart";
 
 type Props = {
-  searchParams: {
+searchParams: Promise<{
     Authority?: string;
     Status?: string;
-  };
+  }>;
 };
 
 export default async function PaymentCallbackPage({
   searchParams,
 }: Props) {
-   console.log("CALLBACK PARAMS:", await searchParams);
   const { Authority, Status } = await searchParams;
 
   if (!Authority) {

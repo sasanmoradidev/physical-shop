@@ -47,12 +47,13 @@ export function RelatedProductsSlider({
                                     id: related.id,
                                     title: related.title,
                                     slug: related.slug,
-                                    price: Number(
-                                        related.price
-                                    ),
+                                    price: Number(related.price),
                                     stock: related.stock,
-                                    images:
-                                        related.images,
+                                    images: related.images,
+                                    offerPrice: related.offerPrice ? Number(related.offerPrice) : null,
+                                    offerStartsAt: related.offerStartsAt,
+                                    offerEndsAt: related.offerEndsAt,
+
                                 }}
                             />
                         </SwiperSlide>

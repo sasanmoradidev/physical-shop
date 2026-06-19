@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import ProductForm from "@/components/admin/product-form";
+import { serializeProduct } from "@/lib/mappers/product.mapper"; // 👈 ایمپورت مپر
 import { notFound } from "next/navigation";
 
 type Props = {
@@ -9,14 +10,14 @@ type Props = {
 };
 
 export default async function EditProductPage({ params }: Props) {
-  // ۱. رفع باگ ناهمگام بودن پارامترها در Next.js جدید
   const { id } = await params;
 
-  // ۲. دریافت اطلاعات محصول و تصاویر همراه آن
   const product = await prisma.product.findUnique({
     where: { id },
     include: {
-      images: true,
+      images: {
+        orderBy: { order: "asc" }, // لود تصاویر بر اساس درگ اند دراپ
+      },
     },
   });
 
@@ -24,7 +25,9 @@ export default async function EditProductPage({ params }: Props) {
     notFound();
   }
 
-  // ۳. دریافت دسته‌بندی‌ها برای نمایش در فرم
+  // 👇 ساده‌سازی محصول با استفاده از مپری که ساختید [2]
+  const safeProduct = serializeProduct(product);
+
   const categories = await prisma.category.findMany({
     orderBy: {
       name: "asc",
@@ -34,7 +37,7 @@ export default async function EditProductPage({ params }: Props) {
   return (
     <div className="container max-w-5xl mx-auto py-10 px-4">
       <h1 className="text-3xl font-bold mb-8 text-gray-800">ویرایش محصول</h1>
-      <ProductForm categories={categories} product={product} />
+      <ProductForm categories={categories} product={safeProduct} />
     </div>
   );
 }

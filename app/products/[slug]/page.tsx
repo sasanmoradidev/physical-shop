@@ -21,7 +21,9 @@ export default async function ProductPage({
         where: { slug },
         include: {
             category: true,
-            images: true,
+            images: {
+                orderBy: { order: "asc" }, // 👈 اضافه کردن ترتیب لود تصاویر
+            },
         },
     });
 
