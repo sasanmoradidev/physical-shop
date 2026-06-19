@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
-import { getFinalPrice } from "@/lib/product-price"; // 👈 ایمپورت تابع محاسباتی قیمت نهایی
+import { getFinalPrice } from "@/lib/product-price";
 
 export async function POST(req: Request) {
   try {
@@ -24,7 +24,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "انتخاب روش ارسال اجباری است" }, { status: 400 });
     }
 
-    // واکشی شیوه ارسال انتخابی خریدار از دیتابیس
+    if (!body.paymentMethodId) {
+      return NextResponse.json({ error: "انتخاب روش پرداخت اجباری است" }, { status: 400 });
+    }
+
+    // واکشی شیوه ارسال انتخابی خریدار
     const shippingMethod = await prisma.shippingMethod.findUnique({
       where: {
         id: body.shippingMethodId,
@@ -34,6 +38,18 @@ export async function POST(req: Request) {
 
     if (!shippingMethod) {
       return NextResponse.json({ error: "روش ارسال انتخابی نامعتبر است" }, { status: 400 });
+    }
+
+    // واکشی شیوه پرداخت انتخابی خریدار
+    const paymentMethod = await prisma.paymentMethod.findUnique({
+      where: {
+        id: body.paymentMethodId,
+        isActive: true,
+      },
+    });
+
+    if (!paymentMethod) {
+      return NextResponse.json({ error: "روش پرداخت انتخابی نامعتبر است" }, { status: 400 });
     }
 
     const items = body.items;
@@ -67,14 +83,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // ۱. محاسبه مجموع فاکتور کالاها بر اساس قیمت داینامیک تخفیف‌دار
+    // محاسبه قیمت کالاها با اعمال تخفیف‌های فعال
     const subtotal = items.reduce((sum: number, item: any) => {
       const product = products.find((p) => p.id === item.id);
       if (!product) {
         throw new Error(`Product ${item.id} not found`);
       }
 
-      // محاسبه قیمت نهایی کالا در زمان خرید با بررسی تخفیف‌های فعال
       const finalProductPrice = getFinalPrice({
         price: Number(product.price),
         offerPrice: product.offerPrice ? Number(product.offerPrice) : null,
@@ -85,19 +100,23 @@ export async function POST(req: Request) {
       return sum + finalProductPrice * item.quantity;
     }, 0);
 
-    // مجموع کل قابل پرداخت (جمع اقلام تخفیف‌دار + هزینه ارسال)
+    // مجموع کل قابل پرداخت
     const totalPrice = subtotal + Number(shippingMethod.price);
 
-    // ۲. ثبت نهایی رکورد سفارش همراه با هزینه و شناسه ارسال
+    // اگر پرداخت در محل (COD) انتخاب شده باشد، وضعیت سفارش مستقیماً PROCESSING (در حال پردازش) می‌شود
+    const initialStatus = paymentMethod.code === "COD" ? "PROCESSING" : "PENDING";
+
+    // ثبت فاکتور نهایی سفارش با ارتباطات روش ارسال و پرداخت
     const order = await prisma.order.create({
       data: {
         userId: payload.userId as string,
         totalPrice,
         addressId: body.addressId,
-        shippingMethodId: shippingMethod.id, // ثبت آی‌دی روش ارسال
-        shippingCost: shippingMethod.price, // ثبت هزینه ارسال تایید شده
+        shippingMethodId: shippingMethod.id,
+        shippingCost: shippingMethod.price,
+        paymentMethodId: paymentMethod.id, // ثبت شناسه روش پرداخت انتخابی خریدار
+        status: initialStatus as any, // تخصیص وضعیت اولیه بر اساس نوع پرداخت
 
-        // ثبت اقلام فاکتور با قیمت تخفیف‌دار نهایی شده
         items: {
           create: items.map((item: any) => {
             const product = products.find((p) => p.id === item.id);
@@ -105,7 +124,6 @@ export async function POST(req: Request) {
               throw new Error(`Product ${item.id} not found`);
             }
 
-            // محاسبه قیمت تکی تخفیف‌دار برای ثبت در فاکتور نهایی اقلام (مهم برای پایداری داده‌های فروش)
             const finalProductPrice = getFinalPrice({
               price: Number(product.price),
               offerPrice: product.offerPrice ? Number(product.offerPrice) : null,
@@ -116,7 +134,7 @@ export async function POST(req: Request) {
             return {
               productId: product.id,
               quantity: item.quantity,
-              price: finalProductPrice, // 👈 ثبت قیمت نهایی پرداخت‌شده به جای قیمت خام قدیمی
+              price: finalProductPrice,
             };
           }),
         },

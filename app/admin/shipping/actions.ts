@@ -12,13 +12,17 @@ async function checkAdmin() {
   }
 }
 
-export async function createShippingMethod(formData: FormData) {
-  await checkAdmin();
+/* =========================
+   🟢 CREATE SHIPPING METHOD
+========================= */
 
-  const name = formData.get("name") as string;
-  const price = Number(formData.get("price"));
-  const estimatedTime = formData.get("estimatedTime") as string;
-  const isActive = formData.get("isActive") === "on";
+export async function createShippingMethod(
+  name: string,
+  price: number,
+  estimatedTime: string,
+  isActive: boolean
+) {
+  await checkAdmin();
 
   await prisma.shippingMethod.create({
     data: {
@@ -32,6 +36,36 @@ export async function createShippingMethod(formData: FormData) {
   revalidatePath("/admin/shipping");
 }
 
+/* =========================
+   🟡 UPDATE SHIPPING METHOD
+========================= */
+
+export async function updateShippingMethod(
+  id: string,
+  name: string,
+  price: number,
+  estimatedTime: string,
+  isActive: boolean
+) {
+  await checkAdmin();
+
+  await prisma.shippingMethod.update({
+    where: { id },
+    data: {
+      name,
+      price,
+      estimatedTime,
+      isActive,
+    },
+  });
+
+  revalidatePath("/admin/shipping");
+}
+
+/* =========================
+   🔵 TOGGLE SHIPPING METHOD STATUS
+========================= */
+
 export async function toggleShippingMethod(id: string, currentStatus: boolean) {
   await checkAdmin();
 
@@ -44,6 +78,10 @@ export async function toggleShippingMethod(id: string, currentStatus: boolean) {
 
   revalidatePath("/admin/shipping");
 }
+
+/* =========================
+   🔴 DELETE SHIPPING METHOD
+========================= */
 
 export async function deleteShippingMethod(id: string) {
   await checkAdmin();

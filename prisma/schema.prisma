@@ -34,10 +34,13 @@ model Address {
 }
 
 model Category {
-  id       String    @id @default(cuid())
-  name     String
-  slug     String    @unique
-  products Product[]
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  parentId      String?   // 👈 فیلد اختیاری شناسه دسته‌بندی مادر
+  parent        Category? @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  subcategories Category[] @relation("CategoryHierarchy")
+  products      Product[]
 }
 
 model Product {
@@ -73,6 +76,18 @@ model ShippingMethod {
   orders        Order[]
 }
 
+model PaymentMethod {
+  id          String   @id @default(cuid())
+  name        String   // نام روش (مثال: پرداخت آنلاین، کارت به کارت، پرداخت در محل)
+  code        String   @unique // کد کلیدی سیستم (ONLINE, COD, CARD)
+  description String?  // توضیحات راهنما برای خریدار
+  isActive    Boolean  @default(true)
+  merchantId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
+}
+
 model ProductImage {
   id        String  @id @default(cuid())
   url       String
@@ -105,6 +120,8 @@ model Order {
   shippingMethodId String?
   shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
   shippingCost     Decimal?        @db.Decimal(12, 2) // ذخیره هزینه زمان خرید
+  paymentMethodId String?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
 }
 
 model OrderItem {

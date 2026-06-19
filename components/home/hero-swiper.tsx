@@ -9,58 +9,48 @@ import "swiper/css/pagination";
 
 export function HeroSwiper() {
   return (
-    <div className="w-full">
-
+    <div className="w-full select-none">
       <Swiper
         modules={[Autoplay, Pagination]}
-        autoplay={{ delay: 3000 }}
+        autoplay={{ delay: 4000, disableOnInteraction: false }}
         pagination={{ clickable: true }}
         loop
         className="w-full"
       >
-
         <SwiperSlide>
-          <div className="relative w-full h-[250px] md:h-[420px]">
-
+          <div className="relative w-full h-[180px] sm:h-[280px] md:h-[400px] lg:h-[450px]">
             <Image
               src="/uploads/slide01.jpg"
-              alt="hero"
+              alt="Hero banner"
               fill
               priority
               className="object-cover"
             />
-
           </div>
         </SwiperSlide>
 
         <SwiperSlide>
-          <div className="relative w-full h-[250px] md:h-[420px]">
-
+          <div className="relative w-full h-[180px] sm:h-[280px] md:h-[400px] lg:h-[450px]">
             <Image
               src="/uploads/slide02.jpg"
-              alt="hero"
+              alt="Hero banner"
               fill
               className="object-cover"
             />
-
           </div>
         </SwiperSlide>
 
         <SwiperSlide>
-          <div className="relative w-full h-[250px] md:h-[420px]">
-
+          <div className="relative w-full h-[180px] sm:h-[280px] md:h-[400px] lg:h-[450px]">
             <Image
               src="/uploads/slide03.jpg"
-              alt="hero"
+              alt="Hero banner"
               fill
               className="object-cover"
             />
-
           </div>
         </SwiperSlide>
-
       </Swiper>
-
     </div>
   );
 }

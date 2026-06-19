@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Truck, ShieldCheck, ArrowRight, CreditCard, Plus } from "lucide-react";
+import { MapPin, Truck, CreditCard, Plus, ArrowRight } from "lucide-react";
 
 type Address = {
   id: string;
@@ -16,8 +16,17 @@ type Address = {
 type ShippingMethod = {
   id: string;
   name: string;
-  price: number;
+  price: any;
   estimatedTime: string;
+  isActive: boolean;
+};
+
+type PaymentMethod = {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  isActive: boolean;
 };
 
 export default function CheckoutPage() {
@@ -29,6 +38,11 @@ export default function CheckoutPage() {
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [shippingMethodId, setShippingMethodId] = useState("");
   const [shippingCost, setShippingCost] = useState(0);
+
+  // روش‌های پرداخت
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [paymentMethodCode, setPaymentMethodCode] = useState("");
 
   const items = useCartStore((state) => state.items);
  
@@ -43,7 +57,13 @@ export default function CheckoutPage() {
     return price.toLocaleString("fa-IR") + " تومان";
   };
 
-  // واکشی هم‌زمان آدرس‌ها و روش‌های ارسال فعال
+  // هندلر تغییر روش ارسال و آپدیت خودکار فاکتور مالی با ساختار ایمن ES6
+  const handleShippingChange = (methodId: string, price: number) => {
+    setShippingMethodId(methodId);
+    setShippingCost(price);
+  };
+
+  // واکشی هم‌زمان آدرس‌ها، روش‌های ارسال و پرداخت فعال
   useEffect(() => {
     // ۱. دریافت آدرس‌ها
     fetch("/api/addresses")
@@ -55,7 +75,7 @@ export default function CheckoutPage() {
         }
       });
 
-    // ۲. دریافت روش‌های ارسال فعال ثبت شده ادمین
+    // ۲. دریافت روش‌های ارسال فعال
     fetch("/api/shipping-methods")
       .then((r) => r.json())
       .then((data) => {
@@ -65,21 +85,22 @@ export default function CheckoutPage() {
           setShippingCost(Number(data[0].price));
         }
       });
+
+    // ۳. دریافت روش‌های پرداخت فعال
+    fetch("/api/payment-methods")
+      .then((r) => r.json())
+      .then((data) => {
+        setPaymentMethods(data);
+        if (data.length > 0) {
+          setPaymentMethodId(data[0].id);
+          setPaymentMethodCode(data[0].code);
+        }
+      });
   }, []);
 
-  // هندلر تغییر روش ارسال و آپدیت خودکار فاکتور مالی
-  function handleShippingChange(methodId: string, price: number) {
-    setShippingMethodId(methodId);
-    setShippingCost(price);
-  }
-
   async function submitOrder() {
-    if (!addressId) {
-      alert("لطفاً آدرس ارسال را انتخاب کنید.");
-      return;
-    }
-    if (!shippingMethodId) {
-      alert("لطفاً یک روش ارسال انتخاب کنید.");
+    if (!addressId || !shippingMethodId || !paymentMethodId) {
+      alert("لطفاً اطلاعات ارسال و پرداخت را تکمیل کنید.");
       return;
     }
 
@@ -93,7 +114,8 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           items,
           addressId,
-          shippingMethodId, // 👈 ارسال شناسه ارسال به بک‌اند
+          shippingMethodId,
+          paymentMethodId,
         }),
       });
 
@@ -105,7 +127,15 @@ export default function CheckoutPage() {
         return;
       }
 
-      // ایجاد درگاه پرداخت
+      // اگر پرداخت آنلاین نبود (پرداخت در محل یا کارت به کارت)، مستقیم برو صفحه سفارش‌ها
+      if (paymentMethodCode !== "ONLINE") {
+        alert("سفارش شما با موفقیت ثبت شد. جهت هماهنگی‌های بعدی با شما تماس گرفته خواهد شد.");
+        useCartStore.getState().clearCart();
+        window.location.href = "/profile/orders";
+        return;
+      }
+
+      // فرآیند آنلاین: هدایت به درگاه پرداخت آنلاین زرین‌پال
       const paymentRes = await fetch("/api/payment/create", {
         method: "POST",
         headers: {
@@ -121,7 +151,7 @@ export default function CheckoutPage() {
       if (payment.url) {
         window.location.href = payment.url;
       } else {
-        alert("خطا در ایجاد درگاه پرداخت");
+        alert("خطا در ایجاد درگاه پرداخت آنلاین");
       }
     } catch (error) {
       console.error(error);
@@ -159,10 +189,10 @@ export default function CheckoutPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
-        {/* ستون راست: آدرس‌ها و شیوه‌های ارسال */}
+        {/* ستون راست */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* بخش ۱: انتخاب آدرس */}
+          {/* بخش ۱: آدرس‌ها */}
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2 mr-1">
               <MapPin className="w-5 h-5 text-blue-600" />
@@ -208,7 +238,8 @@ export default function CheckoutPage() {
                 href="/profile/addresses/new?back=checkout" 
                 className="text-xs font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1.5 mr-1"
               >
-                <span>+ افزودن آدرس جدید</span>
+                <Plus className="h-4 w-4" />
+                <span>افزودن آدرس جدید</span>
               </Link>
             </div>
           </div>
@@ -267,9 +298,60 @@ export default function CheckoutPage() {
             )}
           </div>
 
+          {/* بخش ۳: انتخاب روش پرداخت داینامیک */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2 mr-1">
+              <CreditCard className="w-5 h-5 text-blue-600" />
+              <span>۳. انتخاب روش پرداخت</span>
+            </h2>
+
+            {paymentMethods.length === 0 ? (
+              <div className="p-5 border border-dashed rounded-2xl text-xs text-zinc-400 text-center bg-zinc-50/20">
+                در حال حاضر هیچ روش پرداختی تعریف نشده است.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {paymentMethods.map((method) => {
+                  const isSelected = paymentMethodId === method.id;
+                  return (
+                    <label
+                      key={method.id}
+                      className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-blue-600 bg-blue-50/20 ring-1 ring-blue-600"
+                          : "border-zinc-200 hover:border-zinc-300 bg-white"
+                      }`}
+                    >
+                      <div className="pt-1">
+                        <input
+                          type="radio"
+                          name="checkout-payment"
+                          checked={isSelected}
+                          onChange={() => {
+                            setPaymentMethodId(method.id);
+                            setPaymentMethodCode(method.code);
+                          }}
+                          className="w-4 h-4 text-blue-600 border-zinc-300 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <span className="block font-bold text-zinc-800 text-sm">
+                          {method.name}
+                        </span>
+                        <span className="block text-[10px] text-zinc-400 mt-1 leading-relaxed">
+                          {method.description}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
         </div>
 
-        {/* ستون چپ: خلاصه فاکتور و پرداخت (Sticky) */}
+        {/* ستون چپ: خلاصه فاکتور */}
         <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl lg:sticky lg:top-6 space-y-6">
           <h2 className="text-xl font-bold text-zinc-800 border-b border-zinc-200/60 pb-4">
             فاکتور نهایی
@@ -310,10 +392,10 @@ export default function CheckoutPage() {
           </div>
 
           <button
-            disabled={loading || shippingMethods.length === 0}
+            disabled={loading || shippingMethods.length === 0 || paymentMethods.length === 0}
             onClick={submitOrder}
             className={`w-full flex items-center justify-center text-white font-medium py-3.5 px-4 rounded-xl shadow-sm transition-all duration-200 ${
-              loading || shippingMethods.length === 0
+              loading || shippingMethods.length === 0 || paymentMethods.length === 0
                 ? "bg-zinc-400 cursor-not-allowed" 
                 : "bg-emerald-600 hover:bg-emerald-700"
             }`}

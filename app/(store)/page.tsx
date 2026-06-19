@@ -9,7 +9,7 @@ export default async function HomePage() {
     orderBy: { createdAt: "desc" },
     include: {
       images: {
-        orderBy: { order: "asc" }, // رعایت اولویت ترتیب تصاویر
+        orderBy: { order: "asc" },
       },
     },
   });
@@ -17,7 +17,7 @@ export default async function HomePage() {
   const safeDiscountProducts = discountProducts.map((p) => ({
     ...p,
     price: p.price.toNumber(),
-    offerPrice: p.offerPrice ? p.offerPrice.toNumber() : null, // 👈 تبدیل Decimal به عدد معمولی
+    offerPrice: p.offerPrice ? p.offerPrice.toNumber() : null,
     images: p.images ?? [],
   }));
 
@@ -34,16 +34,19 @@ export default async function HomePage() {
   const safeNewProducts = newProducts.map((p) => ({
     ...p,
     price: p.price.toNumber(),
-    offerPrice: p.offerPrice ? p.offerPrice.toNumber() : null, // 👈 تبدیل Decimal به عدد معمولی
+    offerPrice: p.offerPrice ? p.offerPrice.toNumber() : null,
     images: p.images ?? [],
   }));
 
   return (
-    <div>
+    <div className="space-y-10 pb-16">
+      {/* اسلایدر هیرو بنر */}
       <HeroSwiper />
 
+      {/* اسلایدر شگفت‌انگیز */}
       <OfferSection products={safeDiscountProducts} />
 
+      {/* اسلایدر کالاهای جدید */}
       <NewProducts products={safeNewProducts} />
     </div>
   );

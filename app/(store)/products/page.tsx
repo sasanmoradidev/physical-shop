@@ -13,7 +13,7 @@ type Props = {
     }>;
 };
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 15;
 
 export default async function ProductsPage({ searchParams }: Props) {
     const { page, q, category, sort } = await searchParams;
@@ -64,7 +64,7 @@ export default async function ProductsPage({ searchParams }: Props) {
             />
 
             {/* لیست گرید محصولات */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {products.map((product) => (
                     <ProductCard
                         key={product.id}

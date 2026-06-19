@@ -2,20 +2,19 @@
 
 import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { ProductCard } from "@/components/product/product-card";
 import Link from "next/link";
 
 export function OfferSection({ products }: any) {
   return (
-    <div className="container mx-auto mt-10">
-
+    <div className="container mx-auto px-4 mt-10">
       {/* GRID */}
-      <div className="grid md:grid-cols-3 gap-4 items-stretch">
-
-        {/* LEFT */}
-        <div className="relative overflow-hidden rounded-xl h-full min-h-[420px]">
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+        
+        {/* بنر جشنواره تابستانه (ارتفاع داینامیک در موبایل و دسکتاپ) */}
+        <div className="relative overflow-hidden rounded-2xl h-[220px] md:h-auto md:min-h-[420px] shadow-sm">
           <Image
             src="/uploads/offer02.jpg"
             alt="offer"
@@ -23,63 +22,54 @@ export function OfferSection({ products }: any) {
             className="object-cover transition duration-500 hover:scale-105"
           />
 
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/45" />
 
-          <div className="absolute inset-0 flex flex-col justify-end p-8 text-white">
-
-            <span className="bg-red-600 w-fit px-3 py-1 rounded-full text-sm">
+          <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8 text-white">
+            <span className="bg-red-600 w-fit px-3 py-1 rounded-full text-xs font-bold shadow-sm">
               تا ۵۰٪ تخفیف
             </span>
 
-            <h3 className="text-3xl font-bold mt-3">
+            <h3 className="text-2xl md:text-3xl font-extrabold mt-3 tracking-tight">
               جشنواره تابستانه
             </h3>
 
-            <p className="mt-2 text-sm text-gray-100">
-              فقط تا پایان امروز فرصت داری.
+            <p className="mt-2 text-xs text-gray-200 leading-relaxed max-w-xs">
+              فقط تا پایان امروز فرصت داری؛ دست بجنبان!
             </p>
 
-            <Link href="/products" className="mt-5 w-fit rounded-lg bg-white text-black px-5 py-2 font-semibold hover:bg-gray-200 transition">
+            <Link
+              href="/products"
+              className="mt-5 w-fit rounded-xl bg-white text-zinc-900 px-5 py-2 text-xs font-bold hover:bg-gray-100 transition shadow-sm"
+            >
               مشاهده محصولات
             </Link>
-
           </div>
-
         </div>
 
-        {/* RIGHT */}
-        <div className="md:col-span-2 h-full flex flex-col">
-
-          <h2 className="text-xl mb-4 text-red-500 font-bold">
-            تخفیف ویژه امروز
+        {/* اسلایدر محصولات تخفیف‌دار کناری */}
+        <div className="md:col-span-2 h-full flex flex-col justify-between">
+          <h2 className="text-lg md:text-xl mb-4 text-red-500 font-extrabold flex items-center gap-2 mr-1">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+            <span>تخفیف‌های ویژه امروز</span>
           </h2>
 
           <div className="flex-1">
-
             <Swiper
-              slidesPerView={3}
-              spaceBetween={20}
-              className="h-full"
-
+              modules={[Autoplay]}
+              spaceBetween={16}
               autoplay={{
                 delay: 4000,
                 disableOnInteraction: false,
               }}
               breakpoints={{
-                0: {
-                  slidesPerView: 1.2,
-                },
-                640: {
-                  slidesPerView: 2,
-                },
-                1024: {
-                  slidesPerView: 3,
-                },
+                0: { slidesPerView: 1.25, spaceBetween: 12 }, // نمایش ۱.۲۵ اسلاید در موبایل برای درک کشیدنی بودن
+                480: { slidesPerView: 2, spaceBetween: 16 },
+                1024: { slidesPerView: 3, spaceBetween: 20 },
               }}
+              className="h-full select-none"
             >
-
               {products.map((p: any) => (
-                <SwiperSlide key={p.id}>
+                <SwiperSlide key={p.id} className="py-1">
                   <ProductCard
                     product={{
                       id: p.id,
@@ -88,7 +78,6 @@ export function OfferSection({ products }: any) {
                       price: Number(p.price),
                       images: p.images,
                       stock: p.stock,
-                      // 👇 اضافه کردن این سه فیلد مهم تخفیف
                       offerPrice: p.offerPrice,
                       offerStartsAt: p.offerStartsAt,
                       offerEndsAt: p.offerEndsAt,
@@ -96,15 +85,11 @@ export function OfferSection({ products }: any) {
                   />
                 </SwiperSlide>
               ))}
-
             </Swiper>
-
           </div>
-
         </div>
 
       </div>
-
     </div>
   );
 }
