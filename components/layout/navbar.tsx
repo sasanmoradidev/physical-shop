@@ -148,7 +148,7 @@ export function Navbar() {
             سفارش‌ها
           </Link>
 
-          <Link className="hover:text-red-500" href="/contact">
+          <Link className="hover:text-red-500" href="/contactus">
             تماس با ما
           </Link>
 

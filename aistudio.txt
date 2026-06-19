@@ -1,0 +1,8 @@
+pre.ng-star-inserted {
+    direction: ltr;
+}
+
+
+.chat-session-content {
+    direction: rtl;
+}

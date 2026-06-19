@@ -107,7 +107,7 @@ export async function POST(
         body: JSON.stringify({
           merchant_id: process.env.ZARINPAL_MERCHANT_ID,
           amount: Number(order.totalPrice),
-          callback_url: "http://localhost:3000/payment/callback",
+          callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/callback`,
           description: `Order ${order.id}`,
         }),
       }

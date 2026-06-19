@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import fs from "fs/promises";
 import path from "path";
+import { getCurrentUser } from "@/lib/current-user";
+
 
 /* =========================
    📁 UPLOAD HELPER
@@ -35,6 +37,11 @@ async function saveImage(file: File) {
 ========================= */
 
 export async function createProduct(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    throw new Error("دسترسی غیرمجاز");
+  }
+
   const title = formData.get("title") as string;
   const slug = formData.get("slug") as string;
   const description = formData.get("description") as string;
@@ -107,7 +114,6 @@ export async function createProduct(formData: FormData) {
 
   redirect("/admin/products");
 }
-
 /* =========================
    🟡 UPDATE PRODUCT
 ========================= */
@@ -116,6 +122,13 @@ export async function updateProduct(
   id: string,
   formData: FormData
 ) {
+  const title = formData.get("title") as string;
+  const slug = formData.get("slug") as string;
+  const description = formData.get("description") as string;
+
+  const price = Number(formData.get("price"));
+  const stock = Number(formData.get("stock"));
+
   const offerPriceValue = formData.get("offerPrice");
   const offerPrice =
     offerPriceValue && offerPriceValue !== ""
@@ -136,24 +149,51 @@ export async function updateProduct(
       : null;
 
   const isActive = formData.get("isActive") === "on";
-  const offerEnabled = formData.get("offerEnabled") === "on";
 
+  // ۱. مدیریت تصاویر نگه‌داشته شده (حذف موارد پاک‌شده توسط کاربر)
+  const keptImageIdsRaw = formData.get("keptImageIds") as string;
+  const keptImageIds: string[] = keptImageIdsRaw ? JSON.parse(keptImageIdsRaw) : [];
+
+  // حذف تصاویری که کاربر در کلاینت دکمه ضربدر آن‌ها را زده است
+  await prisma.productImage.deleteMany({
+    where: {
+      productId: id,
+      id: {
+        notIn: keptImageIds,
+      },
+    },
+  });
+
+  // ۲. ذخیره تصاویر جدید آپلود شده
+  const newImages = formData.getAll("images") as File[];
+  const newImageRecords: { url: string }[] = [];
+
+  for (const file of newImages) {
+    if (!file || file.size === 0) continue;
+
+    const url = await saveImage(file);
+    newImageRecords.push({ url });
+  }
+
+  // ۳. آپدیت اطلاعات محصول و ثبت تصاویر جدید
   await prisma.product.update({
     where: { id },
     data: {
-      title: formData.get("title") as string,
-      slug: formData.get("slug") as string,
-      description: formData.get("description") as string,
-
-      price: Number(formData.get("price")),
-      stock: Number(formData.get("stock")),
-
+      title,
+      slug,
+      description,
+      price,
+      stock,
       isActive,
-      offerEnabled,
-
       offerPrice,
       offerStartsAt,
       offerEndsAt,
+      images: {
+        create:
+          newImageRecords.length > 0
+            ? newImageRecords
+            : undefined,
+      },
     },
   });
 
@@ -165,6 +205,11 @@ export async function updateProduct(
 ========================= */
 
 export async function deleteProduct(id: string) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    throw new Error("دسترسی غیرمجاز");
+  }
+
   await prisma.product.delete({
     where: { id },
   });
