@@ -88,7 +88,8 @@ export function OfferSection({ products }: any) {
                       price: Number(p.price),
                       images: p.images,
                       stock: p.stock,
-                      offerPrice: p.offerPrice ? Number(p.offerPrice) : null,
+                      // 👇 اضافه کردن این سه فیلد مهم تخفیف
+                      offerPrice: p.offerPrice,
                       offerStartsAt: p.offerStartsAt,
                       offerEndsAt: p.offerEndsAt,
                     }}

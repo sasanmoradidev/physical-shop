@@ -16,7 +16,7 @@ export function NewProducts({ products }: any) {
                 spaceBetween={16}
                 slidesPerView={2}
                 breakpoints={{
-                    768: { slidesPerView: 4 },
+                    768: { slidesPerView: 6 },
                 }}
             >
                 {products.map((p: any) => (
@@ -29,10 +29,10 @@ export function NewProducts({ products }: any) {
                                 price: Number(p.price),
                                 images: p.images,
                                 stock: p.stock,
-                                offerPrice: p.offerPrice ? Number(p.offerPrice) : null,
+                                // 👇 اضافه کردن این سه فیلد مهم تخفیف
+                                offerPrice: p.offerPrice,
                                 offerStartsAt: p.offerStartsAt,
                                 offerEndsAt: p.offerEndsAt,
-
                             }}
                         />
                     </SwiperSlide>

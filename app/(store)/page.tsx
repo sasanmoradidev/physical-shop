@@ -9,7 +9,7 @@ export default async function HomePage() {
     orderBy: { createdAt: "desc" },
     include: {
       images: {
-        orderBy: { order: "asc" }, // 👈 اضافه کردن ترتیب لود تصاویر
+        orderBy: { order: "asc" }, // رعایت اولویت ترتیب تصاویر
       },
     },
   });
@@ -17,6 +17,7 @@ export default async function HomePage() {
   const safeDiscountProducts = discountProducts.map((p) => ({
     ...p,
     price: p.price.toNumber(),
+    offerPrice: p.offerPrice ? p.offerPrice.toNumber() : null, // 👈 تبدیل Decimal به عدد معمولی
     images: p.images ?? [],
   }));
 
@@ -25,7 +26,7 @@ export default async function HomePage() {
     orderBy: { createdAt: "desc" },
     include: {
       images: {
-        orderBy: { order: "asc" }, // 👈 اضافه کردن ترتیب لود تصاویر
+        orderBy: { order: "asc" },
       },
     },
   });
@@ -33,6 +34,7 @@ export default async function HomePage() {
   const safeNewProducts = newProducts.map((p) => ({
     ...p,
     price: p.price.toNumber(),
+    offerPrice: p.offerPrice ? p.offerPrice.toNumber() : null, // 👈 تبدیل Decimal به عدد معمولی
     images: p.images ?? [],
   }));
 

@@ -36,7 +36,7 @@ export function RelatedProductsSlider({
                 spaceBetween={16}
                 slidesPerView={2}
                 breakpoints={{
-                    768: { slidesPerView: 4 },
+                    768: { slidesPerView: 6 },
                 }}
             >
                 {relatedProducts.map(

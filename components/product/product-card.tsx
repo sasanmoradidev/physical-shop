@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { TomanIcon } from "@/components/ui/toman-icon";
+
 import {
   getDiscountPercent,
   getFinalPrice,
@@ -46,11 +48,12 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Link
       href={`/products/${product.slug}`}
-      className="group block bg-white border rounded-2xl overflow-hidden hover:shadow-lg transition duration-300"
+      className="group block bg-white border border-zinc-100 rounded-2xl overflow-hidden hover:shadow-md hover:border-zinc-200 transition duration-300"
     >
-      <div className="relative aspect-square bg-gray-50">
+      {/* بخش تصویر محصول با حفظ ابعاد مربعی */}
+      <div className="relative aspect-square bg-zinc-50 border-b border-zinc-50/50">
         {hasDiscount && (
-          <div className="absolute top-2 right-2 z-10 bg-red-600 text-white text-xs px-2 py-1 rounded-lg">
+          <div className="absolute top-2.5 right-2.5 z-10 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-sm">
             %{discountPercent}-
           </div>
         )}
@@ -60,39 +63,47 @@ export function ProductCard({ product }: ProductCardProps) {
           alt={product.title}
           fill
           sizes="(max-width:768px) 50vw, 25vw"
-          className="object-contain p-4 group-hover:scale-105 transition"
+          className="object-contain p-4 group-hover:scale-105 transition duration-300"
         />
       </div>
 
-      <div className="p-4">
-        <h3 className="text-sm font-medium line-clamp-2 min-h-[48px]">
-          {product.title}
-        </h3>
+      {/* بخش اطلاعات متنی و قیمتی محصول */}
+      <div className="p-4 flex flex-col justify-between">
+        <div className="space-y-2">
+          {/* عنوان محصول با حداقل ارتفاع فشرده ۳۶ پیکسل */}
+          <h3 className="text-xs font-bold text-zinc-800 line-clamp-2 min-h-[36px] leading-5">
+            {product.title}
+          </h3>
 
-        <div className="mt-3 flex justify-between items-center">
-          <span className={`text-xs ${product.stock > 0 ? "text-green-600" : "text-red-600"}`}>
-            {product.stock > 0 ? "موجود" : "ناموجود"}
-          </span>
-          <span className="text-xs">⭐ 4.8</span>
+          {/* سطر وضعیت انبار */}
+          <div className="flex justify-between items-center text-[10px] font-semibold text-zinc-500">
+            <span className={product.stock > 0 ? "text-green-600" : "text-red-600"}>
+              {product.stock > 0 ? "✓ موجود" : "ناموجود"}
+            </span>
+            <span>⭐ ۴.۸</span>
+          </div>
         </div>
 
-        <div className="mt-4 text-left">
-          {hasDiscount && (
-            <div className="text-sm text-gray-400 line-through">
-              {product.price.toLocaleString()}
-            </div>
-          )}
-
-          <div className={`font-bold text-lg ${hasDiscount ? "text-red-600" : "text-gray-900"}`}>
-            {finalPrice.toLocaleString()}
+        {/* بخش قیمت با ارتفاع کاملاً ثابت و هم‌تراز */}
+        <div className="mt-4 flex flex-col items-end justify-end h-10 select-none">
+          {/* قیمت قدیمی (در صورت عدم وجود تخفیف، جای خالی آن با ارتفاع حفظ می‌شود تا کارت‌ها هم‌تراز بمانند) */}
+          <div className="h-4 text-[10px] font-semibold text-zinc-400 line-through">
+            {hasDiscount ? product.price.toLocaleString("fa-IR") : ""}
           </div>
 
-          <div className="text-xs text-gray-500">تومان</div>
+          {/* قیمت نهایی و نماد کالیگرافی تومان در یک سطر */}
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className={`font-extrabold text-sm tracking-tight ${hasDiscount ? "text-red-600" : "text-zinc-900"}`}>
+              {finalPrice.toLocaleString("fa-IR")}
+            </span>
+            <TomanIcon className="h-3.5 w-3.5 text-zinc-400" />
+          </div>
         </div>
 
+        {/* دکمه افزودن به سبد */}
         <button
           disabled={product.stock === 0}
-          className={`mt-4 w-full rounded-xl py-2 transition ${
+          className={`mt-4 w-full rounded-xl py-2 text-xs font-bold transition ${
             product.stock > 0
               ? "bg-green-600 text-white opacity-0 group-hover:opacity-100"
               : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-100"

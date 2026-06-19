@@ -1,8 +1,8 @@
 export type ProductPrice = {
   price: number;
   offerPrice: number | null;
-  offerStartsAt: Date | null;
-  offerEndsAt: Date | null;
+  offerStartsAt: Date | string | null; // اجازه دادن به دریافت String یا Date
+  offerEndsAt: Date | string | null;   // اجازه دادن به دریافت String یا Date
 };
 
 export function hasActiveOffer(
@@ -14,16 +14,20 @@ export function hasActiveOffer(
 
   const now = new Date();
 
+  // تبدیل صریح و امن به تاریخ جاوااسکریپتی برای مقایسه درست
+  const startsAt = product.offerStartsAt ? new Date(product.offerStartsAt) : null;
+  const endsAt = product.offerEndsAt ? new Date(product.offerEndsAt) : null;
+
   if (
-    product.offerStartsAt &&
-    now < product.offerStartsAt
+    startsAt &&
+    now < startsAt
   ) {
     return false;
   }
 
   if (
-    product.offerEndsAt &&
-    now > product.offerEndsAt
+    endsAt &&
+    now > endsAt
   ) {
     return false;
   }

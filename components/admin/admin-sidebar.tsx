@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Menu,
   X,
+  Truck,
 } from "lucide-react";
 
 export function AdminSidebar() {
@@ -31,6 +32,11 @@ export function AdminSidebar() {
       title: "سفارش‌ها",
       href: "/admin/orders",
       icon: ClipboardList,
+    },
+    {
+      title: "روش‌های ارسال", // 👈 اضافه شدن منوی جدید
+      href: "/admin/shipping",
+      icon: Truck,
     },
   ];
 
@@ -54,9 +60,8 @@ export function AdminSidebar() {
 
       {/* سایدبار اصلی */}
       <aside
-        className={`fixed top-0 bottom-0 right-0 z-45 w-64 bg-white border-l flex flex-col justify-between p-6 transition-transform duration-300 lg:translate-x-0 lg:sticky lg:top-24 lg:h-[calc(100vh-140px)] ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 bottom-0 right-0 z-45 w-64 bg-white border-l flex flex-col justify-between p-6 transition-transform duration-300 lg:translate-x-0 lg:sticky lg:top-24 lg:h-[calc(100vh-140px)] ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         <div className="space-y-8">
           {/* هدر سایدبار */}
@@ -84,11 +89,10 @@ export function AdminSidebar() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all ${
-                    isActive
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all ${isActive
                       ? "bg-blue-50 text-blue-600 shadow-inner"
                       : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                  }`}
+                    }`}
                 >
                   <Icon size={18} />
                   <span>{item.title}</span>
