@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import fs from "fs/promises";
 import path from "path";
 import { getCurrentUser } from "@/lib/current-user";
+import { requirePermission } from "@/lib/rbac"; // ایمپورت گارد جدید
+
 
 
 /* =========================
@@ -37,10 +39,8 @@ async function saveImage(file: File) {
 ========================= */
 
 export async function createProduct(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    throw new Error("دسترسی غیرمجاز");
-  }
+  const user = await requirePermission("MANAGE_PRODUCTS");
+
 
   const title = formData.get("title") as string;
   const slug = formData.get("slug") as string;
@@ -106,10 +106,8 @@ export async function updateProduct(
   id: string,
   formData: FormData
 ) {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    throw new Error("دسترسی غیرمجاز");
-  }
+  const user = await requirePermission("MANAGE_PRODUCTS");
+
 
   const title = formData.get("title") as string;
   const slug = formData.get("slug") as string;
@@ -166,10 +164,8 @@ export async function updateProduct(
 ========================= */
 
 export async function deleteProduct(id: string) {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    throw new Error("دسترسی غیرمجاز");
-  }
+  const user = await requirePermission("MANAGE_PRODUCTS");
+
 
   await prisma.product.delete({
     where: { id },

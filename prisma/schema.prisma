@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  //directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -138,6 +138,8 @@ model OrderItem {
 enum Role {
   USER
   ADMIN
+  SUPPORT
+  CONTENT_MANAGER
 }
 
 enum OrderStatus {

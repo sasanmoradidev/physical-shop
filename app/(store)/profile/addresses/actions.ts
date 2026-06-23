@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
+import { requireAuth } from "@/lib/rbac";
 
 /* =========================
    🟢 CREATE ADDRESS
@@ -11,7 +12,7 @@ import { getCurrentUser } from "@/lib/current-user";
 export async function createAddress(
   formData: FormData
 ) {
-  const user = await getCurrentUser();
+  const user = await requireAuth();
 
   if (!user) {
     redirect("/login");

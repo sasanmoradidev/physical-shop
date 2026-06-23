@@ -54,7 +54,7 @@ export default function UserForm({ user }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
-      
+
       {/* سطر نام و ایمیل */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
@@ -95,7 +95,7 @@ export default function UserForm({ user }: Props) {
             className="w-full px-4 py-3 border border-zinc-200 rounded-xl bg-zinc-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-xs font-semibold"
           />
         </div>
-
+        
         <div>
           <label className="block text-[10px] font-bold text-zinc-400 mb-2 mr-1">تعیین نقش کاربری</label>
           <select
@@ -104,8 +104,10 @@ export default function UserForm({ user }: Props) {
             defaultValue={user?.role || "USER"}
             className="w-full border rounded-xl px-4 py-3 bg-zinc-50/30 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition cursor-pointer"
           >
-            <option value="USER">کاربر عادی</option>
-            <option value="ADMIN">مدیر کل سایت</option>
+            <option value="USER">کاربر عادی (خریدار)</option>
+            <option value="SUPPORT">پشتیبان فروشگاه (مدیریت سفارشات)</option>
+            <option value="CONTENT_MANAGER">مدیر محتوا (مدیریت محصولات و ارسال)</option>
+            <option value="ADMIN">مدیر کل سایت (دسترسی تام)</option>
           </select>
         </div>
       </div>
