@@ -1,15 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePermission } from "@/lib/rbac-server";
 import { revalidatePath } from "next/cache";
-
-async function checkAdmin() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    throw new Error("دسترسی غیرمجاز");
-  }
-}
 
 /* =========================
    🟢 CREATE CATEGORY
@@ -20,7 +13,7 @@ export async function createCategory(
   slug: string,
   parentId?: string
 ) {
-  await checkAdmin();
+  const user = await requirePermission("MANAGE_CATEGORIES");
 
   // کنترل یکتا بودن اسلاگ
   const existing = await prisma.category.findUnique({ where: { slug } });
@@ -49,7 +42,7 @@ export async function updateCategory(
   slug: string,
   parentId?: string
 ) {
-  await checkAdmin();
+  const user = await requirePermission("MANAGE_CATEGORIES");
 
   // جلوگیری از انتخاب خودِ دسته‌بندی به عنوان والد خودش
   if (parentId === id) {
@@ -83,7 +76,7 @@ export async function updateCategory(
 ========================= */
 
 export async function deleteCategory(id: string) {
-  await checkAdmin();
+  const user = await requirePermission("MANAGE_CATEGORIES");
 
   try {
     await prisma.category.delete({

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/current-user";
+import { requireAuth } from "@/lib/rbac-server";
 import { deleteAddress } from "./actions";
 import Link from "next/link";
 
@@ -22,11 +22,7 @@ import {
 } from "lucide-react";
 
 export default async function AddressesPage() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login");
-  }
+  const user = await requireAuth();
 
   const addresses = await prisma.address.findMany({
     where: {

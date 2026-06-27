@@ -2,8 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/current-user";
-import { requireAuth } from "@/lib/rbac";
+import { requireAuth } from "@/lib/rbac-server";
 
 /* =========================
    🟢 CREATE ADDRESS
@@ -13,10 +12,6 @@ export async function createAddress(
   formData: FormData
 ) {
   const user = await requireAuth();
-
-  if (!user) {
-    redirect("/login");
-  }
 
   await prisma.address.create({
     data: {
@@ -67,10 +62,7 @@ export async function createAddress(
 ========================= */
 
 export async function updateAddress(id: string, formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect("/login");
-  }
+  const user = await requireAuth();
 
   // بررسی مالکیت آدرس برای جلوگیری از هک امنیتی
   const address = await prisma.address.findUnique({
@@ -102,10 +94,8 @@ export async function updateAddress(id: string, formData: FormData) {
 ========================= */
 
 export async function deleteAddress(id: string) {
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect("/login");
-  }
+  const user = await requireAuth();
+
 
   // بررسی مالکیت آدرس برای جلوگیری از حذف آدرس دیگران
   const address = await prisma.address.findUnique({

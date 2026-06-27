@@ -1,14 +1,9 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/current-user";
+import { requireAuth } from "@/lib/rbac-server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Mail, Shield, Calendar } from "lucide-react";
 
 export default async function ProfilePage() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login");
-  }
+  const user = await requireAuth();
 
   const joinedDate = new Date(user.createdAt).toLocaleDateString("fa-IR");
 

@@ -1,27 +1,17 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePermission } from "@/lib/rbac-server";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
-
-// بررسی امنیتی نقش ادمین جاری
-async function checkAdmin() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    throw new Error("دسترسی غیرمجاز");
-  }
-  return user;
-}
-
 
 /* =========================
    🟢 CREATE USER
 ========================= */
 
 export async function createUser(formData: FormData) {
-  await checkAdmin();
+  const admin = requirePermission("MANAGE_USERS");
 
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
@@ -57,7 +47,7 @@ export async function createUser(formData: FormData) {
 ========================= */
 
 export async function updateUser(id: string, formData: FormData) {
-  const admin = await checkAdmin();
+  const admin = await requirePermission("MANAGE_USERS");
 
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
@@ -105,7 +95,7 @@ export async function updateUser(id: string, formData: FormData) {
 ========================= */
 
 export async function toggleUserRole(id: string) {
-  const admin = await checkAdmin();
+  const admin = await requirePermission("MANAGE_USERS");
 
   // ۱. بررسی اینکه ادمین نتواند نقش خودش را تغییر دهد
   if (admin.id === id) {
@@ -137,7 +127,7 @@ export async function toggleUserRole(id: string) {
 ========================= */
 
 export async function deleteUser(id: string) {
-  const admin = await checkAdmin();
+  const admin = await requirePermission("MANAGE_USERS");
 
   // ۲. بررسی اینکه ادمین نتواند حساب کاربری خودش را حذف کند
   if (admin.id === id) {

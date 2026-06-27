@@ -1,16 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePermission } from "@/lib/rbac-server";
 import { revalidatePath } from "next/cache";
-
-// بررسی دسترسی ادمین
-async function checkAdmin() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    throw new Error("دسترسی غیرمجاز");
-  }
-}
 
 /* =========================
    🟢 CREATE SHIPPING METHOD
@@ -22,7 +14,7 @@ export async function createShippingMethod(
   estimatedTime: string,
   isActive: boolean
 ) {
-  await checkAdmin();
+  const user = await requirePermission("MANAGE_SHIPPING");
 
   await prisma.shippingMethod.create({
     data: {
@@ -47,7 +39,7 @@ export async function updateShippingMethod(
   estimatedTime: string,
   isActive: boolean
 ) {
-  await checkAdmin();
+  const user = await requirePermission("MANAGE_SHIPPING");
 
   await prisma.shippingMethod.update({
     where: { id },
@@ -67,7 +59,7 @@ export async function updateShippingMethod(
 ========================= */
 
 export async function toggleShippingMethod(id: string, currentStatus: boolean) {
-  await checkAdmin();
+  const user = await requirePermission("MANAGE_SHIPPING");
 
   await prisma.shippingMethod.update({
     where: { id },
@@ -84,7 +76,7 @@ export async function toggleShippingMethod(id: string, currentStatus: boolean) {
 ========================= */
 
 export async function deleteShippingMethod(id: string) {
-  await checkAdmin();
+  const user = await requirePermission("MANAGE_SHIPPING");
 
   try {
     await prisma.shippingMethod.delete({

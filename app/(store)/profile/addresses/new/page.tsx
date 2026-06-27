@@ -1,6 +1,5 @@
 import { createAddress } from "../actions";
-import { getCurrentUser } from "@/lib/current-user";
-import { redirect } from "next/navigation";
+import { requireAuth } from "@/lib/rbac-server";
 import Link from "next/link";
 
 // ایمپورت کامپوننت‌های شکیل پروژه (Shadcn UI)
@@ -16,10 +15,7 @@ type Props = {
 };
 
 export default async function NewAddressPage({ searchParams }: Props) {
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect("/login");
-  }
+  const user = await requireAuth();
 
   // ۱. دریافت پارامتر داینامیک برای آدرس بازگشتی
   const { back } = await searchParams;

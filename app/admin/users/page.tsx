@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { toggleUserRole, deleteUser } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePermission } from "@/lib/rbac-server";
 import Link from "next/link";
 import { Plus, Edit } from "lucide-react";
 
@@ -25,7 +25,7 @@ type Props = {
 };
 
 export default async function AdminUsersPage({ searchParams }: Props) {
-    const admin = await getCurrentUser();
+    const admin = await requirePermission("MANAGE_USERS");
     const { q = "", role = "" } = await searchParams;
 
     // ساخت کوئری فیلتر داینامیک دیتابیس

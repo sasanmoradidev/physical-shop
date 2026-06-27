@@ -1,15 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePermission } from "@/lib/rbac-server";
 import { revalidatePath } from "next/cache";
-
-async function checkAdmin() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    throw new Error("دسترسی غیرمجاز");
-  }
-}
 
 export async function createPaymentMethod(
   name: string,
@@ -18,7 +11,7 @@ export async function createPaymentMethod(
   isActive: boolean,
   merchantId?: string
 ) {
-  await checkAdmin();
+  const admin = await requirePermission("MANAGE_PAYMENT");
 
   // کنترل یکتا بودن کد شناسایی روش پرداخت
   const existing = await prisma.paymentMethod.findUnique({ where: { code } });
@@ -47,7 +40,7 @@ export async function updatePaymentMethod(
   isActive: boolean,
   merchantId?: string
 ) {
-  await checkAdmin();
+  const admin = await requirePermission("MANAGE_PAYMENT");
 
   const existing = await prisma.paymentMethod.findFirst({
     where: {
@@ -74,7 +67,7 @@ export async function updatePaymentMethod(
 }
 
 export async function togglePaymentMethod(id: string, currentStatus: boolean) {
-  await checkAdmin();
+  const admin = await requirePermission("MANAGE_PAYMENT");
 
   await prisma.paymentMethod.update({
     where: { id },
@@ -87,7 +80,7 @@ export async function togglePaymentMethod(id: string, currentStatus: boolean) {
 }
 
 export async function deletePaymentMethod(id: string) {
-  await checkAdmin();
+  const admin = await requirePermission("MANAGE_PAYMENT");
 
   try {
     await prisma.paymentMethod.delete({

@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import fs from "fs/promises";
 import path from "path";
-import { getCurrentUser } from "@/lib/current-user";
-import { requirePermission } from "@/lib/rbac"; // ایمپورت گارد جدید
+import { requirePermission } from "@/lib/rbac-server"; // ایمپورت گارد جدید
 
 
 

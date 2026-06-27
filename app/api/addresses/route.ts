@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/current-user";
+import { requireAuth } from "@/lib/rbac-server";
 
 export async function GET() {
-  const user = await getCurrentUser();
+  const user = await requireAuth();
 
   if (!user) {
     return NextResponse.json([]);
