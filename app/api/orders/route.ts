@@ -106,12 +106,31 @@ export async function POST(req: Request) {
     // اگر پرداخت در محل (COD) انتخاب شده باشد، وضعیت سفارش مستقیماً PROCESSING (در حال پردازش) می‌شود
     const initialStatus = paymentMethod.code === "COD" ? "PROCESSING" : "PENDING";
 
+    // ۱. واکشی اطلاعات آدرس انتخابی مشتری
+    const address = await prisma.address.findUnique({
+      where: { id: body.addressId },
+    });
+
+    if (!address) {
+      return NextResponse.json({ error: "آدرس معتبر یافت نشد" }, { status: 404 });
+    }
+
     // ثبت فاکتور نهایی سفارش با ارتباطات روش ارسال و پرداخت
     const order = await prisma.order.create({
       data: {
         userId: payload.userId as string,
         totalPrice,
         addressId: body.addressId,
+
+        // کپی داده‌ها به فیلدهای اسنپ‌شات
+        shippingTitle: address.title,
+        shippingFullName: address.fullName,
+        shippingPhone: address.phone,
+        shippingProvince: address.province,
+        shippingCity: address.city,
+        shippingAddressLine: address.addressLine,
+        shippingPostalCode: address.postalCode,
+
         shippingMethodId: shippingMethod.id,
         shippingCost: shippingMethod.price,
         paymentMethodId: paymentMethod.id, // ثبت شناسه روش پرداخت انتخابی خریدار

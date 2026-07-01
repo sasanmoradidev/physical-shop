@@ -1,315 +1,173 @@
+// مسیر: prisma/seed.ts
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  console.log("⏳ Clearing existing data...");
+  // پاکسازی تمامی جداول برای ممانعت از تداخل روابط
+  await prisma.systemSetting.deleteMany();
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.address.deleteMany();
+  await prisma.productImage.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.paymentMethod.deleteMany();
+  await prisma.shippingMethod.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.user.deleteMany();
 
-  const mobile = await prisma.category.create({
-    data: { name: "موبایل", slug: "mobile" },
+  console.log("👤 Seeding Admin User...");
+  const hashedPassword = await bcrypt.hash("123456", 10);
+  const admin = await prisma.user.create({
+    data: {
+      name: "مدیر کل سیستم",
+      username: "admin@test.com", // یوزرنیم همان ایمیل ادمین قبلی باشد تا بخش‌های دیگر به هم نریزد
+      password: hashedPassword,
+      phone: "09120827031", // شماره همراه ادمین
+      role: "ADMIN",
+    },
   });
 
-  const laptop = await prisma.category.create({
-    data: { name: "لپ‌تاپ", slug: "laptop" },
+  console.log("⚙️ Seeding Default System Settings...");
+  // فعال کردن احراز هویت پیامکی به عنوان تنظیم پیش‌فرض سیستمی
+  await prisma.systemSetting.create({
+    data: {
+      key: "OTP_ENABLED",
+      value: "true",
+    },
   });
 
+  console.log("📁 Seeding Hierarchical Categories...");
+  // ساخت دسته‌بندی‌های ریشه (مادر)
+  const digital = await prisma.category.create({
+    data: { name: "کالای دیجیتال", slug: "digital" },
+  });
   const accessory = await prisma.category.create({
     data: { name: "لوازم جانبی", slug: "accessory" },
   });
+  const gaming = await prisma.category.create({
+    data: { name: "کنسول و بازی", slug: "gaming" },
+  });
 
-  const clothing = await prisma.category
-  await prisma.product.createMany({
+  // ساخت زیردسته‌بندی‌های متصل به والدین
+  const mobile = await prisma.category.create({
+    data: { name: "گوشی موبایل", slug: "mobile", parentId: digital.id },
+  });
+  const laptop = await prisma.category.create({
+    data: { name: "لپ‌تاپ", slug: "laptop", parentId: digital.id },
+  });
+  const tablet = await prisma.category.create({
+    data: { name: "تبلت", slug: "tablet", parentId: digital.id },
+  });
+
+  const phoneCase = await prisma.category.create({
+    data: { name: "قاب و کاور گوشی", slug: "phone-case", parentId: accessory.id },
+  });
+  const powerbank = await prisma.category.create({
+    data: { name: "پاوربانک", slug: "powerbank", parentId: accessory.id },
+  });
+
+  const consoleGame = await prisma.category.create({
+    data: { name: "کنسول بازی", slug: "console", parentId: gaming.id },
+  });
+
+  console.log("🚚 Seeding Shipping Methods...");
+  await prisma.shippingMethod.createMany({
     data: [
-      // ================= MOBILE (10)
       {
-        title: "آیفون 15 پرو",
-        slug: "iphone-15-pro",
-        description: "گوشی پرچمدار اپل با دوربین حرفه‌ای",
-        price: 999,
-        stock: 10,
-        categoryId: mobile.id,
+        name: "پست پیشتاز کشوری",
+        price: 45000,
+        estimatedTime: "۳ تا ۵ روز کاری",
+        isActive: true,
       },
       {
-        title: "آیفون 16 پرو مکس",
-        slug: "iphone-16-pro-max",
-        description: "جدیدترین پرچمدار اپل",
-        price: 1299,
-        stock: 8,
-        categoryId: mobile.id,
-      },
-      {
-        title: "سامسونگ S24 اولترا",
-        slug: "samsung-s24-ultra",
-        description: "پرچمدار سامسونگ",
-        price: 1100,
-        stock: 12,
-        categoryId: mobile.id,
-      },
-      {
-        title: "شیائومی 14",
-        slug: "xiaomi-14",
-        description: "گوشی قدرتمند شیائومی",
-        price: 750,
-        stock: 20,
-        categoryId: mobile.id,
-      },
-      {
-        title: "پوکو F6 پرو",
-        slug: "poco-f6-pro",
-        description: "مناسب گیمینگ",
-        price: 600,
-        stock: 15,
-        categoryId: mobile.id,
-      },
-      {
-        title: "آنر Magic6",
-        slug: "honor-magic6",
-        description: "طراحی مدرن",
-        price: 680,
-        stock: 14,
-        categoryId: mobile.id,
-      },
-      {
-        title: "گوگل پیکسل 8",
-        slug: "pixel-8",
-        description: "اندروید خالص",
-        price: 899,
-        stock: 10,
-        categoryId: mobile.id,
-      },
-      {
-        title: "ناتینگ فون 2",
-        slug: "nothing-phone-2",
-        description: "طراحی خاص",
-        price: 650,
-        stock: 18,
-        categoryId: mobile.id,
-      },
-      {
-        title: "ریلمی GT Neo 6",
-        slug: "realme-gt-neo-6",
-        description: "اقتصادی قدرتمند",
-        price: 520,
-        stock: 25,
-        categoryId: mobile.id,
-      },
-      {
-        title: "شیائومی ردمی نوت 13",
-        slug: "redmi-note-13",
-        description: "اقتصادی پرفروش",
-        price: 320,
-        stock: 30,
-        categoryId: mobile.id,
-      },
-
-      // ================= LAPTOP (10)
-      {
-        title: "مک بوک ایر M3",
-        slug: "macbook-air-m3",
-        description: "سبک و سریع",
-        price: 1400,
-        stock: 7,
-        categoryId: laptop.id,
-      },
-      {
-        title: "مک بوک پرو 14",
-        slug: "macbook-pro-14",
-        description: "حرفه‌ای برای طراحی",
-        price: 2200,
-        stock: 5,
-        categoryId: laptop.id,
-      },
-      {
-        title: "لنوو ThinkPad X1",
-        slug: "thinkpad-x1",
-        description: "اداری حرفه‌ای",
-        price: 1600,
-        stock: 8,
-        categoryId: laptop.id,
-      },
-      {
-        title: "لنوو LOQ",
-        slug: "lenovo-loq",
-        description: "گیمینگ اقتصادی",
-        price: 1100,
-        stock: 10,
-        categoryId: laptop.id,
-      },
-      {
-        title: "ایسوس TUF A15",
-        slug: "asus-tuf-a15",
-        description: "مناسب بازی",
-        price: 1200,
-        stock: 9,
-        categoryId: laptop.id,
-      },
-      {
-        title: "ایسوس ROG Strix",
-        slug: "rog-strix",
-        description: "گیمینگ حرفه‌ای",
-        price: 2400,
-        stock: 4,
-        categoryId: laptop.id,
-      },
-      {
-        title: "HP Victus 16",
-        slug: "hp-victus-16",
-        description: "قدرت و قیمت مناسب",
-        price: 1300,
-        stock: 6,
-        categoryId: laptop.id,
-      },
-      {
-        title: "Dell XPS 13",
-        slug: "dell-xps-13",
-        description: "لوکس و سبک",
-        price: 1800,
-        stock: 7,
-        categoryId: laptop.id,
-      },
-      {
-        title: "Acer Nitro 5",
-        slug: "acer-nitro-5",
-        description: "گیمینگ اقتصادی",
-        price: 1000,
-        stock: 12,
-        categoryId: laptop.id,
-      },
-      {
-        title: "Surface Laptop 5",
-        slug: "surface-laptop-5",
-        description: "طراحی مینیمال",
-        price: 1500,
-        stock: 5,
-        categoryId: laptop.id,
-      },
-
-      // ================= ACCESSORY (15)
-      {
-        title: "ایرپاد پرو 2",
-        slug: "airpods-pro-2",
-        description: "هدفون اپل",
-        price: 249,
-        stock: 30,
-        categoryId: accessory.id,
-      },
-      {
-        title: "هدفون سونی WH-1000XM5",
-        slug: "sony-xm5",
-        description: "نویز کنسلینگ حرفه‌ای",
-        price: 350,
-        stock: 20,
-        categoryId: accessory.id,
-      },
-      {
-        title: "ماوس لاجیتک MX Master 3S",
-        slug: "mx-master-3s",
-        description: "ماوس حرفه‌ای",
-        price: 120,
-        stock: 25,
-        categoryId: accessory.id,
-      },
-      {
-        title: "کیبورد مکانیکی ردراگون",
-        slug: "redragon-kb",
-        description: "گیمینگ RGB",
-        price: 90,
-        stock: 40,
-        categoryId: accessory.id,
-      },
-      {
-        title: "پاوربانک 20000 شیائومی",
-        slug: "xiaomi-powerbank",
-        description: "ظرفیت بالا",
-        price: 45,
-        stock: 50,
-        categoryId: accessory.id,
-      },
-      {
-        title: "شارژر 67 وات",
-        slug: "fast-charger-67w",
-        description: "شارژ سریع",
-        price: 25,
-        stock: 60,
-        categoryId: accessory.id,
-      },
-      {
-        title: "هارد اکسترنال 1TB",
-        slug: "hdd-1tb",
-        description: "ذخیره سازی",
-        price: 70,
-        stock: 22,
-        categoryId: accessory.id,
-      },
-      {
-        title: "SSD اکسترنال 1TB",
-        slug: "ssd-1tb",
-        description: "سرعت بالا",
-        price: 130,
-        stock: 15,
-        categoryId: accessory.id,
-      },
-      {
-        title: "هاب USB-C",
-        slug: "usb-c-hub",
-        description: "افزایش پورت",
-        price: 40,
-        stock: 35,
-        categoryId: accessory.id,
-      },
-      {
-        title: "وبکم Full HD",
-        slug: "webcam-fhd",
-        description: "تماس تصویری",
-        price: 35,
-        stock: 28,
-        categoryId: accessory.id,
-      },
-      {
-        title: "پایه خنک‌کننده لپ‌تاپ",
-        slug: "cooler-pad",
-        description: "کاهش دما",
-        price: 30,
-        stock: 30,
-        categoryId: accessory.id,
-      },
-      {
-        title: "کیف لپ‌تاپ",
-        slug: "laptop-bag",
-        description: "ضد ضربه",
-        price: 28,
-        stock: 25,
-        categoryId: accessory.id,
-      },
-      {
-        title: "گلس آیفون",
-        slug: "iphone-glass",
-        description: "محافظ صفحه",
-        price: 10,
-        stock: 100,
-        categoryId: accessory.id,
-      },
-      {
-        title: "قاب سامسونگ",
-        slug: "samsung-case",
-        description: "محافظ گوشی",
-        price: 12,
-        stock: 80,
-        categoryId: accessory.id,
-      },
-      {
-        title: "استند موبایل",
-        slug: "phone-stand",
-        description: "نگهدارنده گوشی",
-        price: 15,
-        stock: 70,
-        categoryId: accessory.id,
+        name: "ارسال اکسپرس (پیک موتوری - ویژه تهران)",
+        price: 120000,
+        estimatedTime: "ارسال فوری ۳ ساعته",
+        isActive: true,
       },
     ],
   });
+
+  console.log("💳 Seeding Payment Methods...");
+  await prisma.paymentMethod.createMany({
+    data: [
+      {
+        name: "درگاه پرداخت آنلاین (زرین‌پال)",
+        code: "ONLINE",
+        description: "پرداخت امن و سریع با تمامی کارت‌های عضو شتاب",
+        isActive: true,
+        merchantId: "72C1DB8E-3DF8-4DF2-9A2A-C39D89516698",
+      },
+      {
+        name: "پرداخت در محل (COD)",
+        code: "COD",
+        description: "پرداخت وجه نقد یا با کارتخوان درب منزل در زمان تحویل کالا",
+        isActive: true,
+      },
+    ],
+  });
+
+  console.log("📦 Seeding Products...");
+  await prisma.product.createMany({
+    data: [
+      {
+        title: "گوشی موبایل سامسونگ Galaxy S24 Ultra",
+        slug: "samsung-s24-ultra",
+        description: "پرچمدار قدرتمند سامسونگ مجهز به هوش مصنوعی اختصاصی، دوربین ۲۰۰ مگاپیکسلی و قلم هوشمند S-Pen.",
+        price: 1250,
+        offerPrice: 1190, // دارای تخفیف شگفت‌انگیز
+        stock: 12,
+        categoryId: mobile.id,
+        featured: true,
+      },
+      {
+        title: "آیفون ۱۵ پرو ۲۵۶ گیگابایت",
+        slug: "iphone-15-pro",
+        description: "گوشی پرچمدار اپل مجهز به بدنه تیتانیومی مقاوم، پردازنده فوق‌العاده سریع A17 Pro و دوربین زوم تلسکوپی.",
+        price: 999,
+        stock: 8,
+        categoryId: mobile.id,
+      },
+      {
+        title: "لپ‌تاپ مک‌بوک ایر M3 مدل ۲۰۲۴",
+        slug: "macbook-air-m3",
+        description: "لوکس‌ترین و باریک‌ترین لپ‌تاپ جهان مجهز به تراشه بی‌نظیر M3 اپل و ماندگاری شارژ باتری تا ۱۸ ساعت.",
+        price: 1400,
+        stock: 7,
+        categoryId: laptop.id,
+        featured: true,
+      },
+      {
+        title: "پاوربانک ۲۰۰۰۰ فست شارژ شیائومی",
+        slug: "xiaomi-powerbank-20k",
+        description: "پاوربانک باکیفیت و خوش‌دست شیائومی با قابلیت شارژ فوق سریع هم‌زمان سه دستگاه.",
+        price: 45,
+        stock: 50,
+        categoryId: powerbank.id,
+      },
+      {
+        title: "کنسول بازی پلی‌استیشن ۵ مدل Slim",
+        slug: "playstation-5-slim",
+        description: "جدیدترین نسخه کنسول محبوب سونی با طراحی باریک‌تر و ظرفیت حافظه سریع ۱ ترابایتی.",
+        price: 520,
+        stock: 15,
+        categoryId: consoleGame.id,
+        featured: true,
+      },
+    ],
+  });
+
+  console.log("🎉 Database Seeded Successfully!");
 }
 
 main()
-  .catch(console.error)
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
   .finally(async () => {
     await prisma.$disconnect();
   });

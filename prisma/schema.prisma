@@ -11,13 +11,29 @@ datasource db {
 model User {
   id        String    @id @default(cuid())
   name      String
-  email     String    @unique
-  password  String
+  username  String    @unique // تغییر ایمیل به نام کاربری اجباری
+  password  String    // رمز عبور اجباری
+  phone     String    @unique // شماره موبایل اجباری و یکتا
   role      Role      @default(USER)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   addresses Address[]
   orders    Order[]
+}
+
+// جدول موقت برای نگهداری کدهای تایید ارسال شده
+model OtpRequest {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// جدول نگهداری تنظیمات کلی فروشگاه (برای روشن/خاموش کردن OTP)
+model SystemSetting {
+  key   String @id // مثال: "OTP_ENABLED"
+  value String // مثال: "true" یا "false"
 }
 
 model Address {
