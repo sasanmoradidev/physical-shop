@@ -15,7 +15,7 @@ type Props = {
 };
 
 export default async function NewAddressPage({ searchParams }: Props) {
-  const user = await requireAuth('/profile/addresses/new');
+  const user = await requireAuth();
 
   // ۱. دریافت پارامتر داینامیک برای آدرس بازگشتی
   const { back } = await searchParams;

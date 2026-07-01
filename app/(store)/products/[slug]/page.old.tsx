@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { Metadata, ResolvingMetadata } from "next"; // 👈 ایمپورت ابزارهای متادیتا Next.js
 
 import { TomanIcon } from "@/components/ui/toman-icon";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
@@ -24,73 +23,8 @@ type Props = {
     }>;
 };
 
-/* ==============================================
-   🚀 GENERATE DYNAMIC METADATA (بهینه‌سازی سئو)
-============================================== */
-export async function generateMetadata(
-  { params }: Props,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
-  const { slug } = await params;
-
-  // واکشی مشخصات محصول برای متادیتاها
-  const product = await prisma.product.findUnique({
-    where: { slug },
-    include: { images: true },
-  });
-
-  if (!product) {
-    return {
-      title: "محصول یافت نشد | فروشگاه فیزیکی",
-    };
-  }
-
-  const finalPrice = getFinalPrice({
-    price: Number(product.price),
-    offerPrice: product.offerPrice ? Number(product.offerPrice) : null,
-    offerStartsAt: product.offerStartsAt,
-    offerEndsAt: product.offerEndsAt,
-  });
-
-  // آدرس کامل عکس شاخص محصول جهت اشتراک‌گذاری در شبکه‌های اجتماعی [3]
-  const imageUrl = product.images?.[0]?.url 
-    ? `${process.env.NEXT_PUBLIC_APP_URL}${product.images[0].url}` 
-    : `${process.env.NEXT_PUBLIC_APP_URL}/placeholder.png`;
-
-  return {
-    title: `${product.title} | فروشگاه فیزیکی`,
-    description: product.description.slice(0, 150), // توضیحات کوتاه گوگل
-    
-    // تگ‌های OpenGraph برای نمایش کارت شکیل در تلگرام، واتس‌اپ و فیس‌بوک [3]
-    openGraph: {
-      title: product.title,
-      description: `قیمت: ${finalPrice.toLocaleString("fa-IR")} تومان - ${product.description.slice(0, 100)}...`,
-      url: `${process.env.NEXT_PUBLIC_APP_URL}/products/${product.slug}`,
-      images: [
-        {
-          url: imageUrl,
-          width: 500,
-          height: 500,
-          alt: product.title,
-        },
-      ],
-      type: "website",
-    },
-
-    // تگ‌های Twitter Card [3]
-    twitter: {
-      card: "summary_large_image",
-      title: product.title,
-      description: `قیمت: ${finalPrice.toLocaleString("fa-IR")} تومان`,
-      images: [imageUrl],
-    },
-  };
-}
-
-/* ==============================================
-   📦 PRODUCT DETAILS PAGE
-============================================== */
 export default async function ProductPage({ params }: Props) {
+    // ۱. رفع باگ ناهمگام بودن پارامترها در Next.js جدید
     const { slug } = await params;
 
     const product = await prisma.product.findUnique({
@@ -109,7 +43,7 @@ export default async function ProductPage({ params }: Props) {
 
     const safeProduct = serializeProduct(product);
 
-    // قالب‌بندی اطلاعات مالی برای پاس دادن به توابع کمکی
+    // ۲. قالب‌بندی اطلاعات مالی برای پاس دادن به توابع کمکی
     const priceProps = {
       price: Number(product.price),
       offerPrice: product.offerPrice ? Number(product.offerPrice) : null,
@@ -141,7 +75,7 @@ export default async function ProductPage({ params }: Props) {
             <div className="container mx-auto py-8 px-4 max-w-5xl animate-fade-in">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
                     
-                    {/* ستون راست (گالری اسلایدر تصاویر به همراه افکت زوم لمسی) */}
+                    {/* ستون راست (گالری تصاویر اسلایدر + زوم لمسی) */}
                     <ProductGallery images={product.images} productTitle={product.title} />
 
                     {/* ستون چپ (مشخصات، قیمت داینامیک و دکمه خرید) */}
@@ -172,12 +106,12 @@ export default async function ProductPage({ params }: Props) {
                             )}
                         </div>
 
-                        {/* کادر فاکتور داینامیک قیمت با محاسبات تخفیف */}
-                        <div className="bg-zinc-50 border border-zinc-100/60 p-4 rounded-2xl flex flex-col space-y-2">
+                        {/* ۳. کادر فاکتور داینامیک قیمت با محاسبات تخفیف */}
+                        <div className="bg-zinc-50 border border-zinc-100/60 p-4 rounded-2xl flex flex-col space-y-2.5">
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-zinc-400 font-semibold">قیمت کالا:</span>
                             
-                            {/* نمایش برچسب درصد تخفیف */}
+                            {/* نمایش برچسب تخفیف فقط در صورت وجود تخفیف فعال */}
                             {hasDiscount && (
                               <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold border border-red-100 animate-pulse">
                                 %{discountPercent} تخفیف ویژه
@@ -185,21 +119,20 @@ export default async function ProductPage({ params }: Props) {
                             )}
                           </div>
 
-                          <div className="flex flex-col items-end justify-end select-none pt-1">
-                            {/* قیمت خط‌خورده قدیمی (بالا) */}
+                          <div className="flex items-baseline justify-end gap-1.5 text-left items-center">
+                            {/* نمایش قیمت خط خورده قدیمی فقط در صورت وجود تخفیف فعال */}
                             {hasDiscount && (
-                              <span className="text-xs text-zinc-400 line-through pl-1.5 h-4 block font-medium">
+                              <span className="text-xs text-zinc-400 line-through pl-2">
                                 {Number(product.price).toLocaleString("fa-IR")}
                               </span>
                             )}
 
-                            {/* قیمت نهایی جدید و نماد تومان (پایین) */}
-                            <div className="flex items-center gap-1 mt-1">
-                              <span className={`text-xl font-black tracking-tight ${hasDiscount ? 'text-red-600' : 'text-zinc-950'}`}>
-                                {finalPrice.toLocaleString("fa-IR")}
-                              </span>
-                              <TomanIcon className={`h-4.5 w-4.5 ${hasDiscount ? 'text-red-500' : 'text-zinc-400'}`} />
-                            </div>
+                            <span className={`text-xl font-black tracking-tight ${hasDiscount ? 'text-red-600' : 'text-zinc-950'}`}>
+                              {finalPrice.toLocaleString("fa-IR")}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 font-bold">
+                                <TomanIcon className="h-4.5 w-4.5 text-zinc-400" />
+                            </span>
                           </div>
                         </div>
 

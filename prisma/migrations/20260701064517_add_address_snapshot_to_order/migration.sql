@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "Order" ALTER COLUMN "shippingAddressLine" DROP DEFAULT,
+ALTER COLUMN "shippingCity" DROP DEFAULT,
+ALTER COLUMN "shippingFullName" DROP DEFAULT,
+ALTER COLUMN "shippingPhone" DROP DEFAULT,
+ALTER COLUMN "shippingPostalCode" DROP DEFAULT,
+ALTER COLUMN "shippingProvince" DROP DEFAULT,
+ALTER COLUMN "shippingTitle" DROP DEFAULT;
