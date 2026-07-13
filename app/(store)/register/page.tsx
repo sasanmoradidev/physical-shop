@@ -9,8 +9,9 @@ export default function RegisterPage() {
       },
       body: JSON.stringify({
         name: "Admin",
-        email: "admin@test.com",
+        username: "sasan@test.com",
         password: "123456",
+        phone: "09363210320",
       }),
     });
   };
