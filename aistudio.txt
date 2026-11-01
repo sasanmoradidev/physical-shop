@@ -1,3 +1,7 @@
+.md-content{
+  direction: rtl
+}
+
 pre.ng-star-inserted {
     direction: ltr;
 }
@@ -6,3 +10,4 @@ pre.ng-star-inserted {
 .chat-session-content {
     direction: rtl;
 }
+

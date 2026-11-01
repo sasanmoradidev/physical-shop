@@ -1,5 +1,5 @@
+// app/api/me/route.ts
 import { NextResponse } from "next/server";
-
 import { requireAuth } from "@/lib/rbac-server";
 
 export async function GET() {
@@ -12,7 +12,8 @@ export async function GET() {
   return NextResponse.json({
     id: user.id,
     name: user.name,
-    email: user.email,
+    username: user.username,
+    phone: user.phone,
     role: user.role,
   });
 }

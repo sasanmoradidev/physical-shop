@@ -1,3 +1,4 @@
+// components/admin/admin-sidebar.tsx
 "use client";
 
 import { useState } from "react";
@@ -14,30 +15,17 @@ import {
   Users,
   CreditCard,
   FolderTree,
+  Settings,
 } from "lucide-react";
 
-import { useCartStore } from "@/stores/cart-store";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { hasPermission, Permission } from "@/lib/rbac"; // 👈 ایمپورت هسته سطوح دسترسی
+import { hasPermission, Permission } from "@/lib/rbac";
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-
   const { user } = useCurrentUser();
 
-  const count = useCartStore((state) =>
-    state.items.reduce((sum, item) => sum + item.quantity, 0)
-  );
-
-  async function logout() {
-    await fetch("/api/logout", {
-      method: "POST",
-    });
-    window.location.href = "/";
-  }
-
-  // تعریف منوهای مدیریت به همراه مجوز لازم برای هر منو
   const menuItems = [
     {
       title: "داشبورد",
@@ -81,9 +69,13 @@ export function AdminSidebar() {
       icon: Users,
       permission: "MANAGE_USERS" as Permission,
     },
+    {
+      title: "تنظیمات فروشگاه",
+      href: "/admin/settings",
+      icon: Settings,
+      permission: "MANAGE_SHIPPING" as Permission,
+    },
   ];
-
-  const userInitials = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
   return (
     <>
@@ -119,7 +111,6 @@ export function AdminSidebar() {
 
           <nav className="space-y-1">
             {menuItems.map((item) => {
-              // 👇 کنترل داینامیک: اگر کاربر مجوز این آیتم را نداشت، اصلاً آن را رندر نکن!
               if (user && !hasPermission(user.role, item.permission)) {
                 return null;
               }

@@ -1,3 +1,4 @@
+// components/profile/profile-sidebar.tsx
 "use client";
 
 import Link from "next/link";
@@ -40,7 +41,6 @@ export function ProfileSidebar() {
   return (
     <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
       <CardContent className="p-6 space-y-6">
-        
         {/* اطلاعات بالای سایدبار (کاربر لاگین شده) */}
         <div className="flex items-center gap-3 pb-6 border-b border-zinc-100">
           <div className="h-12 w-12 rounded-full bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center text-lg font-bold shadow-inner flex-shrink-0">
@@ -50,8 +50,8 @@ export function ProfileSidebar() {
             <span className="font-bold text-zinc-800 text-sm block truncate">
               {user?.name || "کاربر مهمان"}
             </span>
-            <span className="text-[10px] text-zinc-400 block truncate">
-              {user?.email || ""}
+            <span className="text-[10px] text-zinc-400 block truncate" dir="ltr">
+              {(user as any)?.phone || (user as any)?.username || ""}
             </span>
           </div>
         </div>
@@ -60,7 +60,6 @@ export function ProfileSidebar() {
         <nav className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            // تشخیص دقیق دکمه فعال در فرانت‌اند
             const isActive =
               pathname === item.href ||
               (item.href !== "/profile" && pathname.startsWith(item.href));
@@ -90,7 +89,6 @@ export function ProfileSidebar() {
             <span>خروج از حساب</span>
           </button>
         </nav>
-
       </CardContent>
     </Card>
   );

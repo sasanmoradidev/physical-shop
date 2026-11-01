@@ -1,6 +1,9 @@
+// app/api/otp/verify/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createToken } from "@/lib/auth"; // متد ساخت توکن jose شما
+import { createToken } from "@/lib/auth";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
@@ -25,7 +28,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "کد تایید منقضی شده است. مجدداً اقدام کنید." }, { status: 400 });
     }
 
-    // ۴. حذف کد استفاده شده از دیتابیس (برای رعایت مسائل امنیتی و مصرف نشدن دوباره کد)
+    // ۴. حذف کد استفاده شده از دیتابیس
     await prisma.otpRequest.delete({
       where: { phone },
     });
@@ -35,19 +38,21 @@ export async function POST(req: Request) {
       where: { phone },
     });
 
-    // ۶. ثبت‌نام خودکار در صورت اولین ورود
+    // ۶. ثبت‌نام خودکار در صورت اولین ورود (با پر کردن فیلدهای اجباری username و password)
     if (!user) {
+      const randomPassword = await bcrypt.hash(crypto.randomUUID(), 10);
       user = await prisma.user.create({
         data: {
-          name: `کاربر ${phone.slice(-4)}`, // به عنوان نام پیش‌فرض، ۴ رقم آخر شماره موبایل را ثبت می‌کنیم
+          name: `کاربر ${phone.slice(-4)}`,
+          username: phone, // قرار دادن شماره موبایل به عنوان نام کاربری یکتا
           phone: phone,
+          password: randomPassword,
           role: "USER",
-          // فیلدهای ایمیل و پسورد برای کاربران OTP خالی (null) می‌مانند
         },
       });
     }
 
-    // ۷. ساخت توکن JWT (دقیقاً مشابه منطق ورود با پسورد شما)
+    // ۷. ساخت توکن JWT
     const token = await createToken({
       userId: user.id,
       role: user.role,
@@ -55,7 +60,6 @@ export async function POST(req: Request) {
 
     const response = NextResponse.json({ success: true, role: user.role });
 
-    // ذخیره توکن در کوکی مرورگر به عنوان HTTP-Only
     response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

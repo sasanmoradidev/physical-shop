@@ -1,11 +1,18 @@
+// app/(store)/profile/page.tsx
 import { requireAuth } from "@/lib/rbac-server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Shield, Calendar } from "lucide-react";
+import { User } from "lucide-react";
 
 export default async function ProfilePage() {
   const user = await requireAuth();
-
   const joinedDate = new Date(user.createdAt).toLocaleDateString("fa-IR");
+
+  const roleLabels: Record<string, string> = {
+    ADMIN: "مدیر کل سیستم",
+    SUPPORT: "پشتیبان فروشگاه",
+    CONTENT_MANAGER: "مدیر محتوا",
+    USER: "کاربر عادی",
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -24,33 +31,33 @@ export default async function ProfilePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            
             <div className="space-y-1 p-4 bg-zinc-50 rounded-xl border border-zinc-100/50">
               <span className="text-[10px] text-zinc-400 block">نام و نام خانوادگی</span>
               <span className="font-bold text-zinc-800 block text-sm">{user.name}</span>
             </div>
 
             <div className="space-y-1 p-4 bg-zinc-50 rounded-xl border border-zinc-100/50">
-              <span className="text-[10px] text-zinc-400 block">نشانی ایمیل</span>
-              <span className="font-bold text-zinc-800 block text-sm">{user.email}</span>
-            </div>
-
-            <div className="space-y-1 p-4 bg-zinc-50 rounded-xl border border-zinc-100/50">
-              <span className="text-[10px] text-zinc-400 block">نقش کاربری در سایت</span>
-              <span className="font-bold text-zinc-800 block text-sm">
-                {user.role === "ADMIN" ? "مدیر کل سیستم" : "کاربر عادی"}
+              <span className="text-[10px] text-zinc-400 block">نام کاربری</span>
+              <span className="font-bold text-zinc-800 block text-sm font-mono" dir="ltr">
+                {user.username}
               </span>
             </div>
 
             <div className="space-y-1 p-4 bg-zinc-50 rounded-xl border border-zinc-100/50">
-              <span className="text-[10px] text-zinc-400 block">تاریخ عضویت</span>
-              <span className="font-bold text-zinc-800 block text-sm">{joinedDate}</span>
+              <span className="text-[10px] text-zinc-400 block">شماره موبایل</span>
+              <span className="font-bold text-zinc-800 block text-sm" dir="ltr">
+                {user.phone}
+              </span>
             </div>
 
+            <div className="space-y-1 p-4 bg-zinc-50 rounded-xl border border-zinc-100/50">
+              <span className="text-[10px] text-zinc-400 block">نقش کاربری و عضویت</span>
+              <span className="font-bold text-zinc-800 block text-sm">
+                {roleLabels[user.role] || "کاربر عادی"} ({joinedDate})
+              </span>
+            </div>
           </div>
-
         </CardContent>
       </Card>
     </div>
