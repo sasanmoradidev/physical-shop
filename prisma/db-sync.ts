@@ -11,30 +11,49 @@ const filePath = path.join(
   "local-backup.json"
 );
 
-// تبدیل رشته‌های تاریخ JSON به Date
-function restoreDates(value: any): any {
-  if (Array.isArray(value)) {
-    return value.map(restoreDates);
-  }
+type BackupData = {
+  users: any[];
+  otpRequests: any[];
+  systemSettings: any[];
+  categories: any[];
+  products: any[];
+  productImages: any[];
+  shippingMethods: any[];
+  paymentMethods: any[];
+  addresses: any[];
+  orders: any[];
+  orderItems: any[];
+};
 
-  if (value && typeof value === "object") {
-    const result: any = {};
+// Convert JSON date strings to JavaScript Date objects
+function restoreDates(
+  rows: any[],
+  fields: string[]
+): any[] {
+  return rows.map((row) => {
+    const result = { ...row };
 
-    for (const [key, val] of Object.entries(value)) {
-      result[key] = restoreDates(val);
+    for (const field of fields) {
+      if (result[field] !== null && result[field] !== undefined) {
+        const date = new Date(result[field]);
+
+        if (Number.isNaN(date.getTime())) {
+          throw new Error(`Invalid date in field: ${field}`);
+        }
+
+        result[field] = date;
+      }
     }
 
     return result;
-  }
-
-  return value;
+  });
 }
 
-// Export database
+// Export
 async function exportData() {
-  console.log("⏳ Reading data from current database...");
+  console.log("⏳ Reading data from database...");
 
-  const backupData = {
+  const backupData: BackupData = {
     users: await prisma.user.findMany(),
     otpRequests: await prisma.otpRequest.findMany(),
     systemSettings: await prisma.systemSetting.findMany(),
@@ -56,198 +75,274 @@ async function exportData() {
     "utf-8"
   );
 
-  console.log("✅ Data exported successfully!");
-  console.log(`📁 Backup location: ${filePath}`);
+  console.log("✅ Export completed!");
+  console.log(`📁 Backup: ${filePath}`);
 }
 
-// Import database
+// Import
 async function importData() {
   console.log("⏳ Reading backup file...");
 
-  try {
-    const fileContent = await fs.readFile(filePath, "utf-8");
-    const data = JSON.parse(fileContent);
+  const content = await fs.readFile(filePath, "utf-8");
 
-    console.log("🔄 Importing data...");
+  const raw = JSON.parse(content);
 
-    // بررسی ساختار فایل بکاپ
-    const requiredTables = [
-      "users",
-      "otpRequests",
-      "systemSettings",
-      "categories",
-      "products",
-      "productImages",
-      "shippingMethods",
-      "paymentMethods",
-      "addresses",
-      "orders",
-      "orderItems",
-    ];
+  const tables = [
+    "users",
+    "otpRequests",
+    "systemSettings",
+    "categories",
+    "products",
+    "productImages",
+    "shippingMethods",
+    "paymentMethods",
+    "addresses",
+    "orders",
+    "orderItems",
+  ];
 
-    for (const table of requiredTables) {
-      if (!Array.isArray(data[table])) {
-        throw new Error(`Invalid backup data: ${table} is missing or invalid.`);
-      }
+  for (const table of tables) {
+    if (!Array.isArray(raw[table])) {
+      throw new Error(`Invalid backup: ${table}`);
     }
+  }
 
-    // تبدیل تاریخ‌ها
-    const users = restoreDates(data.users);
-    const otpRequests = restoreDates(data.otpRequests);
-    const systemSettings = restoreDates(data.systemSettings);
-    const categories = restoreDates(data.categories);
-    const products = restoreDates(data.products);
-    const productImages = restoreDates(data.productImages);
-    const shippingMethods = restoreDates(data.shippingMethods);
-    const paymentMethods = restoreDates(data.paymentMethods);
-    const addresses = restoreDates(data.addresses);
-    const orders = restoreDates(data.orders);
-    const orderItems = restoreDates(data.orderItems);
+  const data: BackupData = {
+    users: restoreDates(raw.users, ["createdAt", "updatedAt"]),
+    otpRequests: restoreDates(raw.otpRequests, ["expiresAt", "createdAt"]),
+    systemSettings: raw.systemSettings,
+    categories: raw.categories,
+    products: restoreDates(raw.products, [
+      "createdAt",
+      "updatedAt",
+      "offerStartsAt",
+      "offerEndsAt",
+    ]),
+    productImages: raw.productImages,
+    shippingMethods: restoreDates(raw.shippingMethods, [
+      "createdAt",
+      "updatedAt",
+    ]),
+    paymentMethods: restoreDates(raw.paymentMethods, [
+      "createdAt",
+      "updatedAt",
+    ]),
+    addresses: raw.addresses,
+    orders: restoreDates(raw.orders, [
+      "createdAt",
+      "updatedAt",
+      "paidAt",
+    ]),
+    orderItems: raw.orderItems,
+  };
 
-    // ترتیب Import بر اساس وابستگی‌ها
-    await prisma.$transaction(
-      async (tx) => {
+  console.log("🔄 Starting database reset and import...");
 
-        // 1. Users
-        if (users.length) {
-          await tx.user.createMany({
-            data: users,
-            skipDuplicates: true,
-          });
-          console.log("✅ Users imported.");
-        }
+  await prisma.$transaction(
+    async (tx) => {
 
-        // 2. OTP Requests
-        if (otpRequests.length) {
-          await tx.otpRequest.createMany({
-            data: otpRequests,
-            skipDuplicates: true,
-          });
-          console.log("✅ OTP Requests imported.");
-        }
+      // 1. Clear all application tables
+      console.log("🗑️ Clearing database...");
 
-        // 3. System Settings
-        if (systemSettings.length) {
-          await tx.systemSetting.createMany({
-            data: systemSettings,
-            skipDuplicates: true,
-          });
-          console.log("✅ System Settings imported.");
-        }
+      await tx.$executeRawUnsafe(`
+        TRUNCATE TABLE
+          "OrderItem",
+          "Order",
+          "Address",
+          "ProductImage",
+          "Product",
+          "Category",
+          "OtpRequest",
+          "SystemSetting",
+          "ShippingMethod",
+          "PaymentMethod",
+          "User"
+        RESTART IDENTITY;
+      `);
 
-        // 4. Shipping Methods
-        if (shippingMethods.length) {
-          await tx.shippingMethod.createMany({
-            data: shippingMethods,
-            skipDuplicates: true,
-          });
-          console.log("✅ Shipping Methods imported.");
-        }
+      console.log("✅ Database cleared.");
 
-        // 5. Payment Methods
-        if (paymentMethods.length) {
-          await tx.paymentMethod.createMany({
-            data: paymentMethods,
-            skipDuplicates: true,
-          });
-          console.log("✅ Payment Methods imported.");
-        }
+      // 2. Users
+      if (data.users.length) {
+        await tx.user.createMany({
+          data: data.users,
+        });
+      }
 
-        // 6. Categories
-        if (categories.length) {
-          const pending = [...categories];
+      console.log(`✅ Users: ${data.users.length}`);
 
-          while (pending.length > 0) {
-            const ready = pending.filter(
-              (category: any) =>
-                !category.parentId ||
-                !pending.some(
-                  (parent: any) => parent.id === category.parentId
-                )
+      // 3. OTP Requests
+      if (data.otpRequests.length) {
+        await tx.otpRequest.createMany({
+          data: data.otpRequests,
+        });
+      }
+
+      console.log(`✅ OTP Requests: ${data.otpRequests.length}`);
+
+      // 4. System Settings
+      if (data.systemSettings.length) {
+        await tx.systemSetting.createMany({
+          data: data.systemSettings,
+        });
+      }
+
+      console.log(`✅ System Settings: ${data.systemSettings.length}`);
+
+      // 5. Shipping Methods
+      if (data.shippingMethods.length) {
+        await tx.shippingMethod.createMany({
+          data: data.shippingMethods,
+        });
+      }
+
+      console.log(`✅ Shipping Methods: ${data.shippingMethods.length}`);
+
+      // 6. Payment Methods
+      if (data.paymentMethods.length) {
+        await tx.paymentMethod.createMany({
+          data: data.paymentMethods,
+        });
+      }
+
+      console.log(`✅ Payment Methods: ${data.paymentMethods.length}`);
+
+      // 7. Categories (parents before children)
+      if (data.categories.length) {
+        const pending = [...data.categories];
+
+        while (pending.length > 0) {
+          const ready = pending.filter(
+            (category) =>
+              !category.parentId ||
+              !pending.some(
+                (parent) => parent.id === category.parentId
+              )
+          );
+
+          if (ready.length === 0) {
+            throw new Error(
+              "Circular or invalid category hierarchy detected."
             );
-
-            if (ready.length === 0) {
-              throw new Error(
-                "Category hierarchy contains a circular dependency."
-              );
-            }
-
-            await tx.category.createMany({
-              data: ready,
-              skipDuplicates: true,
-            });
-
-            const importedIds = new Set(
-              ready.map((category: any) => category.id)
-            );
-
-            for (let i = pending.length - 1; i >= 0; i--) {
-              if (importedIds.has(pending[i].id)) {
-                pending.splice(i, 1);
-              }
-            }
           }
 
-          console.log("✅ Categories imported.");
-        }
-
-        // 7. Products
-        if (products.length) {
-          await tx.product.createMany({
-            data: products,
-            skipDuplicates: true,
+          await tx.category.createMany({
+            data: ready,
           });
-          console.log("✅ Products imported.");
-        }
 
-        // 8. Product Images
-        if (productImages.length) {
-          await tx.productImage.createMany({
-            data: productImages,
-            skipDuplicates: true,
-          });
-          console.log("✅ Product Images imported.");
-        }
+          const importedIds = new Set(
+            ready.map((category) => category.id)
+          );
 
-        // 9. Addresses
-        if (addresses.length) {
-          await tx.address.createMany({
-            data: addresses,
-            skipDuplicates: true,
-          });
-          console.log("✅ Addresses imported.");
+          for (let i = pending.length - 1; i >= 0; i--) {
+            if (importedIds.has(pending[i].id)) {
+              pending.splice(i, 1);
+            }
+          }
         }
-
-        // 10. Orders
-        if (orders.length) {
-          await tx.order.createMany({
-            data: orders,
-            skipDuplicates: true,
-          });
-          console.log("✅ Orders imported.");
-        }
-
-        // 11. Order Items
-        if (orderItems.length) {
-          await tx.orderItem.createMany({
-            data: orderItems,
-            skipDuplicates: true,
-          });
-          console.log("✅ Order Items imported.");
-        }
-      },
-      {
-        maxWait: 10000,
-        timeout: 120000,
       }
-    );
 
-    console.log("🎉 All data imported successfully!");
+      console.log(`✅ Categories: ${data.categories.length}`);
 
-  } catch (error) {
-    console.error("❌ Import failed:", error);
-    throw error;
-  }
+      // 8. Products
+      if (data.products.length) {
+        await tx.product.createMany({
+          data: data.products,
+        });
+      }
+
+      console.log(`✅ Products: ${data.products.length}`);
+
+      // 9. Product Images
+      if (data.productImages.length) {
+        const productIds = new Set(
+          data.products.map((product) => product.id)
+        );
+
+        const invalidImages = data.productImages.filter(
+          (image) => !productIds.has(image.productId)
+        );
+
+        if (invalidImages.length) {
+          throw new Error(
+            `Missing products for images: ${
+              invalidImages.map((image) => image.productId).join(", ")
+            }`
+          );
+        }
+
+        await tx.productImage.createMany({
+          data: data.productImages,
+        });
+      }
+
+      console.log(`✅ Product Images: ${data.productImages.length}`);
+
+      // 10. Addresses
+      if (data.addresses.length) {
+        await tx.address.createMany({
+          data: data.addresses,
+        });
+      }
+
+      console.log(`✅ Addresses: ${data.addresses.length}`);
+
+      // 11. Orders
+      if (data.orders.length) {
+        await tx.order.createMany({
+          data: data.orders,
+        });
+      }
+
+      console.log(`✅ Orders: ${data.orders.length}`);
+
+      // 12. Order Items
+      if (data.orderItems.length) {
+        await tx.orderItem.createMany({
+          data: data.orderItems,
+        });
+      }
+
+      console.log(`✅ Order Items: ${data.orderItems.length}`);
+
+      // 13. Verify imported record counts
+      const counts = {
+        users: await tx.user.count(),
+        otpRequests: await tx.otpRequest.count(),
+        systemSettings: await tx.systemSetting.count(),
+        categories: await tx.category.count(),
+        products: await tx.product.count(),
+        productImages: await tx.productImage.count(),
+        shippingMethods: await tx.shippingMethod.count(),
+        paymentMethods: await tx.paymentMethod.count(),
+        addresses: await tx.address.count(),
+        orders: await tx.order.count(),
+        orderItems: await tx.orderItem.count(),
+      };
+
+      console.log("\n========== IMPORT VERIFICATION ==========");
+
+      for (const [table, count] of Object.entries(counts)) {
+        console.log(`${table}: ${count}`);
+      }
+
+      for (const table of tables) {
+        if (counts[table as keyof typeof counts] !== data[table as keyof BackupData].length) {
+          throw new Error(
+            `Count mismatch in ${table}: expected ${
+              data[table as keyof BackupData].length
+            }, got ${counts[table as keyof typeof counts]}`
+          );
+        }
+      }
+    },
+    {
+      maxWait: 10000,
+      timeout: 120000,
+    }
+  );
+
+  console.log("\n🎉 Database reset and import completed successfully!");
 }
 
 // Main
@@ -259,16 +354,16 @@ async function main() {
   } else if (action === "import") {
     await importData();
   } else {
-    console.log("⚠️ Please specify an action: export or import");
-    console.log("Example: npm run db:export");
-    console.log("Example: npm run db:import");
+    console.log("⚠️ Please specify export or import.");
+    console.log("npm run db:export");
+    console.log("npm run db:import");
     process.exitCode = 1;
   }
 }
 
 main()
   .catch((error) => {
-    console.error(error);
+    console.error("\n❌ Operation failed:", error);
     process.exitCode = 1;
   })
   .finally(async () => {
