@@ -8,39 +8,56 @@ import { cookies } from "next/headers";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, username, password, phone } = body;
+    const { name, username, password, phone, code } = body;
 
-    if (!name || !username || !password || !phone) {
+    if (!name || !username || !password || !phone || !code) {
       return NextResponse.json(
-        { error: "تمامی فیلدها الزامی هستند." },
+        { error: "تمامی فیلدها و کد تایید الزامی هستند." },
         { status: 400 }
       );
     }
 
-    const existingUsername = await prisma.user.findUnique({
-      where: { username },
-    });
-
-    if (existingUsername) {
-      return NextResponse.json(
-        { error: "این نام کاربری قبلاً ثبت شده است." },
-        { status: 400 }
-      );
-    }
-
-    const existingPhone = await prisma.user.findUnique({
+    // ۱. بررسی صحت کد OTP در جدول OtpRequest
+    const otpRequest = await prisma.otpRequest.findUnique({
       where: { phone },
     });
 
-    if (existingPhone) {
+    if (!otpRequest || otpRequest.code !== code) {
       return NextResponse.json(
-        { error: "این شماره موبایل قبلاً در سیستم ثبت شده است." },
+        { error: "کد تایید وارد شده نامعتبر است." },
+        { status: 400 }
+      );
+    }
+
+    if (new Date() > otpRequest.expiresAt) {
+      return NextResponse.json(
+        { error: "کد تایید منقضی شده است. مجدداً اقدام کنید." },
+        { status: 400 }
+      );
+    }
+
+    // ۲. حذف کد استفاده شده
+    await prisma.otpRequest.delete({
+      where: { phone },
+    });
+
+    // ۳. بررسی تکراری نبودن نام کاربری یا موبایل
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ username }, { phone }],
+      },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "این نام کاربری یا شماره موبایل قبلاً ثبت شده است." },
         { status: 400 }
       );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // ۴. ساخت نهایی کاربر در دیتابیس
     const user = await prisma.user.create({
       data: {
         name,
@@ -50,7 +67,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // ساخت توکن و لاگین خودکار پس از ثبت‌نام
+    // ۵. ساخت توکن و لاگین خودکار
     const token = await createToken({
       userId: user.id,
       role: user.role,
@@ -70,6 +87,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "خطای سرور در ثبت‌نام" }, { status: 500 });
+    return NextResponse.json({ error: "خطای سرور در فرآیند ثبت‌نام" }, { status: 500 });
   }
 }

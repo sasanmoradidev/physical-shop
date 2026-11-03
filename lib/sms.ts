@@ -25,7 +25,7 @@ export async function sendOtpSms(phone: string, code: string): Promise<boolean> 
         templateId: Number(templateId),
         parameters: [
           {
-            name: "Code", // نام متغیر در پنل الگو sms.ir شما (مثلاً Code)
+            name: "CODE", // نام متغیر در پنل الگو sms.ir شما (مثلاً Code)
             value: code,
           },
         ],

@@ -52,6 +52,12 @@ export function AdminSidebar() {
       permission: "MANAGE_ORDERS" as Permission,
     },
     {
+      title: "تراکنش‌های مالی",
+      href: "/admin/transactions",
+      icon: CreditCard,
+      permission: "MANAGE_ORDERS" as Permission,
+    },
+    {
       title: "روش‌های ارسال",
       href: "/admin/shipping",
       icon: Truck,

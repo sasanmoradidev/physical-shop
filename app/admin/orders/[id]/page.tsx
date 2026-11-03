@@ -1,19 +1,10 @@
+// app/admin/orders/[id]/page.tsx
 import { prisma } from "@/lib/prisma";
 import { OrderStatus } from "@/components/admin/order-status";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
-// ایمپورت کامپوننت‌های شکیل پروژه (Shadcn UI)
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-
-// ایمپورت آیکون‌های مورد نظر از خانواده Lucide
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowRight,
   User,
@@ -24,24 +15,20 @@ import {
   ShoppingBag,
   Calendar,
   CheckCircle2,
+  Hash,
 } from "lucide-react";
 
 type Props = {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 };
 
 export default async function OrderDetailPage({ params }: Props) {
-  // ۱. رفع باگ ناهمگام بودن پارامترها در Next.js جدید
   const { id } = await params;
 
-  // ۲. دریافت اطلاعات تفصیلی سفارش
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
       user: true,
-      address: true,
       items: {
         include: {
           product: true,
@@ -62,8 +49,7 @@ export default async function OrderDetailPage({ params }: Props) {
 
   return (
     <div className="container max-w-5xl mx-auto py-8 px-4 space-y-6 animate-fade-in">
-      
-      {/* هدر بالای صفحه به همراه دکمه بازگشت */}
+      {/* هدر صفحه */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-zinc-100">
         <div className="flex items-center gap-3.5">
           <div className="p-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-zinc-700 shadow-sm">
@@ -85,13 +71,9 @@ export default async function OrderDetailPage({ params }: Props) {
         </Button>
       </div>
 
-      {/* شبکه چیدمان کارت‌ها (Grid) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* بخش راست (2 ستون): لیست اقلام سفارش و فاکتور */}
+        {/* ستون راست (اقلام فاکتور) */}
         <div className="lg:col-span-2 space-y-6">
-          
-          {/* کارت اقلام خریده شده */}
           <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
               <div className="flex items-center gap-2 text-zinc-800">
@@ -127,17 +109,19 @@ export default async function OrderDetailPage({ params }: Props) {
             </CardContent>
           </Card>
 
-          {/* فاکتور حساب نهایی سفارش */}
           <Card className="border-zinc-100 shadow-sm rounded-2xl p-6 bg-zinc-50/20 border">
             <div className="flex justify-between items-center text-zinc-600 text-sm">
               <span>جمع مبالغ اقلام سبد</span>
               <span className="font-semibold text-zinc-800">
-                {Number(order.totalPrice).toLocaleString("fa-IR")} تومان
+                {/* کم کردن هزینه ارسال از کل مبلغ برای به دست آوردن قیمت خالص کالاها */}
+                {(Number(order.totalPrice) - Number(order.shippingCost || 0)).toLocaleString("fa-IR")} تومان
               </span>
             </div>
             <div className="flex justify-between items-center text-zinc-600 text-sm mt-3">
               <span>هزینه تحویل و ارسال</span>
-              <span className="text-emerald-600 font-medium">رایگان</span>
+              <span className="text-emerald-600 font-medium">
+                {order.shippingCost ? `${Number(order.shippingCost).toLocaleString("fa-IR")} تومان` : "رایگان"}
+              </span>
             </div>
             <div className="border-t border-zinc-200/60 my-4" />
             <div className="flex justify-between items-center text-lg">
@@ -150,13 +134,10 @@ export default async function OrderDetailPage({ params }: Props) {
               </div>
             </div>
           </Card>
-
         </div>
 
-        {/* بخش چپ (1 ستون): مشخصات خریدار، آدرس ارسال و تغییر وضعیت */}
+        {/* ستون چپ (وضعیت سفارش و اسنپ‌شات آدرس) */}
         <div className="space-y-6">
-          
-          {/* کارت تغییر وضعیت سفارش */}
           <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
               <div className="flex items-center gap-2 text-zinc-800">
@@ -175,7 +156,6 @@ export default async function OrderDetailPage({ params }: Props) {
               
               <div className="space-y-2 pt-4 border-t border-zinc-100">
                 <label className="block text-[10px] font-bold text-zinc-400 mr-0.5">مدیریت وضعیت مرسوله</label>
-                {/* کامپوننت تغییر وضعیت با ظاهر هماهنگ */}
                 <div className="w-full">
                   <OrderStatus orderId={order.id} status={order.status} />
                 </div>
@@ -183,31 +163,30 @@ export default async function OrderDetailPage({ params }: Props) {
             </CardContent>
           </Card>
 
-          {/* کارت مشخصات خریدار و آدرس تحویل */}
+          {/* کارت اسنپ‌شات آدرس ارسال */}
           <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
               <div className="flex items-center gap-2 text-zinc-800">
                 <MapPin className="h-5 w-5 text-blue-600" />
-                <CardTitle className="text-base font-bold">مشخصات ارسال</CardTitle>
+                <CardTitle className="text-base font-bold">مشخصات ارسال (ثبت شده در فاکتور)</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="p-6 space-y-5 text-xs">
-              
-              {/* اطلاعات خریدار و گیرنده */}
               <div className="space-y-3.5">
                 <div className="flex items-start gap-2.5">
                   <User className="h-4 w-4 text-zinc-400 flex-shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <span className="text-[9px] text-zinc-400 block">نام گیرنده مرسوله</span>
-                    <span className="font-bold text-zinc-800 block text-sm">{order.address.fullName || order.user.name}</span>
+                    <span className="text-[9px] text-zinc-400 block">عنوان / گیرنده مرسوله</span>
+                    <span className="font-bold text-zinc-800 block text-sm">{order.shippingFullName}</span>
+                    <span className="text-[10px] text-zinc-500 block">{order.shippingTitle}</span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
                   <Mail className="h-4 w-4 text-zinc-400 flex-shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <span className="text-[9px] text-zinc-400 block">نشانی ایمیل</span>
-                    <span className="font-semibold text-zinc-700 block truncate">{order.user.email}</span>
+                    <span className="text-[9px] text-zinc-400 block">نام کاربری / ایمیل ثبت‌نامی</span>
+                    <span className="font-semibold text-zinc-700 block truncate">{order.user.username}</span>
                   </div>
                 </div>
 
@@ -215,42 +194,37 @@ export default async function OrderDetailPage({ params }: Props) {
                   <Phone className="h-4 w-4 text-zinc-400 flex-shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <span className="text-[9px] text-zinc-400 block">شماره موبایل گیرنده</span>
-                    <span className="font-semibold text-zinc-700 block" dir="ltr">{order.address.phone || "ثبت‌نشده"}</span>
+                    <span className="font-semibold text-zinc-700 block" dir="ltr">{order.shippingPhone}</span>
                   </div>
                 </div>
               </div>
 
-              {/* اطلاعات موقعیت پستی */}
               <div className="pt-4 border-t border-zinc-100 space-y-3">
                 <div className="space-y-1">
                   <span className="text-[9px] text-zinc-400 block">استان و شهر مقصد</span>
                   <span className="font-bold text-zinc-800 block text-sm">
-                    {order.address.province} - {order.address.city}
+                    {order.shippingProvince} - {order.shippingCity}
                   </span>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[9px] text-zinc-400 block">کد پستی ده رقمی</span>
                   <span className="font-semibold text-zinc-700 block font-mono text-sm tracking-wide" dir="ltr">
-                    {order.address.postalCode || "ثبت‌نشده"}
+                    {order.shippingPostalCode}
                   </span>
                 </div>
 
                 <div className="space-y-1 leading-relaxed">
                   <span className="text-[9px] text-zinc-400 block">نشانی دقیق پستی</span>
                   <span className="font-semibold text-zinc-600 block text-xs leading-5">
-                    {order.address.addressLine}
+                    {order.shippingAddressLine}
                   </span>
                 </div>
               </div>
-
             </CardContent>
           </Card>
-
         </div>
-
       </div>
-
     </div>
   );
 }
