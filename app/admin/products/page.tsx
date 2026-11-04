@@ -111,7 +111,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {products.map((product) => {
             const imageUrl = product.images?.[0]?.url || "/placeholder.png";
             const isOutOfStock = product.stock <= 0;

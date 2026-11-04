@@ -72,7 +72,7 @@ export async function createProduct(formData: FormData) {
       : null;
 
   const isActive = formData.get("isActive") === "on";
-  const offerEnabled = !!offerPrice;
+  // const offerEnabled = !!offerPrice;
 
   // ایجاد اولیه محصول بدون تصاویر
   const product = await prisma.product.create({
@@ -84,7 +84,7 @@ export async function createProduct(formData: FormData) {
       stock,
       categoryId,
       isActive,
-      offerEnabled,
+      // offerEnabled,
       offerPrice,
       offerStartsAt,
       offerEndsAt,

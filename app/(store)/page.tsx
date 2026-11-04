@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { HeroSwiper } from "@/components/home/hero-swiper";
 import { OfferSection } from "@/components/home/offer-section";
 import { NewProducts } from "@/components/home/new-products";
+import { FourColOffer } from "@/components/home/four-col-offer";
+import { LightBanner } from "@/components/home/light-banner";
 
 export default async function HomePage() {
   const discountProducts = await prisma.product.findMany({
@@ -43,11 +45,14 @@ export default async function HomePage() {
       {/* اسلایدر هیرو بنر */}
       <HeroSwiper />
 
+      <FourColOffer />
       {/* اسلایدر شگفت‌انگیز */}
       <OfferSection products={safeDiscountProducts} />
 
+      <FourColOffer />
       {/* اسلایدر کالاهای جدید */}
       <NewProducts products={safeNewProducts} />
+      <LightBanner/>
     </div>
   );
 }

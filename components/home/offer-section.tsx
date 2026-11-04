@@ -62,7 +62,7 @@ export function OfferSection({ products }: any) {
                 disableOnInteraction: false,
               }}
               breakpoints={{
-                0: { slidesPerView: 1.25, spaceBetween: 12 }, // نمایش ۱.۲۵ اسلاید در موبایل برای درک کشیدنی بودن
+                0: { slidesPerView: 2, spaceBetween: 12 }, // نمایش ۱.۲۵ اسلاید در موبایل برای درک کشیدنی بودن
                 480: { slidesPerView: 2, spaceBetween: 16 },
                 1024: { slidesPerView: 3, spaceBetween: 20 },
               }}

@@ -77,8 +77,7 @@ export function Navbar() {
       
       {/* بنر تستی متحرک بالای هدر */}
       {/* بنر متحرک بالای هدر (نسخه واکنش‌گرا ویژه موبایل و دسکتاپ) */}
-      <div className="w-full">
-        {/* ۱. بنر مخصوص موبایل (در حالت عادی نمایش داده می‌شود و از سایز md به بالا مخفی می‌شود) */}
+      {/* <div className="w-full">
         <Image
           src="/uploads/topbanner2.gif"
           alt="تخفیف ویژه موبایل"
@@ -88,7 +87,6 @@ export function Navbar() {
           className="w-full h-auto object-cover max-h-[45px] block md:hidden"
         />
 
-        {/* ۲. بنر مخصوص دسکتاپ (در حالت عادی مخفی است و از سایز md به بالا نمایش داده می‌شود) */}
         <Image
           src="/uploads/topbanner.gif"
           alt="تخفیف ویژه دسکتاپ"
@@ -97,7 +95,7 @@ export function Navbar() {
           priority
           className="w-full h-auto object-cover max-h-[45px] hidden md:block"
         />
-      </div>
+      </div> */}
 
       {/* نوار اصلی هدر */}
       <div className="container mx-auto flex items-center justify-between gap-4 py-3.5 px-4 max-w-6xl">

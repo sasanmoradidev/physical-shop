@@ -230,10 +230,12 @@ export default function ProductForm({ categories, product }: Props) {
                         const files = Array.from(e.target.files || []);
                         const previews = files.map((file) => ({
                             id: crypto.randomUUID(),
+                            // id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
                             url: URL.createObjectURL(file),
                             file,
                         }));
                         setImages((prev) => [...prev, ...previews]);
+                        // e.target.value = "";
                     }}
                     className="w-full border-2 border-dashed rounded-xl p-6 cursor-pointer hover:bg-gray-50 transition"
                 />
