@@ -1,16 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { deleteProduct } from "./actions";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ProductFilters } from "@/components/product/product-filters"; // 👈 استفاده مجدد از فیلتر
-import { ProductPagination } from "@/components/product/product-pagination"; // 👈 استفاده مجدد از صفحه‌بندی
+import { ProductFilters } from "@/components/product/product-filters";
+import { ProductPagination } from "@/components/product/product-pagination";
+
+import { DeleteProductButton } from "./delete-button";
+import { ToggleStatusButton } from "./toggle-status-button";
 
 import {
   Plus,
-  Trash2,
   Edit,
   Layers,
   Package,
@@ -26,7 +27,7 @@ type Props = {
   }>;
 };
 
-const PAGE_SIZE = 8; // تعداد نمایش کالا در هر صفحه پنل مدیریت
+const PAGE_SIZE = 12; // تعداد نمایش کالا در هر صفحه پنل مدیریت
 
 export default async function AdminProductsPage({ searchParams }: Props) {
   const { page, q, category, sort } = await searchParams;
@@ -45,8 +46,8 @@ export default async function AdminProductsPage({ searchParams }: Props) {
     sort === "price_asc"
       ? { price: "asc" as const }
       : sort === "price_desc"
-      ? { price: "desc" as const }
-      : { createdAt: "desc" as const };
+        ? { price: "desc" as const }
+        : { createdAt: "desc" as const };
 
   const products = await prisma.product.findMany({
     where,
@@ -67,7 +68,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-8 animate-fade-in">
-      
+
       {/* هدر مدیریت */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-zinc-100">
         <div className="flex items-center gap-3.5">
@@ -90,7 +91,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         </Button>
       </div>
 
-      {/* ۱. استفاده مجدد از فیلترهای واکشی کالا در پنل مدیریت (با ارجاع به مقصد /admin/products) */}
+      {/* ۱. استفاده مجدد از فیلترهای واکشی کالا در پنل مدیریت */}
       <ProductFilters
         categories={categories}
         searchParams={{ q, category, sort }}
@@ -123,24 +124,39 @@ export default async function AdminProductsPage({ searchParams }: Props) {
               >
                 <div>
                   <div className="relative aspect-square bg-zinc-50 border-b border-zinc-50 flex items-center justify-center overflow-hidden">
+                    {/* 
+        اگر محصول غیرفعال باشد، کلاس‌های opacity-40 و grayscale به عکس اضافه می‌شود 
+        تا از لحاظ بصری برای ادمین مشخص شود.
+      */}
                     <Image
                       src={imageUrl}
                       alt={product.title}
                       fill
                       sizes="(max-width: 768px) 100vw, 250px"
-                      className="object-contain p-5"
+                      className={`object-contain p-5 transition-all duration-300 ${!product.isActive ? "opacity-40 grayscale" : ""
+                        }`}
                     />
-                    <div className="absolute top-3.5 right-3.5">
+
+                    {/* برچسب موجودی انبار (موجود/ناموجود) */}
+                    <div className="absolute top-3.5 right-3.5 flex flex-col gap-1.5">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold shadow-sm ${
-                          isOutOfStock
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold shadow-sm ${isOutOfStock
                             ? "bg-red-50 text-red-700 border border-red-100"
                             : "bg-green-50 text-green-700 border border-green-100"
-                        }`}
+                          }`}
                       >
                         {isOutOfStock ? "ناموجود" : `${product.stock} عدد`}
                       </span>
                     </div>
+
+                    {/* 👇 برچسب وضعیت انتشار (اگر کالا غیرفعال باشد نمایش داده می‌شود) */}
+                    {!product.isActive && (
+                      <div className="absolute top-3.5 left-3.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold bg-zinc-800 text-zinc-50 border border-zinc-900 shadow-sm">
+                          غیرفعال
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-4 space-y-2.5">
@@ -148,7 +164,10 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                       <Layers className="h-3 w-3 text-zinc-400" />
                       <span>{product.category.name}</span>
                     </div>
-                    <h3 className="font-bold text-sm text-zinc-800 line-clamp-1" title={product.title}>
+                    <h3
+                      className="font-bold text-sm text-zinc-800 line-clamp-1"
+                      title={product.title}
+                    >
                       {product.title}
                     </h3>
                     <div className="flex flex-col text-left">
@@ -160,11 +179,13 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                   </div>
                 </div>
 
-                <div className="p-4 pt-0 border-t border-zinc-50/60 mt-auto flex items-center justify-between gap-2.5">
+                <div className="p-4 pt-0 border-t border-zinc-50/60 mt-auto flex items-center justify-between gap-2">
+
+                  {/* دکمه ویرایش (لینک به صفحه ادیت) */}
                   <Button
                     asChild
                     variant="outline"
-                    className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 h-9 rounded-xl border-zinc-200 text-zinc-700 hover:bg-zinc-50 transition"
+                    className="flex-1 flex items-center justify-center gap-1 text-xs font-semibold py-2 h-9 rounded-xl border-zinc-200 text-zinc-700 hover:bg-zinc-50 transition"
                   >
                     <Link href={`/admin/products/${product.id}/edit`}>
                       <Edit className="h-3.5 w-3.5 text-zinc-500" />
@@ -172,11 +193,12 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                     </Link>
                   </Button>
 
-                  <form action={deleteProduct.bind(null, product.id)} className="flex-shrink-0">
-                    <Button type="submit" variant="destructive" className="rounded-xl h-9 w-9 flex items-center justify-center p-0 shadow-sm">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </form>
+                  {/* 👇 دکمه کلاینتی تغییر وضعیت (فعال/غیرفعال کردن) */}
+                  <ToggleStatusButton id={product.id} isActive={product.isActive} />
+
+                  {/* 👇 دکمه کلاینتی حذف کالا */}
+                  <DeleteProductButton id={product.id} />
+
                 </div>
               </Card>
             );
@@ -184,7 +206,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         </div>
       )}
 
-      {/* ۲. استفاده مجدد از کامپوننت صفحه‌بندی در پنل مدیریت (با ارجاع به مقصد /admin/products) */}
+      {/* ۲. استفاده مجدد از کامپوننت صفحه‌بندی در پنل مدیریت */}
       <ProductPagination
         currentPage={currentPage}
         totalPages={totalPages}

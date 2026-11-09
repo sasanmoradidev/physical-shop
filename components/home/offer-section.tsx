@@ -22,7 +22,7 @@ export function OfferSection({ products }: any) {
             className="object-cover transition duration-500 hover:scale-105"
           />
 
-          <div className="absolute inset-0 bg-black/45" />
+          <div className="absolute inset-0 bg-black/15" />
 
           <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8 text-white">
             <span className="bg-red-600 w-fit px-3 py-1 rounded-full text-xs font-bold shadow-sm">

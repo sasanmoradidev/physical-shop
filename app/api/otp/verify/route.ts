@@ -13,38 +13,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "اطلاعات ارسالی ناقص است." }, { status: 400 });
     }
 
-    // ۱. واکشی درخواست تایید از دیتابیس
     const otpRequest = await prisma.otpRequest.findUnique({
       where: { phone },
     });
 
-    // ۲. اعتبارسنجی کد ارسالی
     if (!otpRequest || otpRequest.code !== code) {
       return NextResponse.json({ error: "کد تایید وارد شده نامعتبر است." }, { status: 400 });
     }
 
-    // ۳. بررسی انقضا
     if (new Date() > otpRequest.expiresAt) {
       return NextResponse.json({ error: "کد تایید منقضی شده است. مجدداً اقدام کنید." }, { status: 400 });
     }
 
-    // ۴. حذف کد استفاده شده از دیتابیس
     await prisma.otpRequest.delete({
       where: { phone },
     });
 
-    // ۵. بررسی وجود کاربر بر اساس شماره همراه
     let user = await prisma.user.findUnique({
       where: { phone },
     });
 
-    // ۶. ثبت‌نام خودکار در صورت اولین ورود (با پر کردن فیلدهای اجباری username و password)
     if (!user) {
       const randomPassword = await bcrypt.hash(crypto.randomUUID(), 10);
       user = await prisma.user.create({
         data: {
           name: `کاربر ${phone.slice(-4)}`,
-          username: phone, // قرار دادن شماره موبایل به عنوان نام کاربری یکتا
+          username: phone, 
           phone: phone,
           password: randomPassword,
           role: "USER",
@@ -52,7 +46,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // ۷. ساخت توکن JWT
     const token = await createToken({
       userId: user.id,
       role: user.role,
@@ -60,11 +53,17 @@ export async function POST(req: Request) {
 
     const response = NextResponse.json({ success: true, role: user.role });
 
+    // 👇 تشخیص اینکه آیا کاربر روی شبکه محلی است یا دامنه واقعی
+    const host = req.headers.get("host") || "";
+    const isLocalNetwork = host.includes("192.168") || host.includes("10.95") || host.includes("10.85") || host.includes("localhost") || host.includes("127.0.0.1");
+
     response.cookies.set("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      // 👇 اگر روی سرور واقعی بودیم (HTTPS) ترو می‌شود، اگر روی شبکه محلی بودیم فالز می‌شود
+      secure: process.env.NODE_ENV === "production" && !isLocalNetwork,
+      sameSite: "lax", // 👈 این مورد هم برای گوشی‌ها به شدت توصیه می‌شود
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // ۷ روز
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;

@@ -5,7 +5,8 @@ import { verifyToken } from "@/lib/auth";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  // 👇 اینجا تایپ params باید حتما Promise باشد
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = await cookies();
@@ -19,7 +20,10 @@ export async function GET(
     }
 
     const payload = await verifyToken(token);
-    const {id} = await params;
+    
+    // 👇 گرفتن id با await (شما این را درست نوشته بودید)
+    const { id } = await params;
+    
     const order = await prisma.order.findFirst({
       where: {
         id: id,

@@ -1,31 +1,33 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client"; // 👈 برای گرفتن ارورهای دیتابیس
 import { redirect } from "next/navigation";
 import fs from "fs/promises";
 import path from "path";
-import { requirePermission } from "@/lib/rbac-server"; // ایمپورت گارد جدید
-
-
+import { requirePermission } from "@/lib/rbac-server";
+import { revalidatePath } from "next/cache";
 
 /* =========================
-   📁 UPLOAD HELPER
+   📁 UPLOAD & FILE HELPERS
 ========================= */
 
-async function saveImage(file: File) {
-  const uploadDir = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    "products"
-  );
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_SIZE = 5 * 1024 * 1024; // 5 مگابایت
 
+async function saveImage(file: File) {
+  if (!ALLOWED_TYPES.includes(file.type)) throw new Error("فرمت تصویر مجاز نیست");
+  if (file.size > MAX_SIZE) throw new Error("حجم تصویر بیش از ۵ مگابایت است");
+
+  const uploadDir = path.join(process.cwd(), "public", "uploads", "products");
   await fs.mkdir(uploadDir, { recursive: true });
 
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 
-  const fileName = `${Date.now()}-${file.name}`;
+  // تولید نام یکتا با اکستنشن مناسب
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+  const fileName = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
   const filePath = path.join(uploadDir, fileName);
 
   await fs.writeFile(filePath, buffer);
@@ -33,13 +35,23 @@ async function saveImage(file: File) {
   return `/uploads/products/${fileName}`;
 }
 
+// 👈 تابع جدید: برای پاک کردن فیزیکی عکس از روی هارد
+async function deleteImageFile(url: string) {
+  try {
+    const filePath = path.join(process.cwd(), "public", url);
+    await fs.unlink(filePath);
+  } catch (error) {
+    // اگر فایل وجود نداشت خطایی نمی‌دهیم تا روند قطع نشود
+    console.error("Error deleting file:", url);
+  }
+}
+
 /* =========================
    🟢 CREATE PRODUCT
 ========================= */
 
 export async function createProduct(formData: FormData) {
-  const user = await requirePermission("MANAGE_PRODUCTS");
-
+  await requirePermission("MANAGE_PRODUCTS");
 
   const title = formData.get("title") as string;
   const slug = formData.get("slug") as string;
@@ -48,15 +60,14 @@ export async function createProduct(formData: FormData) {
   const price = Number(formData.get("price"));
   const stock = Number(formData.get("stock"));
   const categoryId = formData.get("categoryId") as string;
+  
   if (!categoryId) {
     throw new Error("Category is required");
   }
 
   const offerPriceValue = formData.get("offerPrice");
   const offerPrice =
-    offerPriceValue && offerPriceValue !== ""
-      ? Number(offerPriceValue)
-      : null;
+    offerPriceValue && offerPriceValue !== "" ? Number(offerPriceValue) : null;
 
   const offerStartsAtValue = formData.get("offerStartsAt");
   const offerEndsAtValue = formData.get("offerEndsAt");
@@ -72,7 +83,6 @@ export async function createProduct(formData: FormData) {
       : null;
 
   const isActive = formData.get("isActive") === "on";
-  // const offerEnabled = !!offerPrice;
 
   // ایجاد اولیه محصول بدون تصاویر
   const product = await prisma.product.create({
@@ -84,14 +94,13 @@ export async function createProduct(formData: FormData) {
       stock,
       categoryId,
       isActive,
-      // offerEnabled,
       offerPrice,
       offerStartsAt,
       offerEndsAt,
     },
   });
 
-  // ثبت و اعمال ترتیب تصاویر با تابع کمکی جدید
+  // ثبت و اعمال ترتیب تصاویر با تابع کمکی
   await processOrderedImages(formData, product.id);
 
   redirect("/admin/products");
@@ -101,12 +110,8 @@ export async function createProduct(formData: FormData) {
    🟡 UPDATE PRODUCT
 ========================= */
 
-export async function updateProduct(
-  id: string,
-  formData: FormData
-) {
-  const user = await requirePermission("MANAGE_PRODUCTS");
-
+export async function updateProduct(id: string, formData: FormData) {
+  await requirePermission("MANAGE_PRODUCTS");
 
   const title = formData.get("title") as string;
   const slug = formData.get("slug") as string;
@@ -117,9 +122,7 @@ export async function updateProduct(
 
   const offerPriceValue = formData.get("offerPrice");
   const offerPrice =
-    offerPriceValue && offerPriceValue !== ""
-      ? Number(offerPriceValue)
-      : null;
+    offerPriceValue && offerPriceValue !== "" ? Number(offerPriceValue) : null;
 
   const offerStartsAtValue = formData.get("offerStartsAt");
   const offerEndsAtValue = formData.get("offerEndsAt");
@@ -163,13 +166,38 @@ export async function updateProduct(
 ========================= */
 
 export async function deleteProduct(id: string) {
-  const user = await requirePermission("MANAGE_PRODUCTS");
+  await requirePermission("MANAGE_PRODUCTS");
 
+  try {
+    // 👈 ابتدا لیست عکس‌های محصول را می‌گیریم تا بتوانیم فایل‌هایشان را پاک کنیم
+    const images = await prisma.productImage.findMany({
+      where: { productId: id },
+      select: { url: true },
+    });
 
-  await prisma.product.delete({
-    where: { id },
-  });
+    // 👈 حذف خود محصول از دیتابیس
+    await prisma.product.delete({
+      where: { id },
+    });
 
+    // 👈 حذف فیزیکی تمامی عکس‌های مربوط به این محصول
+    await Promise.all(images.map((img) => deleteImageFile(img.url)));
+
+  } catch (error) { 
+    // 👈 مدیریت خطای وابستگی (موجود در سبد خرید کاربران) برای نمایش توست
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+      return {
+        success: false,
+        message: "این محصول در سفارشات کاربران ثبت شده و قابل حذف نیست. لطفاً آن را غیرفعال کنید.",
+      };
+    }
+    return {
+      success: false,
+      message: "خطایی غیرمنتظره در حذف محصول رخ داد.",
+    };
+  }
+
+  // در صورت موفقیت، ریدایرکت می‌کنیم
   redirect("/admin/products");
 }
 
@@ -188,15 +216,25 @@ async function processOrderedImages(formData: FormData, productId: string) {
     (id) => !formData.has(`file_${id}`)
   );
 
-  // حذف تصاویری که کاربر آن‌ها را از فرم کلاینت پاک کرده است
+  // 👈 یافتن عکس‌هایی که باید پاک شوند تا فایل فیزیکی‌شان هم پاک شود
+  const imagesToDelete = await prisma.productImage.findMany({
+    where: {
+      productId,
+      id: { notIn: existingImageIdsToKeep },
+    },
+    select: { url: true },
+  });
+
+  // حذف رکورد تصاویر قدیمی از دیتابیس
   await prisma.productImage.deleteMany({
     where: {
       productId,
-      id: {
-        notIn: existingImageIdsToKeep,
-      },
+      id: { notIn: existingImageIdsToKeep },
     },
   });
+
+  // 👈 حذف فیزیکی تصاویر اضافی
+  await Promise.all(imagesToDelete.map((img) => deleteImageFile(img.url)));
 
   // ۲. پیمایش ترتیب جدید تصاویر و اعمال مقادیر عددی فیلد order
   for (let index = 0; index < imageOrder.length; index++) {
@@ -204,17 +242,17 @@ async function processOrderedImages(formData: FormData, productId: string) {
     const file = formData.get(`file_${id}`) as File | null;
 
     if (file && file.size > 0) {
-      // این یک تصویر جدید است؛ آن را ذخیره و ایجاد می‌کنیم
+      // تصویر جدید: ذخیره روی هارد و ساخت رکورد دیتابیس
       const url = await saveImage(file);
       await prisma.productImage.create({
         data: {
           url,
-          order: index, // ذخیره ایندکس آرایه به عنوان اولویت ترتیب
+          order: index,
           productId,
         },
       });
     } else {
-      // این یک تصویر قدیمی است؛ فقط فیلد order (ترتیب چیدمان جدید) آن را آپدیت می‌کنیم
+      // تصویر قدیمی: فقط آپدیت اولویت چیدمان
       await prisma.productImage.updateMany({
         where: {
           productId,
@@ -225,5 +263,32 @@ async function processOrderedImages(formData: FormData, productId: string) {
         },
       });
     }
+  }
+}
+
+/* =========================
+   👁️ TOGGLE PRODUCT STATUS
+========================= */
+export async function toggleProductStatus(id: string, newStatus: boolean) {
+  await requirePermission("MANAGE_PRODUCTS");
+
+  try {
+    await prisma.product.update({
+      where: { id },
+      data: { isActive: newStatus },
+    });
+    
+    // رفرش کردن دیتای صفحه مدیریت بدون رفرش کامل مرورگر
+    revalidatePath("/admin/products");
+
+    return { 
+      success: true, 
+      message: newStatus ? "محصول در فروشگاه فعال شد" : "محصول غیرفعال شد و دیگر به کاربران نمایش داده نمی‌شود" 
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "خطایی در تغییر وضعیت محصول رخ داد.",
+    };
   }
 }

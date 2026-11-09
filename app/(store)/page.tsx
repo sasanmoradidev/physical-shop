@@ -7,6 +7,9 @@ import { LightBanner } from "@/components/home/light-banner";
 
 export default async function HomePage() {
   const discountProducts = await prisma.product.findMany({
+    where: {
+      isActive: true, // 👈 این خط باعث می‌شود دیتابیس کالای غیرفعال را برنگرداند
+    },
     take: 5,
     orderBy: { createdAt: "desc" },
     include: {
@@ -24,6 +27,9 @@ export default async function HomePage() {
   }));
 
   const newProducts = await prisma.product.findMany({
+    where: {
+      isActive: true, // 👈 این خط باعث می‌شود دیتابیس کالای غیرفعال را برنگرداند
+    },
     take: 10,
     orderBy: { createdAt: "desc" },
     include: {
@@ -41,7 +47,7 @@ export default async function HomePage() {
   }));
 
   return (
-    <div className="space-y-10 pb-16">
+    <div className="space-y-10 pb-2">
       {/* اسلایدر هیرو بنر */}
       <HeroSwiper />
 
@@ -52,7 +58,7 @@ export default async function HomePage() {
       <FourColOffer />
       {/* اسلایدر کالاهای جدید */}
       <NewProducts products={safeNewProducts} />
-      <LightBanner/>
+      <LightBanner />
     </div>
   );
 }

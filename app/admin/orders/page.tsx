@@ -143,12 +143,12 @@ export default async function AdminOrdersPage({
                         
                         <div className="flex items-center gap-1.5">
                           <Mail className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                          <span className="truncate">{order.user.email}</span>
+                          <span className="truncate">{order.user.username}</span>
                         </div>
 
                         <div className="flex items-center gap-1.5">
                           <MapPin className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                          <span>شهر مقصد: {order.address.city}</span>
+                          <span>شهر مقصد: {order.address?.city || "ثبت نشده"}</span>
                         </div>
                       </div>
 
