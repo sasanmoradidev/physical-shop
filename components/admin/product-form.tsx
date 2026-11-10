@@ -4,16 +4,22 @@ import { useState, useTransition } from "react";
 import { createProduct, updateProduct } from "@/app/admin/products/actions";
 import { ImageManager } from "@/components/admin/image-manager";
 
+import { createBrandInline } from "@/app/admin/brands/actions";
+import { Plus, X, Check, Loader2 } from "lucide-react";
+
 type Category = {
     id: string;
     name: string;
     slug: string;
 };
 
+type Brand = { id: string; name: string; slug: string };
+
 type ProductWithImages = {
     id: string;
     title: string;
     slug: string;
+    sku?: string | null;
     description: string;
     price: any;
     offerPrice: any;
@@ -21,18 +27,42 @@ type ProductWithImages = {
     offerEndsAt: Date | null;
     stock: number;
     categoryId: string;
+    brandId?: string | null;
     isActive: boolean;
     images: { id: string; url: string }[];
 };
 
 type Props = {
     categories: Category[];
+    brands: Brand[];
     product?: ProductWithImages; // اگر ارسال شود، فرم در حالت ویرایش قرار می‌گیرد
 };
 
-export default function ProductForm({ categories, product }: Props) {
+export default function ProductForm({ categories, brands, product }: Props) {
     const [isPending, startTransition] = useTransition();
     const isEditMode = !!product;
+
+    const [brandsList, setBrandsList] = useState(brands);
+    const [selectedBrand, setSelectedBrand] = useState(product?.brandId || "");
+    const [isAddingBrand, setIsAddingBrand] = useState(false);
+    const [newBrandName, setNewBrandName] = useState("");
+    const [isBrandPending, setIsBrandPending] = useState(false);
+
+    async function handleInlineBrandCreate() {
+        if (!newBrandName.trim()) return;
+        setIsBrandPending(true);
+        try {
+            const newBrand = await createBrandInline(newBrandName);
+            setBrandsList((prev) => [...prev, newBrand]); // اضافه کردن به لیست فرم
+            setSelectedBrand(newBrand.id); // انتخاب خودکار برند جدید
+            setIsAddingBrand(false);
+            setNewBrandName("");
+        } catch (error) {
+            alert("خطا در ایجاد برند. ممکن است نام تکراری باشد.");
+        } finally {
+            setIsBrandPending(false);
+        }
+    }
 
     // مقداردهی اولیه تصاویر بر اساس وجود یا عدم وجود محصول
     const [images, setImages] = useState<any[]>(
@@ -102,7 +132,7 @@ export default function ProductForm({ categories, product }: Props) {
             {/* اطلاعات محصول */}
             <section>
                 <h2 className="text-lg font-semibold mb-4 text-gray-800">اطلاعات محصول</h2>
-                <div className="grid md:grid-cols-2 gap-5">
+                <div className="grid md:grid-cols-3 gap-5">
                     <div>
                         <label className="block text-xs text-gray-500 mb-1">عنوان محصول</label>
                         <input
@@ -122,6 +152,10 @@ export default function ProductForm({ categories, product }: Props) {
                             placeholder="iphone-15-pro"
                             className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-xs text-gray-500 mb-1">کد اختصاصی (SKU)</label>
+                        <input name="sku" defaultValue={product?.sku || ""} placeholder="مثال: PRD-1001" className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                 </div>
                 <div className="mt-4">
@@ -201,22 +235,85 @@ export default function ProductForm({ categories, product }: Props) {
                 </div>
             </section>
 
-            {/* دسته‌بندی */}
+            {/* دسته‌بندی و برند */}
             <section>
-                <h2 className="text-lg font-semibold mb-4 text-gray-800">دسته‌بندی</h2>
-                <select
-                    name="categoryId"
-                    required
-                    defaultValue={product?.categoryId || ""}
-                    className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                    <option value="">انتخاب دسته‌بندی</option>
-                    {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                            {c.name}
-                        </option>
-                    ))}
-                </select>
+                <h2 className="text-lg font-semibold mb-4 text-gray-800">دسته‌بندی و برند</h2>
+                <div className="grid md:grid-cols-2 gap-5">
+                    {/* دسته‌بندی */}
+                    <div>
+                        <label className="block text-xs text-gray-500 mb-1">دسته‌بندی</label>
+                        <select
+                            name="categoryId"
+                            required
+                            defaultValue={product?.categoryId || ""}
+                            className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        >
+                            <option value="">انتخاب دسته‌بندی</option>
+                            {categories.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {/* برند با قابلیت افزودن در لحظه */}
+                    <div>
+                        <label className="block text-xs text-gray-500 mb-1">برند (اختیاری)</label>
+                        {!isAddingBrand ? (
+                            <div className="flex gap-2">
+                                <select
+                                    name="brandId"
+                                    value={selectedBrand}
+                                    onChange={(e) => setSelectedBrand(e.target.value)}
+                                    className="flex-1 border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                >
+                                    <option value="">بدون برند</option>
+                                    {brandsList.map((b) => (
+                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAddingBrand(true)}
+                                    className="flex-shrink-0 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-3 rounded-xl flex items-center justify-center transition border border-zinc-200"
+                                    title="افزودن برند جدید"
+                                >
+                                    <Plus className="h-5 w-5" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex gap-2 items-center">
+                                <input
+                                    type="text"
+                                    value={newBrandName}
+                                    onChange={(e) => setNewBrandName(e.target.value)}
+                                    placeholder="نام برند جدید..."
+                                    className="flex-1 border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            handleInlineBrandCreate();
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleInlineBrandCreate}
+                                    disabled={isBrandPending}
+                                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-3 rounded-xl flex items-center justify-center transition disabled:opacity-50"
+                                >
+                                    {isBrandPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsAddingBrand(false); setNewBrandName(""); }}
+                                    className="bg-red-50 hover:bg-red-100 text-red-500 px-3 py-3 rounded-xl flex items-center justify-center transition border border-red-100"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </section>
 
             {/* تصاویر محصول */}
@@ -275,6 +372,6 @@ export default function ProductForm({ categories, product }: Props) {
                             : "ایجاد محصول"}
                 </button>
             </div>
-        </form>
+        </form >
     );
 }

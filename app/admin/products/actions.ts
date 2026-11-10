@@ -57,10 +57,16 @@ export async function createProduct(formData: FormData) {
   const slug = formData.get("slug") as string;
   const description = formData.get("description") as string;
 
+  const skuRaw = formData.get("sku") as string;
+  const sku = skuRaw && skuRaw.trim() !== "" ? skuRaw.trim() : null;
+
+  const brandIdRaw = formData.get("brandId") as string;
+  const brandId = brandIdRaw && brandIdRaw.trim() !== "" ? brandIdRaw : null;
+
   const price = Number(formData.get("price"));
   const stock = Number(formData.get("stock"));
   const categoryId = formData.get("categoryId") as string;
-  
+
   if (!categoryId) {
     throw new Error("Category is required");
   }
@@ -89,6 +95,8 @@ export async function createProduct(formData: FormData) {
     data: {
       title,
       slug,
+      sku,
+      brandId,
       description,
       price,
       stock,
@@ -116,6 +124,12 @@ export async function updateProduct(id: string, formData: FormData) {
   const title = formData.get("title") as string;
   const slug = formData.get("slug") as string;
   const description = formData.get("description") as string;
+
+  const skuRaw = formData.get("sku") as string;
+  const sku = skuRaw && skuRaw.trim() !== "" ? skuRaw.trim() : null;
+
+  const brandIdRaw = formData.get("brandId") as string;
+  const brandId = brandIdRaw && brandIdRaw.trim() !== "" ? brandIdRaw : null;
 
   const price = Number(formData.get("price"));
   const stock = Number(formData.get("stock"));
@@ -145,6 +159,8 @@ export async function updateProduct(id: string, formData: FormData) {
     data: {
       title,
       slug,
+      sku,
+      brandId,
       description,
       price,
       stock,
@@ -183,7 +199,7 @@ export async function deleteProduct(id: string) {
     // 👈 حذف فیزیکی تمامی عکس‌های مربوط به این محصول
     await Promise.all(images.map((img) => deleteImageFile(img.url)));
 
-  } catch (error) { 
+  } catch (error) {
     // 👈 مدیریت خطای وابستگی (موجود در سبد خرید کاربران) برای نمایش توست
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
       return {
@@ -277,13 +293,13 @@ export async function toggleProductStatus(id: string, newStatus: boolean) {
       where: { id },
       data: { isActive: newStatus },
     });
-    
+
     // رفرش کردن دیتای صفحه مدیریت بدون رفرش کامل مرورگر
     revalidatePath("/admin/products");
 
-    return { 
-      success: true, 
-      message: newStatus ? "محصول در فروشگاه فعال شد" : "محصول غیرفعال شد و دیگر به کاربران نمایش داده نمی‌شود" 
+    return {
+      success: true,
+      message: newStatus ? "محصول در فروشگاه فعال شد" : "محصول غیرفعال شد و دیگر به کاربران نمایش داده نمی‌شود"
     };
   } catch (error) {
     return {

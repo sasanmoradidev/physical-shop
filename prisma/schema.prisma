@@ -60,10 +60,24 @@ model Category {
   products      Product[]
 }
 
+model Brand {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  
+  products  Product[] // ارتباط با محصولات
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
 model Product {
   id          String         @id @default(cuid())
   title       String
   slug        String         @unique
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id])
+  sku         String?        @unique
   description String
 
   price       Decimal        @db.Decimal(12, 0)

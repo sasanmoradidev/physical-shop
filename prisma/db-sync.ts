@@ -1,21 +1,18 @@
-
 import { PrismaClient } from "@prisma/client";
 import * as fs from "fs/promises";
 import * as path from "path";
 
 const prisma = new PrismaClient();
 
-const filePath = path.join(
-  process.cwd(),
-  "prisma",
-  "local-backup.json"
-);
+const backupDir = path.join(process.cwd(), "prisma");
 
+// 👇 اضافه‌شدن Brands به تایپ اصلی بک‌آپ
 type BackupData = {
   users: any[];
   otpRequests: any[];
   systemSettings: any[];
   categories: any[];
+  brands: any[]; // 👈 اضافه شد
   products: any[];
   productImages: any[];
   shippingMethods: any[];
@@ -26,10 +23,7 @@ type BackupData = {
 };
 
 // Convert JSON date strings to JavaScript Date objects
-function restoreDates(
-  rows: any[],
-  fields: string[]
-): any[] {
+function restoreDates(rows: any[], fields: string[]): any[] {
   return rows.map((row) => {
     const result = { ...row };
 
@@ -53,11 +47,17 @@ function restoreDates(
 async function exportData() {
   console.log("⏳ Reading data from database...");
 
+  // نام فایل داینامیک بر اساس تاریخ و زمان
+  const timestamp = new Date().toISOString().replace(/T/, '-').replace(/[:.]/g, '-').slice(0, 19);
+  const fileName = `local-backup-${timestamp}.json`;
+  const filePath = path.join(backupDir, fileName);
+
   const backupData: BackupData = {
     users: await prisma.user.findMany(),
     otpRequests: await prisma.otpRequest.findMany(),
     systemSettings: await prisma.systemSetting.findMany(),
     categories: await prisma.category.findMany(),
+    brands: await prisma.brand.findMany(), // 👈 واکشی اطلاعات برندها اضافه شد
     products: await prisma.product.findMany(),
     productImages: await prisma.productImage.findMany(),
     shippingMethods: await prisma.shippingMethod.findMany(),
@@ -67,7 +67,7 @@ async function exportData() {
     orderItems: await prisma.orderItem.findMany(),
   };
 
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.mkdir(backupDir, { recursive: true });
 
   await fs.writeFile(
     filePath,
@@ -76,22 +76,36 @@ async function exportData() {
   );
 
   console.log("✅ Export completed!");
-  console.log(`📁 Backup: ${filePath}`);
+  console.log(`📁 Backup saved to: ${filePath}`);
 }
 
 // Import
 async function importData() {
-  console.log("⏳ Reading backup file...");
+  // پیدا کردن جدیدترین فایل بک‌آپ
+  const files = await fs.readdir(backupDir);
+  const backupFiles = files.filter(f => f.startsWith("local-backup") && f.endsWith(".json"));
+
+  if (backupFiles.length === 0) {
+    throw new Error("❌ No backup files found in prisma directory.");
+  }
+
+  // مرتب‌سازی معکوس فایل‌ها برای گرفتن جدیدترین (از روی اسمشان که حاوی تاریخ است)
+  backupFiles.sort((a, b) => b.localeCompare(a));
+  const latestBackupFile = backupFiles[0];
+  const filePath = path.join(backupDir, latestBackupFile);
+
+  console.log(`⏳ Reading latest backup file: ${latestBackupFile}...`);
 
   const content = await fs.readFile(filePath, "utf-8");
-
   const raw = JSON.parse(content);
 
+  // اضافه شدن برندها به لیست جداول
   const tables = [
     "users",
     "otpRequests",
     "systemSettings",
     "categories",
+    "brands", // 👈 جدول برند
     "products",
     "productImages",
     "shippingMethods",
@@ -103,15 +117,17 @@ async function importData() {
 
   for (const table of tables) {
     if (!Array.isArray(raw[table])) {
-      throw new Error(`Invalid backup: ${table}`);
+      throw new Error(`Invalid backup: Missing or invalid table array -> ${table}`);
     }
   }
 
+  // ساختاربندی و بازیابی تاریخ‌ها (Date Types)
   const data: BackupData = {
     users: restoreDates(raw.users, ["createdAt", "updatedAt"]),
     otpRequests: restoreDates(raw.otpRequests, ["expiresAt", "createdAt"]),
     systemSettings: raw.systemSettings,
     categories: raw.categories,
+    brands: restoreDates(raw.brands, ["createdAt", "updatedAt"]), // 👈 رستور تاریخ‌های برند
     products: restoreDates(raw.products, [
       "createdAt",
       "updatedAt",
@@ -119,20 +135,10 @@ async function importData() {
       "offerEndsAt",
     ]),
     productImages: raw.productImages,
-    shippingMethods: restoreDates(raw.shippingMethods, [
-      "createdAt",
-      "updatedAt",
-    ]),
-    paymentMethods: restoreDates(raw.paymentMethods, [
-      "createdAt",
-      "updatedAt",
-    ]),
+    shippingMethods: restoreDates(raw.shippingMethods, ["createdAt", "updatedAt"]),
+    paymentMethods: restoreDates(raw.paymentMethods, ["createdAt", "updatedAt"]),
     addresses: raw.addresses,
-    orders: restoreDates(raw.orders, [
-      "createdAt",
-      "updatedAt",
-      "paidAt",
-    ]),
+    orders: restoreDates(raw.orders, ["createdAt", "updatedAt", "paidAt"]),
     orderItems: raw.orderItems,
   };
 
@@ -141,7 +147,7 @@ async function importData() {
   await prisma.$transaction(
     async (tx) => {
 
-      // 1. Clear all application tables
+      // 1. پاک کردن جداول به همراه دیتای جدید (Brands)
       console.log("🗑️ Clearing database...");
 
       await tx.$executeRawUnsafe(`
@@ -151,6 +157,7 @@ async function importData() {
           "Address",
           "ProductImage",
           "Product",
+          "Brand", 
           "Category",
           "OtpRequest",
           "SystemSetting",
@@ -164,153 +171,111 @@ async function importData() {
 
       // 2. Users
       if (data.users.length) {
-        await tx.user.createMany({
-          data: data.users,
-        });
+        await tx.user.createMany({ data: data.users });
       }
-
       console.log(`✅ Users: ${data.users.length}`);
 
       // 3. OTP Requests
       if (data.otpRequests.length) {
-        await tx.otpRequest.createMany({
-          data: data.otpRequests,
-        });
+        await tx.otpRequest.createMany({ data: data.otpRequests });
       }
-
       console.log(`✅ OTP Requests: ${data.otpRequests.length}`);
 
       // 4. System Settings
       if (data.systemSettings.length) {
-        await tx.systemSetting.createMany({
-          data: data.systemSettings,
-        });
+        await tx.systemSetting.createMany({ data: data.systemSettings });
       }
-
       console.log(`✅ System Settings: ${data.systemSettings.length}`);
 
       // 5. Shipping Methods
       if (data.shippingMethods.length) {
-        await tx.shippingMethod.createMany({
-          data: data.shippingMethods,
-        });
+        await tx.shippingMethod.createMany({ data: data.shippingMethods });
       }
-
       console.log(`✅ Shipping Methods: ${data.shippingMethods.length}`);
 
       // 6. Payment Methods
       if (data.paymentMethods.length) {
-        await tx.paymentMethod.createMany({
-          data: data.paymentMethods,
-        });
+        await tx.paymentMethod.createMany({ data: data.paymentMethods });
       }
-
       console.log(`✅ Payment Methods: ${data.paymentMethods.length}`);
 
-      // 7. Categories (parents before children)
+      // 7. Categories (رعایت ترتیب سلسله مراتبی والد و فرزندی)
       if (data.categories.length) {
         const pending = [...data.categories];
-
         while (pending.length > 0) {
           const ready = pending.filter(
             (category) =>
               !category.parentId ||
-              !pending.some(
-                (parent) => parent.id === category.parentId
-              )
+              !pending.some((parent) => parent.id === category.parentId)
           );
 
           if (ready.length === 0) {
-            throw new Error(
-              "Circular or invalid category hierarchy detected."
-            );
+            throw new Error("Circular or invalid category hierarchy detected.");
           }
 
-          await tx.category.createMany({
-            data: ready,
-          });
+          await tx.category.createMany({ data: ready });
 
-          const importedIds = new Set(
-            ready.map((category) => category.id)
-          );
-
+          const importedIds = new Set(ready.map((category) => category.id));
           for (let i = pending.length - 1; i >= 0; i--) {
-            if (importedIds.has(pending[i].id)) {
-              pending.splice(i, 1);
-            }
+            if (importedIds.has(pending[i].id)) pending.splice(i, 1);
           }
         }
       }
-
       console.log(`✅ Categories: ${data.categories.length}`);
 
-      // 8. Products
-      if (data.products.length) {
-        await tx.product.createMany({
-          data: data.products,
-        });
+      // 👇 8. Brands (برندها باید قبل از محصولات ذخیره شوند چون محصول به آن‌ها وابستگی دارد)
+      if (data.brands.length) {
+        await tx.brand.createMany({ data: data.brands });
       }
+      console.log(`✅ Brands: ${data.brands.length}`);
 
+      // 9. Products
+      if (data.products.length) {
+        await tx.product.createMany({ data: data.products });
+      }
       console.log(`✅ Products: ${data.products.length}`);
 
-      // 9. Product Images
+      // 10. Product Images
       if (data.productImages.length) {
-        const productIds = new Set(
-          data.products.map((product) => product.id)
-        );
-
+        const productIds = new Set(data.products.map((product) => product.id));
         const invalidImages = data.productImages.filter(
           (image) => !productIds.has(image.productId)
         );
 
         if (invalidImages.length) {
           throw new Error(
-            `Missing products for images: ${
-              invalidImages.map((image) => image.productId).join(", ")
-            }`
+            `Missing products for images: ${invalidImages.map((image) => image.productId).join(", ")}`
           );
         }
-
-        await tx.productImage.createMany({
-          data: data.productImages,
-        });
+        await tx.productImage.createMany({ data: data.productImages });
       }
-
       console.log(`✅ Product Images: ${data.productImages.length}`);
 
-      // 10. Addresses
+      // 11. Addresses
       if (data.addresses.length) {
-        await tx.address.createMany({
-          data: data.addresses,
-        });
+        await tx.address.createMany({ data: data.addresses });
       }
-
       console.log(`✅ Addresses: ${data.addresses.length}`);
 
-      // 11. Orders
+      // 12. Orders
       if (data.orders.length) {
-        await tx.order.createMany({
-          data: data.orders,
-        });
+        await tx.order.createMany({ data: data.orders });
       }
-
       console.log(`✅ Orders: ${data.orders.length}`);
 
-      // 12. Order Items
+      // 13. Order Items
       if (data.orderItems.length) {
-        await tx.orderItem.createMany({
-          data: data.orderItems,
-        });
+        await tx.orderItem.createMany({ data: data.orderItems });
       }
-
       console.log(`✅ Order Items: ${data.orderItems.length}`);
 
-      // 13. Verify imported record counts
+      // 14. Verify imported record counts
       const counts = {
         users: await tx.user.count(),
         otpRequests: await tx.otpRequest.count(),
         systemSettings: await tx.systemSetting.count(),
         categories: await tx.category.count(),
+        brands: await tx.brand.count(), // 👈 چک کردن رکورد برندها اضافه شد
         products: await tx.product.count(),
         productImages: await tx.productImage.count(),
         shippingMethods: await tx.shippingMethod.count(),
@@ -321,7 +286,6 @@ async function importData() {
       };
 
       console.log("\n========== IMPORT VERIFICATION ==========");
-
       for (const [table, count] of Object.entries(counts)) {
         console.log(`${table}: ${count}`);
       }

@@ -25,6 +25,9 @@ export function serializeProduct(
     offerStartsAt: product.offerStartsAt,
     offerEndsAt: product.offerEndsAt,
 
+    sku: product.sku ?? null,
+    brandId: product.brandId ?? null,
+
     // تصاویر محصول به همراه فیلد ترتیب (Order)
     images: product.images.map((img) => ({
       id: img.id,

@@ -16,6 +16,7 @@ import {
   Calendar,
   CheckCircle2,
   Hash,
+  Printer,
 } from "lucide-react";
 
 type Props = {
@@ -63,6 +64,13 @@ export default async function OrderDetailPage({ params }: Props) {
           </div>
         </div>
 
+        <Button variant="default" size="sm" asChild className="w-fit rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
+          <Link target="_blank" href={`/invoice/${order.id}`} className="flex items-center gap-2">
+            <Printer className="h-4 w-4" />
+            <span>چاپ فاکتور</span>
+          </Link>
+        </Button>
+        
         <Button variant="outline" size="sm" asChild className="w-fit rounded-xl border-zinc-200 text-zinc-700">
           <Link href="/admin/orders" className="flex items-center gap-2">
             <ArrowRight className="h-4 w-4" />
@@ -92,7 +100,7 @@ export default async function OrderDetailPage({ params }: Props) {
                       قیمت واحد: {Number(item.price).toLocaleString("fa-IR")} تومان
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-6 flex-shrink-0 text-left">
                     <span className="text-[11px] text-zinc-500 font-semibold bg-zinc-50 border border-zinc-100 px-2.5 py-1 rounded-lg">
                       تعداد: {item.quantity.toLocaleString("fa-IR")}
@@ -153,7 +161,7 @@ export default async function OrderDetailPage({ params }: Props) {
                 </span>
                 <span className="font-bold text-zinc-800">{orderDate} - ساعت {orderTime}</span>
               </div>
-              
+
               <div className="space-y-2 pt-4 border-t border-zinc-100">
                 <label className="block text-[10px] font-bold text-zinc-400 mr-0.5">مدیریت وضعیت مرسوله</label>
                 <div className="w-full">

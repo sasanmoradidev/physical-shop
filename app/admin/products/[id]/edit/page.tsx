@@ -33,11 +33,12 @@ export default async function EditProductPage({ params }: Props) {
       name: "asc",
     },
   });
+  const brands = await prisma.brand.findMany({ orderBy: { name: "asc" } });
 
   return (
     <div className="container max-w-5xl mx-auto py-10 px-4">
       <h1 className="text-3xl font-bold mb-8 text-gray-800">ویرایش محصول</h1>
-      <ProductForm categories={categories} product={safeProduct} />
+      <ProductForm categories={categories} brands={brands} product={safeProduct} />
     </div>
   );
 }

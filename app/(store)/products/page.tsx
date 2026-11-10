@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import { ProductCard } from "@/components/product/product-card";
 import { ProductFilters } from "@/components/product/product-filters"; // 👈 ایمپورت کامپوننت فیلتر
 import { ProductPagination } from "@/components/product/product-pagination"; // 👈 ایمپورت کامپوننت صفحه‌بندی
@@ -18,6 +19,19 @@ const PAGE_SIZE = 15;
 export default async function ProductsPage({ searchParams }: Props) {
     const { page, q, category, sort } = await searchParams;
     const currentPage = Number(page || "1");
+
+    // 🚀 جادوی SKU: اگر کاربر متنی جستجو کرده، چک می‌کنیم دقیقاً کد محصول نباشد
+    if (q && q.trim() !== "") {
+        const exactSkuMatch = await prisma.product.findUnique({
+            where: { sku: q.trim() },
+            select: { slug: true }
+        });
+
+        // اگر کد سرچ شده دقیقاً یک SKU بود، مستقیم برو تو صفحه محصول!
+        if (exactSkuMatch) {
+            redirect(`/products/${exactSkuMatch.slug}`);
+        }
+    }
 
     const where = {
         isActive: true,
