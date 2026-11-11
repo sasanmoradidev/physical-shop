@@ -71,7 +71,7 @@ export default function CartPage() {
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => (
             <Card
-              key={item.id}
+              key={`${item.id}-${item.variantId || 'base'}`}
               className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white hover:shadow-md transition duration-200"
             >
               <CardContent className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -99,7 +99,7 @@ export default function CartPage() {
                   <div className="flex items-center border border-zinc-200 rounded-xl bg-zinc-50/50 p-1">
                     <Button
                       variant="ghost"
-                      onClick={() => increase(item.id)}
+                      onClick={() => increase(item.id, item.variantId)}
                       className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-zinc-500 hover:text-blue-600 transition p-0"
                       aria-label="افزایش تعداد"
                     >
@@ -112,7 +112,7 @@ export default function CartPage() {
 
                     <Button
                       variant="ghost"
-                      onClick={() => decrease(item.id)}
+                      onClick={() => decrease(item.id, item.variantId)}
                       className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-zinc-500 hover:text-blue-600 transition p-0"
                       aria-label="کاهش تعداد"
                     >
@@ -123,7 +123,7 @@ export default function CartPage() {
                   {/* دکمه حذف کالا */}
                   <Button
                     variant="ghost"
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => removeItem(item.id, item.variantId)}
                     className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition duration-200 h-9 w-9 flex items-center justify-center"
                     aria-label="حذف از سبد"
                   >

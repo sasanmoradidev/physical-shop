@@ -93,6 +93,25 @@ export async function createProduct(formData: FormData) {
   const variantsRaw = formData.get("variants") as string;
   const parsedVariants = variantsRaw ? JSON.parse(variantsRaw) : [];
 
+  // گرفتن قیمت و موجودی اولیه فرم
+  let finalPrice = Number(formData.get("price"));
+  let finalStock = Number(formData.get("stock"));
+
+  //اگر محصول تنوع دارد، مقادیر فرم نادیده گرفته می‌شوند
+  if (parsedVariants.length > 0) {
+    // ۱. موجودی کل = جمع موجودی تمام تنوع‌ها
+    finalStock = parsedVariants.reduce((sum: number, v: any) => sum + (Number(v.stock) || 0), 0);
+    
+    // ۲. قیمت پایه = ارزان‌ترین قیمت بین تنوع‌ها
+    const variantPrices = parsedVariants
+      .map((v: any) => Number(v.price))
+      .filter((p: number) => p > 0);
+      
+    if (variantPrices.length > 0) {
+      finalPrice = Math.min(...variantPrices);
+    }
+  }
+
   // ایجاد اولیه محصول بدون تصاویر
   const product = await prisma.product.create({
     data: {
@@ -101,8 +120,8 @@ export async function createProduct(formData: FormData) {
       sku,
       brandId,
       description,
-      price,
-      stock,
+      price: finalPrice,
+      stock: finalStock,
       categoryId,
       isActive,
       offerPrice,
@@ -167,7 +186,25 @@ export async function updateProduct(id: string, formData: FormData) {
 
   const variantsRaw = formData.get("variants") as string;
   const parsedVariants = variantsRaw ? JSON.parse(variantsRaw) : [];
-  
+  // گرفتن قیمت و موجودی اولیه فرم
+  let finalPrice = Number(formData.get("price"));
+  let finalStock = Number(formData.get("stock"));
+
+  // اگر محصول تنوع دارد، مقادیر فرم نادیده گرفته می‌شوند
+  if (parsedVariants.length > 0) {
+    // ۱. موجودی کل = جمع موجودی تمام تنوع‌ها
+    finalStock = parsedVariants.reduce((sum: number, v: any) => sum + (Number(v.stock) || 0), 0);
+    
+    // ۲. قیمت پایه = ارزان‌ترین قیمت بین تنوع‌ها
+    const variantPrices = parsedVariants
+      .map((v: any) => Number(v.price))
+      .filter((p: number) => p > 0);
+      
+    if (variantPrices.length > 0) {
+      finalPrice = Math.min(...variantPrices);
+    }
+  }
+
   // بروزرسانی فیلدهای محصول
   await prisma.product.update({
     where: { id },
@@ -177,8 +214,8 @@ export async function updateProduct(id: string, formData: FormData) {
       sku,
       brandId,
       description,
-      price,
-      stock,
+      price: finalPrice,
+      stock: finalStock,
       isActive,
       offerPrice,
       offerStartsAt,

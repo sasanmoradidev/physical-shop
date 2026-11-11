@@ -33,6 +33,7 @@ export default async function OrderDetailPage({ params }: Props) {
       items: {
         include: {
           product: true,
+          variant: true
         },
       },
     },
@@ -70,7 +71,7 @@ export default async function OrderDetailPage({ params }: Props) {
             <span>چاپ فاکتور</span>
           </Link>
         </Button>
-        
+
         <Button variant="outline" size="sm" asChild className="w-fit rounded-xl border-zinc-200 text-zinc-700">
           <Link href="/admin/orders" className="flex items-center gap-2">
             <ArrowRight className="h-4 w-4" />
@@ -95,6 +96,11 @@ export default async function OrderDetailPage({ params }: Props) {
                   <div className="space-y-1">
                     <span className="font-bold text-sm text-zinc-800 block">
                       {item.product.title}
+                      {item.variant && (
+                        <span className="text-blue-600 mr-1.5 font-semibold bg-blue-50 px-2 py-0.5 rounded-md">
+                          ({item.variant.name})
+                        </span>
+                      )}
                     </span>
                     <span className="text-[10px] text-zinc-400 block">
                       قیمت واحد: {Number(item.price).toLocaleString("fa-IR")} تومان

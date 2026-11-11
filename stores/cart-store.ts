@@ -6,15 +6,17 @@ export type CartItem = {
   title: string;
   price: number;
   quantity: number;
+  variantId?: string; // 👈 شناسه تنوع
 };
 
 type CartStore = {
   items: CartItem[];
 
   addItem: (item: CartItem) => void;
-  removeItem: (id: string) => void;
-  increase: (id: string) => void;
-  decrease: (id: string) => void;
+  // 👇 ورودی دوم (variantId) به توابع اضافه شد
+  removeItem: (id: string, variantId?: string) => void;
+  increase: (id: string, variantId?: string) => void;
+  decrease: (id: string, variantId?: string) => void;
 
   clearCart: () => void;
 };
@@ -26,18 +28,19 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) =>
         set((state) => {
+          // 👈 حالا هم ID محصول و هم ID تنوع چک می‌شود
           const existing = state.items.find(
-            (i) => i.id === item.id
+            (i) => i.id === item.id && i.variantId === item.variantId
           );
 
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.id === item.id
+                i.id === item.id && i.variantId === item.variantId
                   ? {
-                    ...i,
-                    quantity: i.quantity + 1,
-                  }
+                      ...i,
+                      quantity: i.quantity + 1,
+                    }
                   : i
               ),
             };
@@ -48,38 +51,40 @@ export const useCartStore = create<CartStore>()(
           };
         }),
 
-      removeItem: (id) =>
+      removeItem: (id, variantId) =>
         set((state) => ({
           items: state.items.filter(
-            (i) => i.id !== id
+            // 👈 فقط آیتمی حذف می‌شود که هم ID و هم variantId آن دقیقا مساوی باشد
+            (i) => !(i.id === id && i.variantId === variantId)
           ),
         })),
 
-      increase: (id) =>
+      increase: (id, variantId) =>
         set((state) => ({
           items: state.items.map((i) =>
-            i.id === id
+            i.id === id && i.variantId === variantId
               ? {
-                ...i,
-                quantity: i.quantity + 1,
-              }
+                  ...i,
+                  quantity: i.quantity + 1,
+                }
               : i
           ),
         })),
 
-      decrease: (id) =>
+      decrease: (id, variantId) =>
         set((state) => ({
           items: state.items
             .map((i) =>
-              i.id === id
+              i.id === id && i.variantId === variantId
                 ? {
-                  ...i,
-                  quantity: i.quantity - 1,
-                }
+                    ...i,
+                    quantity: i.quantity - 1,
+                  }
                 : i
             )
             .filter((i) => i.quantity > 0),
         })),
+        
       clearCart: () =>
         set({
           items: [],

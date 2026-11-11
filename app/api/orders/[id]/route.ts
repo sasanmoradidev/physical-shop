@@ -21,7 +21,6 @@ export async function GET(
 
     const payload = await verifyToken(token);
     
-    // 👇 گرفتن id با await (شما این را درست نوشته بودید)
     const { id } = await params;
     
     const order = await prisma.order.findFirst({
@@ -33,6 +32,7 @@ export async function GET(
         items: {
           include: {
             product: true,
+            variant: true,
           },
         },
         address: true,

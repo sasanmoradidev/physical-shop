@@ -359,7 +359,7 @@ export default function CheckoutPage() {
 
           <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
             {items.map((item) => (
-              <div key={item.id} className="flex justify-between items-center text-xs text-zinc-600">
+              <div key={`${item.id}-${item.variantId || 'base'}`} className="flex justify-between items-center text-xs text-zinc-600">
                 <span className="line-clamp-1 flex-1 pl-4">
                   {item.title} <span className="text-[10px] text-zinc-400">({item.quantity} عدد)</span>
                 </span>

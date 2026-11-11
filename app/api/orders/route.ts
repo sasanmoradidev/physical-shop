@@ -28,7 +28,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "انتخاب روش پرداخت اجباری است" }, { status: 400 });
     }
 
-    // واکشی شیوه ارسال انتخابی خریدار
     const shippingMethod = await prisma.shippingMethod.findUnique({
       where: {
         id: body.shippingMethodId,
@@ -40,7 +39,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "روش ارسال انتخابی نامعتبر است" }, { status: 400 });
     }
 
-    // واکشی شیوه پرداخت انتخابی خریدار
     const paymentMethod = await prisma.paymentMethod.findUnique({
       where: {
         id: body.paymentMethodId,
@@ -58,55 +56,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "سبد خرید خالی است" }, { status: 400 });
     }
 
-    const products = await prisma.product.findMany({
-      where: {
-        id: {
-          in: items.map((item: any) => item.id),
-        },
-      },
-    });
-
-    if (products.length !== items.length) {
-      return NextResponse.json({ error: "برخی محصولات دیگر وجود ندارند" }, { status: 400 });
-    }
-
-    // کنترل موجودی انبار محصولات پیش از ثبت سفارش
-    for (const item of items) {
-      const product = products.find((p) => p.id === item.id);
-
-      if (!product) {
-        return NextResponse.json({ error: "محصول یافت نشد" }, { status: 400 });
-      }
-
-      if (product.stock < item.quantity) {
-        return NextResponse.json({ error: `${product.title} موجودی کافی ندارد` }, { status: 400 });
-      }
-    }
-
-    // محاسبه قیمت کالاها با اعمال تخفیف‌های فعال
-    const subtotal = items.reduce((sum: number, item: any) => {
-      const product = products.find((p) => p.id === item.id);
-      if (!product) {
-        throw new Error(`Product ${item.id} not found`);
-      }
-
-      const finalProductPrice = getFinalPrice({
-        price: Number(product.price),
-        offerPrice: product.offerPrice ? Number(product.offerPrice) : null,
-        offerStartsAt: product.offerStartsAt,
-        offerEndsAt: product.offerEndsAt,
-      });
-
-      return sum + finalProductPrice * item.quantity;
-    }, 0);
-
-    // مجموع کل قابل پرداخت
-    const totalPrice = subtotal + Number(shippingMethod.price);
-
-    // اگر پرداخت در محل (COD) انتخاب شده باشد، وضعیت سفارش مستقیماً PROCESSING (در حال پردازش) می‌شود
-    const initialStatus = paymentMethod.code === "COD" ? "PROCESSING" : "PENDING";
-
-    // ۱. واکشی اطلاعات آدرس انتخابی مشتری
     const address = await prisma.address.findUnique({
       where: { id: body.addressId },
     });
@@ -115,54 +64,123 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "آدرس معتبر یافت نشد" }, { status: 404 });
     }
 
-    // ثبت فاکتور نهایی سفارش با ارتباطات روش ارسال و پرداخت
-    const order = await prisma.order.create({
-      data: {
-        userId: payload.userId as string,
-        totalPrice,
-        addressId: body.addressId,
+    // 🚀 استفاده از تراکنش برای تضمین کسر موجودی و ثبت سفارش به صورت یکپارچه
+    const order = await prisma.$transaction(async (tx) => {
+      let subtotal = 0;
+      const orderItemsToCreate = [];
 
-        // کپی داده‌ها به فیلدهای اسنپ‌شات
-        shippingTitle: address.title,
-        shippingFullName: address.fullName,
-        shippingPhone: address.phone,
-        shippingProvince: address.province,
-        shippingCity: address.city,
-        shippingAddressLine: address.addressLine,
-        shippingPostalCode: address.postalCode,
+      for (const item of items) {
+        // واکشی محصول به همراه تنوع‌هایش
+        const product = await tx.product.findUnique({
+          where: { id: item.id },
+          include: { variants: true },
+        });
 
-        shippingMethodId: shippingMethod.id,
-        shippingCost: shippingMethod.price,
-        paymentMethodId: paymentMethod.id, // ثبت شناسه روش پرداخت انتخابی خریدار
-        status: initialStatus as any, // تخصیص وضعیت اولیه بر اساس نوع پرداخت
+        if (!product) {
+          throw new Error(`محصول ${item.title} یافت نشد.`);
+        }
 
-        items: {
-          create: items.map((item: any) => {
-            const product = products.find((p) => p.id === item.id);
-            if (!product) {
-              throw new Error(`Product ${item.id} not found`);
-            }
+        let itemPrice = Number(product.price);
+        let stockToDeduct = product.stock;
+        let selectedVariant = null;
 
-            const finalProductPrice = getFinalPrice({
-              price: Number(product.price),
-              offerPrice: product.offerPrice ? Number(product.offerPrice) : null,
-              offerStartsAt: product.offerStartsAt,
-              offerEndsAt: product.offerEndsAt,
-            });
+        // اگر کالا تنوع داشت
+        if (item.variantId) {
+          selectedVariant = product.variants.find((v) => v.id === item.variantId);
+          
+          if (!selectedVariant) {
+            throw new Error(`تنوع انتخاب شده برای کالا ${product.title} یافت نشد.`);
+          }
 
-            return {
-              productId: product.id,
-              quantity: item.quantity,
-              price: finalProductPrice,
-            };
-          }),
+          if (selectedVariant.stock < item.quantity) {
+            throw new Error(`موجودی تنوع ${selectedVariant.name} کافی نیست.`);
+          }
+
+          itemPrice = selectedVariant.price ? Number(selectedVariant.price) : Number(product.price);
+          stockToDeduct = selectedVariant.stock;
+        } else {
+          // اگر کالا ساده بود
+          if (product.stock < item.quantity) {
+            throw new Error(`موجودی کالا ${product.title} کافی نیست.`);
+          }
+        }
+
+        // محاسبه قیمت نهایی آیتم با اعمال تخفیف احتمالی
+        const finalProductPrice = getFinalPrice({
+          price: itemPrice,
+          offerPrice: product.offerPrice ? Number(product.offerPrice) : null,
+          offerStartsAt: product.offerStartsAt,
+          offerEndsAt: product.offerEndsAt,
+        });
+
+        subtotal += finalProductPrice * item.quantity;
+
+        // آماده‌سازی دیتای ردیف فاکتور (OrderItem)
+        orderItemsToCreate.push({
+          productId: product.id,
+          variantId: selectedVariant?.id || null, // ثبت شناسه تنوع در فاکتور
+          quantity: item.quantity,
+          price: finalProductPrice,
+        });
+
+        // 🎯 کسر موجودی
+        if (selectedVariant) {
+          // کسر از خودِ تنوع
+          await tx.productVariant.update({
+            where: { id: selectedVariant.id },
+            data: { stock: { decrement: item.quantity } },
+          });
+          // کسر از سرجمع موجودی کالا
+          await tx.product.update({
+            where: { id: product.id },
+            data: { stock: { decrement: item.quantity } },
+          });
+        } else {
+          // کسر از موجودی محصول ساده
+          await tx.product.update({
+            where: { id: product.id },
+            data: { stock: { decrement: item.quantity } },
+          });
+        }
+      }
+
+      const totalPrice = subtotal + Number(shippingMethod.price);
+      const initialStatus = paymentMethod.code === "COD" ? "PROCESSING" : "PENDING";
+
+      // ثبت نهایی سفارش
+      const newOrder = await tx.order.create({
+        data: {
+          userId: payload.userId as string,
+          totalPrice,
+          addressId: body.addressId,
+
+          shippingTitle: address.title,
+          shippingFullName: address.fullName,
+          shippingPhone: address.phone,
+          shippingProvince: address.province,
+          shippingCity: address.city,
+          shippingAddressLine: address.addressLine,
+          shippingPostalCode: address.postalCode,
+
+          shippingMethodId: shippingMethod.id,
+          shippingCost: shippingMethod.price,
+          paymentMethodId: paymentMethod.id,
+          status: initialStatus as any,
+
+          items: {
+            create: orderItemsToCreate,
+          },
         },
-      },
+      });
+
+      return newOrder;
     });
 
     return NextResponse.json(order);
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+
+  } catch (error: any) {
+    console.error("Order Checkout Error:", error);
+    // بازگرداندن خطای معنادار (مثل موجودی ناکافی) به فرانت‌اند
+    return NextResponse.json({ error: error.message || "Server Error" }, { status: 400 });
   }
 }

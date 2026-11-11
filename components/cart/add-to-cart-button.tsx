@@ -7,6 +7,7 @@ type Props = {
   title: string;
   price: number;
   stock: number;
+  variantId?: string;
 };
 
 export function AddToCartButton({
@@ -14,6 +15,7 @@ export function AddToCartButton({
   title,
   price,
   stock,
+  variantId,
 }: Props) {
 
   const addItem = useCartStore(
@@ -26,6 +28,7 @@ export function AddToCartButton({
       title,
       price,
       quantity: 1,
+      variantId,
     });
   }
 

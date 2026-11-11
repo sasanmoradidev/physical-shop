@@ -36,7 +36,7 @@ type ProductWithImages = {
 type Props = {
     categories: Category[];
     brands: Brand[];
-    product?: ProductWithImages; // اگر ارسال شود، فرم در حالت ویرایش قرار می‌گیرد
+    product?: ProductWithImages;
 };
 
 export default function ProductForm({ categories, brands, product }: Props) {
@@ -48,6 +48,7 @@ export default function ProductForm({ categories, brands, product }: Props) {
     const [isAddingBrand, setIsAddingBrand] = useState(false);
     const [newBrandName, setNewBrandName] = useState("");
     const [isBrandPending, setIsBrandPending] = useState(false);
+    
     const [variants, setVariants] = useState<any[]>(product?.variants || []);
 
     async function handleInlineBrandCreate() {
@@ -55,8 +56,8 @@ export default function ProductForm({ categories, brands, product }: Props) {
         setIsBrandPending(true);
         try {
             const newBrand = await createBrandInline(newBrandName);
-            setBrandsList((prev) => [...prev, newBrand]); // اضافه کردن به لیست فرم
-            setSelectedBrand(newBrand.id); // انتخاب خودکار برند جدید
+            setBrandsList((prev) => [...prev, newBrand]);
+            setSelectedBrand(newBrand.id);
             setIsAddingBrand(false);
             setNewBrandName("");
         } catch (error) {
@@ -66,14 +67,12 @@ export default function ProductForm({ categories, brands, product }: Props) {
         }
     }
 
-    // مقداردهی اولیه تصاویر بر اساس وجود یا عدم وجود محصول
     const [images, setImages] = useState<any[]>(
         product
             ? product.images.map((img) => ({ id: img.id, url: img.url }))
             : []
     );
 
-    // تابع کمکی برای فرمت‌دهی تاریخ میلادی به فرمت قابل نمایش در <input type="datetime-local" />
     function formatDateForInput(date: Date | string | null | undefined) {
         if (!date) return "";
         const d = new Date(date);
@@ -88,23 +87,18 @@ export default function ProductForm({ categories, brands, product }: Props) {
         const formElement = event.currentTarget;
         const formData = new FormData(formElement);
 
-        // ۱. پاک کردن فیلد پیش‌فرض فایل‌ها
         formData.delete("images");
 
-        // ۲. ارسال ساختار ترتیب نهایی شناسه‌ها (مثال: ["id-1", "uuid-2", "id-3"])
         const imageOrder = images.map((img) => img.id);
         formData.append("imageOrder", JSON.stringify(imageOrder));
         formData.append("variants", JSON.stringify(variants));
 
-        // ۳. ارسال فایل‌های جدید با کلید اختصاصی متناظر با شناسه‌شان
         images.forEach((img) => {
             if (img.file) {
                 formData.append(`file_${img.id}`, img.file);
             }
         });
 
-        // اجرای اکشن مناسب
-        // ۳. اجرای اکشن مناسب بر اساس ایجاد یا ویرایش
         startTransition(async () => {
             try {
                 if (isEditMode && product) {
@@ -113,7 +107,6 @@ export default function ProductForm({ categories, brands, product }: Props) {
                     await createProduct(formData);
                 }
             } catch (error: any) {
-                // 👇 اگر خطا مربوط به ریدایرکت خود پلتفرم Next.js بود، آن را دوباره پرتاب کن تا ریدایرکت انجام شود
                 if (
                     error?.digest?.includes("NEXT_REDIRECT") ||
                     error?.message?.includes("NEXT_REDIRECT")
@@ -132,7 +125,6 @@ export default function ProductForm({ categories, brands, product }: Props) {
             onSubmit={handleSubmit}
             className="bg-white rounded-2xl shadow border p-8 space-y-8 animate-fade-in"
         >
-            {/* اطلاعات محصول */}
             <section>
                 <h2 className="text-lg font-semibold mb-4 text-gray-800">اطلاعات محصول</h2>
                 <div className="grid md:grid-cols-3 gap-5">
@@ -174,19 +166,22 @@ export default function ProductForm({ categories, brands, product }: Props) {
                 </div>
             </section>
 
-            {/* قیمت و موجودی */}
             <section>
                 <h2 className="text-lg font-semibold mb-4 text-gray-800">قیمت و موجودی</h2>
                 <div className="grid md:grid-cols-3 gap-5">
                     <div>
-                        <label className="block text-xs text-gray-500 mb-1">قیمت اصلی (تومان)</label>
+                        <label className="block text-xs text-gray-500 mb-1">
+                            قیمت اصلی (تومان)
+                            {variants.length > 0 && <span className="text-[9px] text-blue-500 mr-2">(خودکار از روی تنوع‌ها)</span>}
+                        </label>
                         <input
                             type="number"
                             name="price"
-                            required
+                            required={variants.length === 0}
+                            disabled={variants.length > 0}
                             defaultValue={product ? Number(product.price) : ""}
                             placeholder="قیمت اصلی"
-                            className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition"
                         />
                     </div>
                     <div>
@@ -200,20 +195,23 @@ export default function ProductForm({ categories, brands, product }: Props) {
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-gray-500 mb-1">موجودی انبار</label>
+                        <label className="block text-xs text-gray-500 mb-1">
+                            موجودی انبار
+                            {variants.length > 0 && <span className="text-[9px] text-blue-500 mr-2">(مجموع تنوع‌ها)</span>}
+                        </label>
                         <input
                             type="number"
                             name="stock"
-                            required
+                            required={variants.length === 0}
+                            disabled={variants.length > 0}
                             defaultValue={product?.stock}
                             placeholder="تعداد موجودی"
-                            className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition"
                         />
                     </div>
                 </div>
             </section>
 
-            {/* زمان تخفیف */}
             <section>
                 <h2 className="text-lg font-semibold mb-4 text-gray-800">زمان تخفیف</h2>
                 <div className="grid md:grid-cols-2 gap-5">
@@ -238,11 +236,9 @@ export default function ProductForm({ categories, brands, product }: Props) {
                 </div>
             </section>
 
-            {/* دسته‌بندی و برند */}
             <section>
                 <h2 className="text-lg font-semibold mb-4 text-gray-800">دسته‌بندی و برند</h2>
                 <div className="grid md:grid-cols-2 gap-5">
-                    {/* دسته‌بندی */}
                     <div>
                         <label className="block text-xs text-gray-500 mb-1">دسته‌بندی</label>
                         <select
@@ -257,7 +253,6 @@ export default function ProductForm({ categories, brands, product }: Props) {
                             ))}
                         </select>
                     </div>
-                    {/* برند با قابلیت افزودن در لحظه */}
                     <div>
                         <label className="block text-xs text-gray-500 mb-1">برند (اختیاری)</label>
                         {!isAddingBrand ? (
@@ -319,7 +314,6 @@ export default function ProductForm({ categories, brands, product }: Props) {
                 </div>
             </section>
 
-            {/* 🌟 بخش جدید: تنوع‌های محصول (اختیاری) */}
             <section>
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-800">تنوع‌های محصول (رنگ، گارانتی، سایز)</h2>
@@ -411,7 +405,6 @@ export default function ProductForm({ categories, brands, product }: Props) {
                 )}
             </section>
 
-            {/* تصاویر محصول */}
             <section>
                 <h2 className="text-lg font-semibold mb-4 text-gray-800">تصاویر محصول</h2>
                 <input
@@ -422,12 +415,10 @@ export default function ProductForm({ categories, brands, product }: Props) {
                         const files = Array.from(e.target.files || []);
                         const previews = files.map((file) => ({
                             id: crypto.randomUUID(),
-                            // id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
                             url: URL.createObjectURL(file),
                             file,
                         }));
                         setImages((prev) => [...prev, ...previews]);
-                        // e.target.value = "";
                     }}
                     className="w-full border-2 border-dashed rounded-xl p-6 cursor-pointer hover:bg-gray-50 transition"
                 />
@@ -437,7 +428,6 @@ export default function ProductForm({ categories, brands, product }: Props) {
                 </div>
             </section>
 
-            {/* وضعیت انتشار */}
             <section className="flex items-center gap-3">
                 <input
                     type="checkbox"
@@ -451,7 +441,6 @@ export default function ProductForm({ categories, brands, product }: Props) {
                 </label>
             </section>
 
-            {/* دکمه ثبت */}
             <div className="flex justify-end border-t pt-6">
                 <button
                     type="submit"

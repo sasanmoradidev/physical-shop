@@ -34,6 +34,9 @@ type Order = {
     id: string;
     quantity: number;
     price: number;
+    variant: {
+      name: string;
+    }
     product: {
       title: string;
     };
@@ -136,6 +139,11 @@ export default function OrderDetailPage() {
                   <div className="space-y-1">
                     <span className="font-bold text-sm text-zinc-800 block">
                       {item.product.title}
+                      {item.variant && (
+                        <span className="text-blue-600 mr-1.5 font-semibold bg-blue-50 px-2 py-0.5 rounded-md">
+                          ({item.variant.name})
+                        </span>
+                      )}
                     </span>
                     <span className="text-[10px] text-zinc-400 block">
                       قیمت واحد: {Number(item.price).toLocaleString("fa-IR")} تومان

@@ -9,16 +9,19 @@ type Props = {
 
 export default async function InvoicePage({ params }: Props) {
   const { id } = await params;
-  
+
   // بررسی دسترسی (فقط ادمین یا خریدارِ همین سفارش حق دیدن فاکتور را دارند)
   const user = await requireAuth();
-  
+
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
       user: true,
       items: {
-        include: { product: true },
+        include: {
+          product: true,
+          variant: true
+        },
       },
     },
   });
@@ -39,7 +42,7 @@ export default async function InvoicePage({ params }: Props) {
 
       {/* برگه A4 */}
       <div className="max-w-[210mm] mx-auto bg-white p-8 sm:p-12 shadow-md print:shadow-none print:p-0">
-        
+
         {/* هدر فاکتور */}
         <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-6">
           <div>
@@ -81,7 +84,14 @@ export default async function InvoicePage({ params }: Props) {
             {order.items.map((item, index) => (
               <tr key={item.id} className="border-b border-gray-300">
                 <td className="py-3 px-2 border-x border-gray-300">{index + 1}</td>
-                <td className="py-3 px-2 border-x border-gray-300 text-right font-semibold">{item.product.title}</td>
+                <td className="py-3 px-2 border-x border-gray-300 text-right font-semibold">
+                  {item.product.title}
+                  {item.variant && (
+                    <span className="text-zinc-600 mr-1.5 font-normal">
+                      ({item.variant.name})
+                    </span>
+                  )}
+                </td>
                 <td className="py-3 px-2 border-x border-gray-300">{item.quantity}</td>
                 <td className="py-3 px-2 border-x border-gray-300">{Number(item.price).toLocaleString("fa-IR")}</td>
                 <td className="py-3 px-2 border-x border-gray-300 font-bold">

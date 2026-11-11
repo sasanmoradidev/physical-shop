@@ -18,6 +18,7 @@ export default async function EditProductPage({ params }: Props) {
       images: {
         orderBy: { order: "asc" }, // لود تصاویر بر اساس درگ اند دراپ
       },
+      variants: true
     },
   });
 
