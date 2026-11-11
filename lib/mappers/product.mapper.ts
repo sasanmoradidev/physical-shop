@@ -1,7 +1,8 @@
-import { Product, ProductImage } from "@prisma/client";
+import { Product, ProductImage, ProductVariant  } from "@prisma/client";
 
 type ProductWithImages = Product & {
   images: ProductImage[];
+  variants: ProductVariant[];
 };
 
 export function serializeProduct(
@@ -33,6 +34,14 @@ export function serializeProduct(
       id: img.id,
       url: img.url,
       order: img.order,
+    })),
+
+    variants: product.variants.map((v) => ({
+      id: v.id,
+      name: v.name,
+      sku: v.sku ?? "",
+      stock: v.stock,
+      price: v.price ? Number(v.price) : null,
     })),
   };
 }

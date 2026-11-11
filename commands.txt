@@ -1,0 +1,10 @@
+checking DB and Code errors:
+npx prisma validate
+npx tsc --noEmit
+npx eslint .
+
+git pull 3 commands instead of "git pull":
+git fetch origin
+git reset --hard origin/master
+git clean -fd
+

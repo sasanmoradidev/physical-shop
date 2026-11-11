@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { toggleProductStatus } from "./actions"; // مسیر اکشن را در صورت نیاز اصلاح کنید
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -36,9 +36,8 @@ export function ToggleStatusButton({ id, isActive }: { id: string; isActive: boo
       disabled={isPending}
       variant="outline"
       title={isActive ? "غیرفعال کردن محصول" : "فعال کردن محصول"}
-      className={`rounded-xl h-9 w-9 flex flex-shrink-0 items-center justify-center p-0 shadow-sm transition-all ${
-        isActive ? "hover:bg-amber-50" : "hover:bg-green-50"
-      }`}
+      className={`rounded-xl h-9 w-9 flex flex-shrink-0 items-center justify-center p-0 shadow-sm transition-all ${isActive ? "hover:bg-amber-50" : "hover:bg-green-50"
+        }`}
     >
       {isPending ? (
         <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { deleteProduct } from "./actions";
-import { toast } from "react-hot-toast"; // یا هر کتابخانه توستی که دارید
+import { toast } from "sonner"; // یا هر کتابخانه توستی که دارید
 import { Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

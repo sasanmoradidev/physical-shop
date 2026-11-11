@@ -5,7 +5,7 @@ import { createProduct, updateProduct } from "@/app/admin/products/actions";
 import { ImageManager } from "@/components/admin/image-manager";
 
 import { createBrandInline } from "@/app/admin/brands/actions";
-import { Plus, X, Check, Loader2 } from "lucide-react";
+import { Plus, X, Check, Loader2, Trash2 } from "lucide-react";
 
 type Category = {
     id: string;
@@ -30,6 +30,7 @@ type ProductWithImages = {
     brandId?: string | null;
     isActive: boolean;
     images: { id: string; url: string }[];
+    variants?: { id?: string; name: string; sku?: string; price?: number | null; stock: number }[];
 };
 
 type Props = {
@@ -47,6 +48,7 @@ export default function ProductForm({ categories, brands, product }: Props) {
     const [isAddingBrand, setIsAddingBrand] = useState(false);
     const [newBrandName, setNewBrandName] = useState("");
     const [isBrandPending, setIsBrandPending] = useState(false);
+    const [variants, setVariants] = useState<any[]>(product?.variants || []);
 
     async function handleInlineBrandCreate() {
         if (!newBrandName.trim()) return;
@@ -92,6 +94,7 @@ export default function ProductForm({ categories, brands, product }: Props) {
         // ۲. ارسال ساختار ترتیب نهایی شناسه‌ها (مثال: ["id-1", "uuid-2", "id-3"])
         const imageOrder = images.map((img) => img.id);
         formData.append("imageOrder", JSON.stringify(imageOrder));
+        formData.append("variants", JSON.stringify(variants));
 
         // ۳. ارسال فایل‌های جدید با کلید اختصاصی متناظر با شناسه‌شان
         images.forEach((img) => {
@@ -314,6 +317,98 @@ export default function ProductForm({ categories, brands, product }: Props) {
                         )}
                     </div>
                 </div>
+            </section>
+
+            {/* 🌟 بخش جدید: تنوع‌های محصول (اختیاری) */}
+            <section>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-800">تنوع‌های محصول (رنگ، گارانتی، سایز)</h2>
+                    <button
+                        type="button"
+                        onClick={() => setVariants([...variants, { id: crypto.randomUUID(), name: "", sku: "", price: "", stock: 0 }])}
+                        className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"
+                    >
+                        <Plus className="h-4 w-4" />
+                        <span>افزودن تنوع جدید</span>
+                    </button>
+                </div>
+
+                {variants.length === 0 ? (
+                    <div className="border border-dashed border-zinc-200 rounded-2xl p-6 text-center text-xs text-zinc-400 bg-zinc-50/50">
+                        این محصول در حال حاضر ساده است. برای اضافه کردن رنگ یا سایز، روی "افزودن تنوع جدید" کلیک کنید.
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {variants.map((variant, index) => (
+                            <div key={variant.id} className="flex flex-col sm:flex-row gap-3 items-end bg-zinc-50 border border-zinc-200 p-4 rounded-2xl animate-fade-in">
+                                <div className="flex-1 w-full">
+                                    <label className="block text-[10px] font-bold text-zinc-500 mb-1">عنوان (مثال: رنگ مشکی)</label>
+                                    <input
+                                        required
+                                        value={variant.name}
+                                        onChange={(e) => {
+                                            const newVars = [...variants];
+                                            newVars[index].name = e.target.value;
+                                            setVariants(newVars);
+                                        }}
+                                        className="w-full border rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                                <div className="w-full sm:w-28">
+                                    <label className="block text-[10px] font-bold text-zinc-500 mb-1">کد (SKU)</label>
+                                    <input
+                                        value={variant.sku}
+                                        onChange={(e) => {
+                                            const newVars = [...variants];
+                                            newVars[index].sku = e.target.value;
+                                            setVariants(newVars);
+                                        }}
+                                        className="w-full border rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                                <div className="w-full sm:w-32">
+                                    <label className="block text-[10px] font-bold text-zinc-500 mb-1">قیمت مجزا (تومان)</label>
+                                    <input
+                                        type="number"
+                                        placeholder="قیمت اصلی"
+                                        value={variant.price || ""}
+                                        onChange={(e) => {
+                                            const newVars = [...variants];
+                                            newVars[index].price = e.target.value;
+                                            setVariants(newVars);
+                                        }}
+                                        className="w-full border rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none placeholder:text-[10px]"
+                                    />
+                                </div>
+                                <div className="w-full sm:w-24">
+                                    <label className="block text-[10px] font-bold text-zinc-500 mb-1">موجودی</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        value={variant.stock}
+                                        onChange={(e) => {
+                                            const newVars = [...variants];
+                                            newVars[index].stock = Number(e.target.value);
+                                            setVariants(newVars);
+                                        }}
+                                        className="w-full border rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const newVars = [...variants];
+                                        newVars.splice(index, 1);
+                                        setVariants(newVars);
+                                    }}
+                                    className="bg-red-50 text-red-500 p-2.5 rounded-xl hover:bg-red-100 transition border border-red-100 flex-shrink-0"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </section>
 
             {/* تصاویر محصول */}

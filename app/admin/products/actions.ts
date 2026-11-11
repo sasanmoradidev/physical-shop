@@ -90,6 +90,9 @@ export async function createProduct(formData: FormData) {
 
   const isActive = formData.get("isActive") === "on";
 
+  const variantsRaw = formData.get("variants") as string;
+  const parsedVariants = variantsRaw ? JSON.parse(variantsRaw) : [];
+
   // ایجاد اولیه محصول بدون تصاویر
   const product = await prisma.product.create({
     data: {
@@ -105,6 +108,15 @@ export async function createProduct(formData: FormData) {
       offerPrice,
       offerStartsAt,
       offerEndsAt,
+      // 👇 ذخیره همزمان تنوع‌ها در لحظه ساخت محصول
+      variants: {
+        create: parsedVariants.map((v: any) => ({
+          name: v.name,
+          sku: v.sku || null,
+          price: v.price ? Number(v.price) : null,
+          stock: Number(v.stock),
+        })),
+      },
     },
   });
 
@@ -153,6 +165,9 @@ export async function updateProduct(id: string, formData: FormData) {
 
   const isActive = formData.get("isActive") === "on";
 
+  const variantsRaw = formData.get("variants") as string;
+  const parsedVariants = variantsRaw ? JSON.parse(variantsRaw) : [];
+  
   // بروزرسانی فیلدهای محصول
   await prisma.product.update({
     where: { id },
@@ -168,6 +183,15 @@ export async function updateProduct(id: string, formData: FormData) {
       offerPrice,
       offerStartsAt,
       offerEndsAt,
+      variants: {
+        deleteMany: {}, // پاک کردن تنوع‌های قبلی
+        create: parsedVariants.map((v: any) => ({
+          name: v.name,
+          sku: v.sku || null,
+          price: v.price ? Number(v.price) : null,
+          stock: Number(v.stock),
+        })),
+      },
     },
   });
 
