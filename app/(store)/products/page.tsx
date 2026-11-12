@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ProductCard } from "@/components/product/product-card";
 import { ProductFilters } from "@/components/product/product-filters"; // 👈 ایمپورت کامپوننت فیلتر
 import { ProductPagination } from "@/components/product/product-pagination"; // 👈 ایمپورت کامپوننت صفحه‌بندی
+import { Metadata } from "next";
 
 type Props = {
     searchParams: Promise<{
@@ -15,6 +16,42 @@ type Props = {
 };
 
 const PAGE_SIZE = 15;
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+    const { category, q, page } = await searchParams;
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const canonicalUrl = new URL(`${baseUrl}/products`);
+
+    let title = "خرید کالا | فروشگاه فیزیکی";
+    let description = "مشاهده و بررسی بهترین محصولات با تضمین قیمت و کیفیت.";
+
+    // اگر کاربر دسته‌بندی خاصی را فیلتر کرده بود
+    if (category) {
+        canonicalUrl.searchParams.set("category", category);
+        title = `خرید محصولات ${category.replace("-", " ")} | فروشگاه فیزیکی`;
+    }
+
+    // اگر کاربر کلمه‌ای را سرچ کرده بود
+    if (q) {
+        canonicalUrl.searchParams.set("q", q);
+        title = `جستجوی ${q} | فروشگاه فیزیکی`;
+    }
+
+    // اگر کاربر در صفحات دوم به بعد بود
+    if (page && page !== "1") {
+        canonicalUrl.searchParams.set("page", page);
+        title = `${title} - صفحه ${page}`;
+    }
+
+    return {
+        title,
+        description,
+        alternates: {
+            canonical: canonicalUrl.toString(), // 👈 این تگ جلوی جریمه Duplicate Content گوگل را می‌گیرد
+        },
+    };
+}
 
 export default async function ProductsPage({ searchParams }: Props) {
     const { page, q, category, sort } = await searchParams;

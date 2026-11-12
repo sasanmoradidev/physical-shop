@@ -8,6 +8,9 @@ import { ProductGallery } from "@/components/product/product-gallery";
 import { ProductPurchase } from "@/components/product/product-purchase"; // 👈 ایمپورت کامپوننت جدید
 import { getFinalPrice } from "@/lib/product-price";
 import { Tag, FileText } from "lucide-react";
+import Script from "next/script";
+import { ChevronLeft, Home } from "lucide-react";
+import Link from "next/link";
 
 type Props = {
   params: Promise<{
@@ -90,8 +93,86 @@ export default async function ProductPage({ params }: Props) {
 
   const safeRelated = relatedProducts.map(serializeProduct);
 
+  // محاسبه قیمت نهایی برای اسکیما (تبدیل تومان به ریال برای استاندارد جهانی موتورهای جستجو)
+  const finalPriceToman = getFinalPrice({
+    price: Number(product.price),
+    offerPrice: product.offerPrice ? Number(product.offerPrice) : null,
+    offerStartsAt: product.offerStartsAt,
+    offerEndsAt: product.offerEndsAt,
+  });
+  const finalPriceIRR = finalPriceToman * 10;
+
+  const imageUrl = product.images?.[0]?.url
+    ? `${process.env.NEXT_PUBLIC_APP_URL}${product.images[0].url}`
+    : `${process.env.NEXT_PUBLIC_APP_URL}/placeholder.png`;
+
+  // 👇 ساخت اسکیمای محصول (Product JSON-LD)
+  const jsonLd = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    name: product.title,
+    image: imageUrl,
+    description: product.description,
+    sku: product.sku || product.id,
+    offers: {
+      "@type": "Offer",
+      url: `${process.env.NEXT_PUBLIC_APP_URL}/products/${product.slug}`,
+      priceCurrency: "IRR",
+      price: finalPriceIRR,
+      priceValidUntil: product.offerEndsAt ? product.offerEndsAt.toISOString().split("T")[0] : undefined,
+      itemCondition: "https://schema.org/NewCondition",
+      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    },
+  };
+
+  // 👇 ۲. اسکیمای جدید Breadcrumb (مسیر راهنما)
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "خانه",
+        "item": `${process.env.NEXT_PUBLIC_APP_URL}`
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "محصولات",
+        "item": `${process.env.NEXT_PUBLIC_APP_URL}/products`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": product.category.name,
+        "item": `${process.env.NEXT_PUBLIC_APP_URL}/products?category=${product.category.slug}`
+      },
+      {
+        "@type": "ListItem",
+        "position": 4,
+        "name": product.title,
+        "item": `${process.env.NEXT_PUBLIC_APP_URL}/products/${product.slug}`
+      }
+    ]
+  };
+
   return (
     <>
+      {/* 👇 تزریق اسکیمای محصول به صفحه */}
+      <Script
+        id={`product-schema-${product.id}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      {/* 👇 تزریق اسکیمای Breadcrumb */}
+      <Script
+        id={`breadcrumb-schema-${product.id}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+
       <div className="container mx-auto py-8 px-4 max-w-5xl animate-fade-in">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
 
@@ -102,6 +183,33 @@ export default async function ProductPage({ params }: Props) {
               <Tag className="h-3 w-3" />
               <span>{product.category.name}</span>
             </span>
+
+            {/* نمایش BreadCrumb */}
+            <nav className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-6 font-medium bg-zinc-50/50 w-fit px-3 py-1.5 rounded-xl border border-zinc-100">
+              <Link href="/" className="hover:text-blue-600 transition flex items-center gap-1">
+                <Home className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">خانه</span>
+              </Link>
+
+              <ChevronLeft className="w-3.5 h-3.5 text-zinc-300" />
+
+              <Link href="/products" className="hover:text-blue-600 transition">
+                محصولات
+              </Link>
+
+              <ChevronLeft className="w-3.5 h-3.5 text-zinc-300" />
+
+              <Link href={`/products?category=${product.category.slug}`} className="hover:text-blue-600 transition truncate max-w-[80px] sm:max-w-none">
+                {product.category.name}
+              </Link>
+
+              <ChevronLeft className="w-3.5 h-3.5 text-zinc-300" />
+
+              <span className="text-zinc-800 font-bold truncate max-w-[120px] sm:max-w-[200px]">
+                {product.title}
+              </span>
+            </nav>
+            {/*End نمایش BreadCrumb */}
 
             <h1 className="text-xl md:text-2xl font-bold text-zinc-900 tracking-tight leading-8">
               {product.title}
