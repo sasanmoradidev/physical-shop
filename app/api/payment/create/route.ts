@@ -19,16 +19,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = await verifyToken(token);
+    let payload;
+    try {
+      payload = await verifyToken(token);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    // واکشی سفارش به همراه جزئیات روش پرداخت انتخابی آن
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
-        userId: payload.userId as string,
+        userId: payload.userId,
       },
       include: {
-        paymentMethod: true, // 👈 گرفتن رابطه روش پرداخت
+        paymentMethod: true,
+        items: true,
       },
     });
 
@@ -36,35 +41,54 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // کنترل اکسپایر شدن سفارش بعد از ۱۰ دقیقه
-    const TEN_MINUTES = 10 * 60 * 1000;
-    const now = new Date().getTime();
-    if (!order.createdAt) {
-      return NextResponse.json({ error: "Invalid order" }, { status: 400 });
-    }
-
-    const orderAge = now - new Date(order.createdAt).getTime();
-    if (orderAge > TEN_MINUTES) {
-      return NextResponse.json({ error: "Payment link expired" }, { status: 400 });
-    }
-
     if (order.status !== "PENDING") {
       return NextResponse.json({ error: "Order is not payable" }, { status: 400 });
     }
 
-    // 👇 دریافت داینامیک مرچنت آی‌دی اختصاصی روش پرداخت یا استفاده از متغیر پیش‌فرض .env
-    const activeMerchantId = order.paymentMethod?.merchantId || process.env.ZARINPAL_MERCHANT_ID;
+    const TEN_MINUTES = 10 * 60 * 1000;
+    const orderAge = Date.now() - new Date(order.createdAt).getTime();
+
+    if (orderAge > TEN_MINUTES) {
+      // لغو سفارش منقضی‌شده و بازگرداندن موجودی به انبار (به صورت Idempotent)
+      await prisma.$transaction(async (tx) => {
+        const cancelled = await tx.order.updateMany({
+          where: { id: order.id, status: "PENDING" },
+          data: { status: "CANCELLED" },
+        });
+
+        if (cancelled.count > 0) {
+          for (const item of order.items) {
+            if (item.variantId) {
+              await tx.productVariant.update({
+                where: { id: item.variantId },
+                data: { stock: { increment: item.quantity } },
+              });
+            }
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { increment: item.quantity } },
+            });
+          }
+        }
+      });
+
+      return NextResponse.json(
+        { error: "مهلت پرداخت این سفارش به پایان رسیده و سفارش لغو شد." },
+        { status: 400 }
+      );
+    }
+
+    const activeMerchantId =
+      order.paymentMethod?.merchantId || process.env.ZARINPAL_MERCHANT_ID;
 
     const response = await fetch(
       "https://sandbox.zarinpal.com/pg/v4/payment/request.json",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          merchant_id: activeMerchantId, // 👈 استفاده از مرچنت داینامیک
-          amount: Number(order.totalPrice),
+          merchant_id: activeMerchantId,
+          amount: Number(order.totalPrice), // ⚠️ چک شود واحد پول درگاه تومان/ریال است
           callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/callback`,
           description: `Order ${order.id}`,
         }),
@@ -78,25 +102,18 @@ export async function POST(req: Request) {
     }
 
     const data = await response.json();
-    console.log("ZARINPAL SUCCESS:", data);
-
-    if (data.data.code !== 100) {
+    if (data?.data?.code !== 100) {
       return NextResponse.json({ error: "Payment request failed", data }, { status: 400 });
     }
 
     await prisma.order.update({
-      where: {
-        id: order.id,
-      },
-      data: {
-        authority: data.data.authority,
-      },
+      where: { id: order.id },
+      data: { authority: data.data.authority },
     });
 
     return NextResponse.json({
       url: `https://sandbox.zarinpal.com/pg/StartPay/${data.data.authority}`,
     });
-
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Server Error" }, { status: 500 });

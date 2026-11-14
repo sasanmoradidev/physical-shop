@@ -1,9 +1,8 @@
-// app/api/me/route.ts
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/rbac-server";
+import { getCurrentUser } from "@/lib/current-user";
 
 export async function GET() {
-  const user = await requireAuth();
+  const user = await getCurrentUser();
 
   if (!user) {
     return NextResponse.json(null);
