@@ -59,7 +59,7 @@ export default function OrdersPage() {
       const data = await res.json();
 
       if (data.url) {
-        window.location.href = data.url;
+        window.location.assign(data.url);
       } else {
         alert("خطا در ایجاد درگاه پرداخت");
       }
@@ -86,7 +86,7 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      
+
       {/* هدر بالای لیست سفارش‌ها */}
       <div className="space-y-1 pb-4 border-b border-zinc-100">
         <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">سفارش‌های من</h1>
@@ -125,14 +125,14 @@ export default function OrdersPage() {
                 className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition duration-200 bg-white"
               >
                 <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  
+
                   {/* اطلاعات کلی شناسه و تاریخ */}
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200/80 tracking-tight">
                         شناسه: {order.id.slice(-8).toUpperCase()}
                       </span>
-                      
+
                       <span className="inline-flex items-center gap-1.5 text-[10px] text-zinc-400 font-semibold">
                         <Calendar className="h-3.5 w-3.5" />
                         <span>{orderDate}</span>
@@ -147,7 +147,7 @@ export default function OrdersPage() {
 
                   {/* مبالغ و دکمه‌های کنترلی فاکتور */}
                   <div className="flex items-center justify-between sm:justify-end gap-5 border-t sm:border-t-0 pt-4 sm:pt-0 border-zinc-50">
-                    
+
                     {/* مبلغ سفارش */}
                     <div className="flex flex-col text-right">
                       <span className="text-[9px] text-zinc-400">جمع مبالغ فاکتور</span>

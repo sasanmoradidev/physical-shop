@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useMounted } from "@/hooks/use-mounted";
 
 import {
   Menu,
@@ -43,11 +44,10 @@ export function Navbar() {
     state.items.reduce((sum, item) => sum + item.quantity, 0)
   );
 
-  const [mounted, setMounted] = useState(false);
-  
+  const mounted = useMounted();
+
   // واکشی درخت دسته‌بندی‌ها از دیتابیس
   useEffect(() => {
-    setMounted(true);
     fetch("/api/categories")
       .then((res) => res.json())
       .then((data) => {

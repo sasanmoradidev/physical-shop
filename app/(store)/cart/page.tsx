@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCartStore } from "@/stores/cart-store";
@@ -8,15 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TomanIcon } from "@/components/ui/toman-icon";
 import { Plus, Minus, Trash2, Truck, ArrowLeft, ShoppingBag, Package } from "lucide-react";
+import { useMounted } from "@/hooks/use-mounted";
 
 export default function CartPage() {
   const { items, increase, decrease, removeItem } = useCartStore();
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
+  const mounted = useMounted();
   if (!mounted) {
     return (
       <div className="container mx-auto px-4 py-20 text-center text-xs text-zinc-400">

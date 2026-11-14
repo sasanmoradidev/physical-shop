@@ -165,11 +165,9 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(order);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Order Checkout Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Server Error" },
-      { status: 400 }
-    );
+    const message = error instanceof Error ? error.message : "Server Error";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

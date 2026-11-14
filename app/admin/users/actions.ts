@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/rbac-server";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 
 /* =========================
    🟢 CREATE USER
@@ -74,7 +74,7 @@ export async function updateUser(id: string, formData: FormData) {
     throw new Error("این نام کاربری یا شماره موبایل توسط کاربر دیگری استفاده شده است.");
   }
 
-  const updateData: any = {
+  const updateData: Prisma.UserUpdateInput = {
     name,
     username,
     phone,

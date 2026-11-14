@@ -11,6 +11,14 @@ import { revalidatePath } from "next/cache";
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024;
 
+type VariantInput = {
+  id?: string;
+  name: string;
+  sku?: string | null;
+  price?: number | string | null;
+  stock?: number | string;
+};
+
 async function saveImage(file: File) {
   if (!ALLOWED_TYPES.includes(file.type)) throw new Error("فرمت تصویر مجاز نیست");
   if (file.size > MAX_SIZE) throw new Error("حجم تصویر بیش از ۵ مگابایت است");
@@ -38,18 +46,19 @@ async function deleteImageFile(url: string) {
   }
 }
 
-function resolvePriceAndStock(formData: FormData, parsedVariants: any[]) {
+function resolvePriceAndStock(formData: FormData, parsedVariants: VariantInput[]) {
+
   let finalPrice = Number(formData.get("price"));
   let finalStock = Number(formData.get("stock"));
 
   if (parsedVariants.length > 0) {
     finalStock = parsedVariants.reduce(
-      (sum: number, v: any) => sum + (Number(v.stock) || 0),
+      (sum: number, v: VariantInput) => sum + (Number(v.stock) || 0),
       0
     );
 
     const variantPrices = parsedVariants
-      .map((v: any) => Number(v.price))
+      .map((v: VariantInput) => Number(v.price))
       .filter((p: number) => p > 0);
 
     if (variantPrices.length > 0) {
@@ -101,7 +110,7 @@ export async function createProduct(formData: FormData) {
   const isActive = formData.get("isActive") === "on";
 
   const variantsRaw = formData.get("variants") as string;
-  const parsedVariants = variantsRaw ? JSON.parse(variantsRaw) : [];
+  const parsedVariants: VariantInput[] = variantsRaw ? JSON.parse(variantsRaw) : [];
   const { finalPrice, finalStock } = resolvePriceAndStock(formData, parsedVariants);
 
   const product = await prisma.product.create({
@@ -119,7 +128,7 @@ export async function createProduct(formData: FormData) {
       offerStartsAt,
       offerEndsAt,
       variants: {
-        create: parsedVariants.map((v: any) => ({
+        create: parsedVariants.map((v: VariantInput) => ({
           name: v.name,
           sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
           price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
@@ -177,7 +186,7 @@ export async function updateProduct(id: string, formData: FormData) {
   const isActive = formData.get("isActive") === "on";
 
   const variantsRaw = formData.get("variants") as string;
-  const parsedVariants: any[] = variantsRaw ? JSON.parse(variantsRaw) : [];
+  const parsedVariants = variantsRaw ? JSON.parse(variantsRaw) : [];
   const { finalPrice, finalStock } = resolvePriceAndStock(formData, parsedVariants);
 
   await prisma.$transaction(async (tx) => {

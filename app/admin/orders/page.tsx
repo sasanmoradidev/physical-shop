@@ -30,9 +30,7 @@ export default async function AdminOrdersPage({
   const { status } = await searchParams;
 
   const where = {
-    ...(status
-      ? { status: status as any }
-      : {}),
+    ...(status ? { status: status as OrderStatus } : {}),
   };
 
   const orders = await prisma.order.findMany({
@@ -56,7 +54,7 @@ export default async function AdminOrdersPage({
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-8 animate-fade-in">
-      
+
       {/* هدر صفحه */}
       <div className="flex items-center gap-3.5 pb-6 border-b border-zinc-100">
         <div className="p-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-zinc-700 shadow-sm">
@@ -80,11 +78,10 @@ export default async function AdminOrdersPage({
               variant={isActive ? "default" : "outline"}
               size="sm"
               asChild
-              className={`rounded-xl h-9 text-xs font-semibold transition ${
-                isActive
+              className={`rounded-xl h-9 text-xs font-semibold transition ${isActive
                   ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
                   : "border-zinc-200 text-zinc-500 hover:bg-zinc-50"
-              }`}
+                }`}
             >
               <Link href={btn.href}>{btn.label}</Link>
             </Button>
@@ -118,16 +115,16 @@ export default async function AdminOrdersPage({
               >
                 <Card className="border-zinc-100 shadow-sm rounded-2xl p-5 hover:shadow-md transition duration-200 bg-white">
                   <CardContent className="p-0 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-                    
+
                     {/* جزئیات اصلی و مشخصات مشتری */}
                     <div className="space-y-3.5 flex-1">
-                      
+
                       {/* سطر بالا: کد سفارش و تاریخ ثبت */}
                       <div className="flex flex-wrap items-center gap-2.5">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200/80 tracking-tight">
                           شناسه: {order.id.slice(-8).toUpperCase()}
                         </span>
-                        
+
                         <span className="inline-flex items-center gap-1.5 text-[10px] text-zinc-400 font-semibold">
                           <Calendar className="h-3.5 w-3.5" />
                           <span>{orderDate}</span>
@@ -140,7 +137,7 @@ export default async function AdminOrdersPage({
                           <User className="h-4 w-4 text-zinc-400 flex-shrink-0" />
                           <span className="font-semibold text-zinc-800">{order.user.name}</span>
                         </div>
-                        
+
                         <div className="flex items-center gap-1.5">
                           <Mail className="h-4 w-4 text-zinc-400 flex-shrink-0" />
                           <span className="truncate">{order.user.username}</span>
@@ -156,7 +153,7 @@ export default async function AdminOrdersPage({
 
                     {/* بخش مبلغ سفارش، وضعیت و دکمه انتقال */}
                     <div className="flex items-center justify-between lg:justify-end gap-6 border-t lg:border-t-0 pt-4 lg:pt-0 border-zinc-50/60 flex-shrink-0">
-                      
+
                       {/* مبلغ کل سفارش */}
                       <div className="flex flex-col text-right">
                         <span className="text-[10px] text-zinc-400">مجموع دریافتی</span>

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requirePermission } from "@/lib/rbac-server";
 import Link from "next/link";
+import { Role } from "@prisma/client";
+
 import {
   Users as UsersIcon,
   AtSign,
@@ -39,7 +41,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           ],
         }
       : {}),
-    ...(role ? { role: role as any } : {}),
+    ...(role ? { role: role as Role } : {}),
   };
 
   const users = await prisma.user.findMany({
