@@ -44,7 +44,7 @@ export function AdminSidebar() {
       title: "دسته‌بندی‌ها",
       href: "/admin/categories",
       icon: FolderTree,
-      permission: "MANAGE_PRODUCTS" as Permission,
+      permission: "MANAGE_CATEGORIES" as Permission,
     },
     {
       title: "برندها",
@@ -74,7 +74,7 @@ export function AdminSidebar() {
       title: "روش‌های پرداخت",
       href: "/admin/payments",
       icon: CreditCard,
-      permission: "MANAGE_SHIPPING" as Permission,
+      permission: "MANAGE_PAYMENT" as Permission,
     },
     {
       title: "کاربران",

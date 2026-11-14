@@ -1,19 +1,15 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client"; // 👈 برای گرفتن ارورهای دیتابیس
+import { Prisma } from "@prisma/client";
 import { redirect } from "next/navigation";
 import fs from "fs/promises";
 import path from "path";
 import { requirePermission } from "@/lib/rbac-server";
 import { revalidatePath } from "next/cache";
 
-/* =========================
-   📁 UPLOAD & FILE HELPERS
-========================= */
-
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_SIZE = 5 * 1024 * 1024; // 5 مگابایت
+const MAX_SIZE = 5 * 1024 * 1024;
 
 async function saveImage(file: File) {
   if (!ALLOWED_TYPES.includes(file.type)) throw new Error("فرمت تصویر مجاز نیست");
@@ -25,31 +21,48 @@ async function saveImage(file: File) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 
-  // تولید نام یکتا با اکستنشن مناسب
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
   const fileName = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
   const filePath = path.join(uploadDir, fileName);
 
   await fs.writeFile(filePath, buffer);
-
   return `/uploads/products/${fileName}`;
 }
 
-// 👈 تابع جدید: برای پاک کردن فیزیکی عکس از روی هارد
 async function deleteImageFile(url: string) {
   try {
     const filePath = path.join(process.cwd(), "public", url);
     await fs.unlink(filePath);
-  } catch (error) {
-    // اگر فایل وجود نداشت خطایی نمی‌دهیم تا روند قطع نشود
+  } catch {
     console.error("Error deleting file:", url);
   }
+}
+
+function resolvePriceAndStock(formData: FormData, parsedVariants: any[]) {
+  let finalPrice = Number(formData.get("price"));
+  let finalStock = Number(formData.get("stock"));
+
+  if (parsedVariants.length > 0) {
+    finalStock = parsedVariants.reduce(
+      (sum: number, v: any) => sum + (Number(v.stock) || 0),
+      0
+    );
+
+    const variantPrices = parsedVariants
+      .map((v: any) => Number(v.price))
+      .filter((p: number) => p > 0);
+
+    if (variantPrices.length > 0) {
+      finalPrice = Math.min(...variantPrices);
+    }
+  }
+
+  return { finalPrice, finalStock };
 }
 
 /* =========================
    🟢 CREATE PRODUCT
 ========================= */
-
 export async function createProduct(formData: FormData) {
   await requirePermission("MANAGE_PRODUCTS");
 
@@ -63,12 +76,9 @@ export async function createProduct(formData: FormData) {
   const brandIdRaw = formData.get("brandId") as string;
   const brandId = brandIdRaw && brandIdRaw.trim() !== "" ? brandIdRaw : null;
 
-  const price = Number(formData.get("price"));
-  const stock = Number(formData.get("stock"));
   const categoryId = formData.get("categoryId") as string;
-
   if (!categoryId) {
-    throw new Error("Category is required");
+    throw new Error("انتخاب دسته‌بندی الزامی است.");
   }
 
   const offerPriceValue = formData.get("offerPrice");
@@ -92,27 +102,8 @@ export async function createProduct(formData: FormData) {
 
   const variantsRaw = formData.get("variants") as string;
   const parsedVariants = variantsRaw ? JSON.parse(variantsRaw) : [];
+  const { finalPrice, finalStock } = resolvePriceAndStock(formData, parsedVariants);
 
-  // گرفتن قیمت و موجودی اولیه فرم
-  let finalPrice = Number(formData.get("price"));
-  let finalStock = Number(formData.get("stock"));
-
-  //اگر محصول تنوع دارد، مقادیر فرم نادیده گرفته می‌شوند
-  if (parsedVariants.length > 0) {
-    // ۱. موجودی کل = جمع موجودی تمام تنوع‌ها
-    finalStock = parsedVariants.reduce((sum: number, v: any) => sum + (Number(v.stock) || 0), 0);
-    
-    // ۲. قیمت پایه = ارزان‌ترین قیمت بین تنوع‌ها
-    const variantPrices = parsedVariants
-      .map((v: any) => Number(v.price))
-      .filter((p: number) => p > 0);
-      
-    if (variantPrices.length > 0) {
-      finalPrice = Math.min(...variantPrices);
-    }
-  }
-
-  // ایجاد اولیه محصول بدون تصاویر
   const product = await prisma.product.create({
     data: {
       title,
@@ -127,28 +118,27 @@ export async function createProduct(formData: FormData) {
       offerPrice,
       offerStartsAt,
       offerEndsAt,
-      // 👇 ذخیره همزمان تنوع‌ها در لحظه ساخت محصول
       variants: {
         create: parsedVariants.map((v: any) => ({
           name: v.name,
-          sku: v.sku || null,
-          price: v.price ? Number(v.price) : null,
-          stock: Number(v.stock),
+          sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
+          price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
+          stock: Number(v.stock) || 0,
         })),
       },
     },
   });
 
-  // ثبت و اعمال ترتیب تصاویر با تابع کمکی
   await processOrderedImages(formData, product.id);
 
+  revalidatePath("/");
+  revalidatePath("/products");
   redirect("/admin/products");
 }
 
 /* =========================
    🟡 UPDATE PRODUCT
 ========================= */
-
 export async function updateProduct(id: string, formData: FormData) {
   await requirePermission("MANAGE_PRODUCTS");
 
@@ -162,8 +152,10 @@ export async function updateProduct(id: string, formData: FormData) {
   const brandIdRaw = formData.get("brandId") as string;
   const brandId = brandIdRaw && brandIdRaw.trim() !== "" ? brandIdRaw : null;
 
-  const price = Number(formData.get("price"));
-  const stock = Number(formData.get("stock"));
+  const categoryId = formData.get("categoryId") as string;
+  if (!categoryId) {
+    throw new Error("انتخاب دسته‌بندی الزامی است.");
+  }
 
   const offerPriceValue = formData.get("offerPrice");
   const offerPrice =
@@ -185,83 +177,96 @@ export async function updateProduct(id: string, formData: FormData) {
   const isActive = formData.get("isActive") === "on";
 
   const variantsRaw = formData.get("variants") as string;
-  const parsedVariants = variantsRaw ? JSON.parse(variantsRaw) : [];
-  // گرفتن قیمت و موجودی اولیه فرم
-  let finalPrice = Number(formData.get("price"));
-  let finalStock = Number(formData.get("stock"));
+  const parsedVariants: any[] = variantsRaw ? JSON.parse(variantsRaw) : [];
+  const { finalPrice, finalStock } = resolvePriceAndStock(formData, parsedVariants);
 
-  // اگر محصول تنوع دارد، مقادیر فرم نادیده گرفته می‌شوند
-  if (parsedVariants.length > 0) {
-    // ۱. موجودی کل = جمع موجودی تمام تنوع‌ها
-    finalStock = parsedVariants.reduce((sum: number, v: any) => sum + (Number(v.stock) || 0), 0);
-    
-    // ۲. قیمت پایه = ارزان‌ترین قیمت بین تنوع‌ها
-    const variantPrices = parsedVariants
-      .map((v: any) => Number(v.price))
-      .filter((p: number) => p > 0);
-      
-    if (variantPrices.length > 0) {
-      finalPrice = Math.min(...variantPrices);
-    }
-  }
-
-  // بروزرسانی فیلدهای محصول
-  await prisma.product.update({
-    where: { id },
-    data: {
-      title,
-      slug,
-      sku,
-      brandId,
-      description,
-      price: finalPrice,
-      stock: finalStock,
-      isActive,
-      offerPrice,
-      offerStartsAt,
-      offerEndsAt,
-      variants: {
-        deleteMany: {}, // پاک کردن تنوع‌های قبلی
-        create: parsedVariants.map((v: any) => ({
-          name: v.name,
-          sku: v.sku || null,
-          price: v.price ? Number(v.price) : null,
-          stock: Number(v.stock),
-        })),
+  await prisma.$transaction(async (tx) => {
+    await tx.product.update({
+      where: { id },
+      data: {
+        title,
+        slug,
+        sku,
+        brandId,
+        categoryId, // 👈 اضافه شد تا تغییر دسته‌بندی ذخیره شود
+        description,
+        price: finalPrice,
+        stock: finalStock,
+        isActive,
+        offerPrice,
+        offerStartsAt,
+        offerEndsAt,
       },
-    },
+    });
+
+    // همگام‌سازی هوشمند تنوع‌ها بدون پاک کردن رکوردهای قدیمی
+    const existingVariants = await tx.productVariant.findMany({
+      where: { productId: id },
+      select: { id: true },
+    });
+    const existingIds = new Set(existingVariants.map((v) => v.id));
+
+    const toUpdate = parsedVariants.filter((v) => v.id && existingIds.has(v.id));
+    const toCreate = parsedVariants.filter((v) => !v.id || !existingIds.has(v.id));
+    const keptIds = new Set(toUpdate.map((v) => v.id));
+    const idsToDelete = existingVariants
+      .filter((v) => !keptIds.has(v.id))
+      .map((v) => v.id);
+
+    if (idsToDelete.length > 0) {
+      await tx.productVariant.deleteMany({
+        where: { id: { in: idsToDelete } },
+      });
+    }
+
+    for (const v of toUpdate) {
+      await tx.productVariant.update({
+        where: { id: v.id },
+        data: {
+          name: v.name,
+          sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
+          price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
+          stock: Number(v.stock) || 0,
+        },
+      });
+    }
+
+    if (toCreate.length > 0) {
+      await tx.productVariant.createMany({
+        data: toCreate.map((v) => ({
+          productId: id,
+          name: v.name,
+          sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
+          price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
+          stock: Number(v.stock) || 0,
+        })),
+      });
+    }
   });
 
-  // پردازش و آپدیت ترتیب جدید تصاویر
   await processOrderedImages(formData, id);
 
+  revalidatePath("/");
+  revalidatePath("/products");
+  revalidatePath(`/products/${slug}`);
   redirect("/admin/products");
 }
 
 /* =========================
    🔴 DELETE PRODUCT
 ========================= */
-
 export async function deleteProduct(id: string) {
   await requirePermission("MANAGE_PRODUCTS");
 
   try {
-    // 👈 ابتدا لیست عکس‌های محصول را می‌گیریم تا بتوانیم فایل‌هایشان را پاک کنیم
     const images = await prisma.productImage.findMany({
       where: { productId: id },
       select: { url: true },
     });
 
-    // 👈 حذف خود محصول از دیتابیس
-    await prisma.product.delete({
-      where: { id },
-    });
-
-    // 👈 حذف فیزیکی تمامی عکس‌های مربوط به این محصول
+    await prisma.product.delete({ where: { id } });
     await Promise.all(images.map((img) => deleteImageFile(img.url)));
-
   } catch (error) {
-    // 👈 مدیریت خطای وابستگی (موجود در سبد خرید کاربران) برای نمایش توست
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
       return {
         success: false,
@@ -274,26 +279,23 @@ export async function deleteProduct(id: string) {
     };
   }
 
-  // در صورت موفقیت، ریدایرکت می‌کنیم
+  revalidatePath("/");
+  revalidatePath("/products");
   redirect("/admin/products");
 }
 
 /* =========================
    📁 SORTED IMAGES HELPER
 ========================= */
-
 async function processOrderedImages(formData: FormData, productId: string) {
   const imageOrderRaw = formData.get("imageOrder") as string;
   if (!imageOrderRaw) return;
 
   const imageOrder: string[] = JSON.parse(imageOrderRaw);
-
-  // ۱. شناسایی تصاویری که باید در دیتابیس حفظ شوند
   const existingImageIdsToKeep = imageOrder.filter(
     (id) => !formData.has(`file_${id}`)
   );
 
-  // 👈 یافتن عکس‌هایی که باید پاک شوند تا فایل فیزیکی‌شان هم پاک شود
   const imagesToDelete = await prisma.productImage.findMany({
     where: {
       productId,
@@ -302,7 +304,6 @@ async function processOrderedImages(formData: FormData, productId: string) {
     select: { url: true },
   });
 
-  // حذف رکورد تصاویر قدیمی از دیتابیس
   await prisma.productImage.deleteMany({
     where: {
       productId,
@@ -310,34 +311,21 @@ async function processOrderedImages(formData: FormData, productId: string) {
     },
   });
 
-  // 👈 حذف فیزیکی تصاویر اضافی
   await Promise.all(imagesToDelete.map((img) => deleteImageFile(img.url)));
 
-  // ۲. پیمایش ترتیب جدید تصاویر و اعمال مقادیر عددی فیلد order
   for (let index = 0; index < imageOrder.length; index++) {
     const id = imageOrder[index];
     const file = formData.get(`file_${id}`) as File | null;
 
     if (file && file.size > 0) {
-      // تصویر جدید: ذخیره روی هارد و ساخت رکورد دیتابیس
       const url = await saveImage(file);
       await prisma.productImage.create({
-        data: {
-          url,
-          order: index,
-          productId,
-        },
+        data: { url, order: index, productId },
       });
     } else {
-      // تصویر قدیمی: فقط آپدیت اولویت چیدمان
       await prisma.productImage.updateMany({
-        where: {
-          productId,
-          id,
-        },
-        data: {
-          order: index,
-        },
+        where: { productId, id },
+        data: { order: index },
       });
     }
   }
@@ -355,14 +343,17 @@ export async function toggleProductStatus(id: string, newStatus: boolean) {
       data: { isActive: newStatus },
     });
 
-    // رفرش کردن دیتای صفحه مدیریت بدون رفرش کامل مرورگر
     revalidatePath("/admin/products");
+    revalidatePath("/products");
+    revalidatePath("/");
 
     return {
       success: true,
-      message: newStatus ? "محصول در فروشگاه فعال شد" : "محصول غیرفعال شد و دیگر به کاربران نمایش داده نمی‌شود"
+      message: newStatus
+        ? "محصول در فروشگاه فعال شد"
+        : "محصول غیرفعال شد و دیگر به کاربران نمایش داده نمی‌شود",
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       message: "خطایی در تغییر وضعیت محصول رخ داد.",

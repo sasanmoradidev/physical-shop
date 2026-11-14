@@ -34,10 +34,13 @@ export default async function AdminPage() {
     },
   });
 
-  const totalSales = orders.reduce(
-    (sum, order) => sum + Number(order.totalPrice),
-    0
-  );
+  const salesAgg = await prisma.order.aggregate({
+    where: {
+      status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] },
+    },
+    _sum: { totalPrice: true },
+  });
+  const totalSales = Number(salesAgg._sum.totalPrice ?? 0);
 
   const latestOrders = await prisma.order.findMany({
     orderBy: {
@@ -83,7 +86,7 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      
+
       {/* هدر بالایی داشبورد */}
       <div className="flex items-center gap-3.5 pb-6 border-b border-zinc-100">
         <div className="p-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-zinc-700 shadow-sm">
@@ -143,7 +146,7 @@ export default async function AdminPage() {
                   className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition duration-200"
                 >
                   <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    
+
                     {/* اطلاعات مشتری و وضعیت */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="space-y-1">
@@ -154,7 +157,7 @@ export default async function AdminPage() {
                           ثبت‌شده در تاریخ: {orderDate}
                         </p>
                       </div>
-                      
+
                       {/* برچسب رنگی وضعیت سفارش */}
                       <OrderBadge status={order.status} />
                     </div>

@@ -52,9 +52,8 @@ export async function createAddress(
     },
   });
 
-  redirect(
-    "/profile/addresses"
-  );
+  const back = formData.get("back") as string;
+  redirect(back === "checkout" ? "/checkout" : "/profile/addresses");
 }
 
 /* =========================

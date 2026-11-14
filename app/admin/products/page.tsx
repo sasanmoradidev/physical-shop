@@ -31,7 +31,8 @@ const PAGE_SIZE = 12; // تعداد نمایش کالا در هر صفحه پن�
 
 export default async function AdminProductsPage({ searchParams }: Props) {
   const { page, q, category, sort } = await searchParams;
-  const currentPage = Number(page || "1");
+  const rawPage = Number(page);
+  const currentPage = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
 
   // ساخت کوئری داینامیک جستجو برای ادمین (بدون شرط isActive برای اینکه ادمین کالاهای غیرفعال را هم ببیند)
   const where = {
@@ -141,8 +142,8 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                     <div className="absolute top-3.5 right-3.5 flex flex-col gap-1.5">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold shadow-sm ${isOutOfStock
-                            ? "bg-red-50 text-red-700 border border-red-100"
-                            : "bg-green-50 text-green-700 border border-green-100"
+                          ? "bg-red-50 text-red-700 border border-red-100"
+                          : "bg-green-50 text-green-700 border border-green-100"
                           }`}
                       >
                         {isOutOfStock ? "ناموجود" : `${product.stock} عدد`}

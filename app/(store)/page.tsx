@@ -4,39 +4,41 @@ import { OfferSection } from "@/components/home/offer-section";
 import { NewProducts } from "@/components/home/new-products";
 import { FourColOffer } from "@/components/home/four-col-offer";
 import { LightBanner } from "@/components/home/light-banner";
-import Script from "next/script";
 
 export default async function HomePage() {
+  const now = new Date();
+
   const discountProducts = await prisma.product.findMany({
     where: {
-      isActive: true, // 👈 این خط باعث می‌شود دیتابیس کالای غیرفعال را برنگرداند
+      isActive: true,
+      offerPrice: { not: null },
+      AND: [
+        { OR: [{ offerStartsAt: null }, { offerStartsAt: { lte: now } }] },
+        { OR: [{ offerEndsAt: null }, { offerEndsAt: { gte: now } }] },
+      ],
     },
-    take: 5,
+    take: 8,
     orderBy: { createdAt: "desc" },
     include: {
-      images: {
-        orderBy: { order: "asc" },
-      },
+      images: { orderBy: { order: "asc" } },
     },
   });
 
-  const safeDiscountProducts = discountProducts.map((p) => ({
-    ...p,
-    price: p.price.toNumber(),
-    offerPrice: p.offerPrice ? p.offerPrice.toNumber() : null,
-    images: p.images ?? [],
-  }));
+  const safeDiscountProducts = discountProducts
+    .map((p) => ({
+      ...p,
+      price: p.price.toNumber(),
+      offerPrice: p.offerPrice ? p.offerPrice.toNumber() : null,
+      images: p.images ?? [],
+    }))
+    .filter((p) => p.offerPrice !== null && p.offerPrice < p.price);
 
   const newProducts = await prisma.product.findMany({
-    where: {
-      isActive: true, // 👈 این خط باعث می‌شود دیتابیس کالای غیرفعال را برنگرداند
-    },
+    where: { isActive: true },
     take: 10,
     orderBy: { createdAt: "desc" },
     include: {
-      images: {
-        orderBy: { order: "asc" },
-      },
+      images: { orderBy: { order: "asc" } },
     },
   });
 
@@ -60,29 +62,25 @@ export default async function HomePage() {
       "@type": "PostalAddress",
       streetAddress: "خیابان ولیعصر",
       addressLocality: "تهران",
-      addressCountry: "IR"
-    }
+      addressCountry: "IR",
+    },
   };
 
   return (
     <div className="space-y-10 pb-2">
-      
-      {/* 👇 تزریق اسکیما به هدر صفحه به صورت نامرئی برای خزنده‌های گوگل */}
-      <Script
-        id="store-schema"
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* اسلایدر هیرو بنر */}
       <HeroSwiper />
+      <FourColOffer />
+
+      {safeDiscountProducts.length > 0 && (
+        <OfferSection products={safeDiscountProducts} />
+      )}
 
       <FourColOffer />
-      {/* اسلایدر شگفت‌انگیز */}
-      <OfferSection products={safeDiscountProducts} />
-
-      <FourColOffer />
-      {/* اسلایدر کالاهای جدید */}
       <NewProducts products={safeNewProducts} />
       <LightBanner />
     </div>

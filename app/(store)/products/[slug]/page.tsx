@@ -26,8 +26,8 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { slug } = await params;
-  const product = await prisma.product.findUnique({
-    where: { slug },
+  const product = await prisma.product.findFirst({
+    where: { slug, isActive: true  },
     include: { images: { orderBy: { order: "asc" } }, variants: true },
   });
 
@@ -69,8 +69,8 @@ export async function generateMetadata(
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
 
-  const product = await prisma.product.findUnique({
-    where: { slug },
+  const product = await prisma.product.findFirst({
+    where: { slug, isActive: true  },
     include: {
       category: true,
       images: { orderBy: { order: "asc" } },
@@ -83,7 +83,7 @@ export default async function ProductPage({ params }: Props) {
   const safeProduct = serializeProduct(product);
 
   const relatedProducts = await prisma.product.findMany({
-    where: { categoryId: product.categoryId, NOT: { id: product.id } },
+    where: { categoryId: product.categoryId, NOT: { id: product.id }, isActive: true  },
     include: {
       images: { orderBy: { order: "asc" } },
       variants: true,

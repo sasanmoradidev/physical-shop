@@ -58,6 +58,7 @@ export default async function NewAddressPage({ searchParams }: Props) {
 
         {/* بدنه فرم */}
         <form action={createAddress} className="space-y-6">
+          <input type="hidden" name="back" value={back || ""} />
           
           {/* عنوان آدرس */}
           <div>

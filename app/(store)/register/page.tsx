@@ -46,7 +46,7 @@ function RegisterForm() {
       const res = await fetch("/api/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, purpose: "REGISTER" }),
       });
 
       const data = await res.json();
