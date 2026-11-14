@@ -2,20 +2,19 @@
 
 import { useState, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { hasPermission } from "@/lib/rbac";
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/admin";
+  const explicitCallback = searchParams.get("callbackUrl");
 
-  // استیت‌های تب و تنظیمات
   const [loginMode, setLoginMode] = useState<"PASSWORD" | "OTP">("PASSWORD");
   const [otpEnabled, setOtpEnabled] = useState(true);
 
-  // استیت‌های ورود با رمز عبور
-  const [username, setUsername] = useState("admin@test.com");
-  const [password, setPassword] = useState("123456");
-  
-  // استیت‌های ورود با پیامک
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
   const [phone, setPhone] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [otpStep, setOtpStep] = useState<"SEND" | "VERIFY">("SEND");
@@ -23,18 +22,21 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // بررسی فعال بودن لاگین پیامکی از تنظیمات سایت
   useEffect(() => {
     fetch("/api/settings/otp-status")
       .then((res) => res.json())
-      .then((data) => {
-        setOtpEnabled(data.enabled);
-      })
+      .then((data) => setOtpEnabled(data.enabled))
       .catch(() => setOtpEnabled(true));
   }, []);
 
-  // هندلر ورود با رمز عبور
-  async function handlePasswordLogin() {
+  function getRedirectTarget(role?: string) {
+    if (explicitCallback) return explicitCallback;
+    if (role && hasPermission(role, "VIEW_ADMIN_DASHBOARD")) return "/admin";
+    return "/profile";
+  }
+
+  async function handlePasswordLogin(e: React.FormEvent) {
+    e.preventDefault();
     setLoading(true);
     setError("");
     try {
@@ -44,20 +46,21 @@ function LoginForm() {
         body: JSON.stringify({ username, password }),
       });
 
+      const data = await res.json();
       if (res.ok) {
-        window.location.href = callbackUrl;
+        window.location.href = getRedirectTarget(data.role);
       } else {
-        setError("نام کاربری یا رمز عبور اشتباه است.");
+        setError(data.error || "نام کاربری یا رمز عبور اشتباه است.");
       }
-    } catch (err) {
+    } catch {
       setError("خطا در ارتباط با سرور.");
     } finally {
       setLoading(false);
     }
   }
 
-  // هندلر مرحله اول: ارسال پیامک
-  async function handleSendOtp() {
+  async function handleSendOtp(e: React.FormEvent) {
+    e.preventDefault();
     if (!phone || phone.length !== 11) {
       setError("شماره موبایل باید ۱۱ رقم باشد.");
       return;
@@ -68,24 +71,24 @@ function LoginForm() {
       const res = await fetch("/api/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, purpose: "LOGIN" }),
       });
       const data = await res.json();
-      
+
       if (res.ok) {
         setOtpStep("VERIFY");
       } else {
         setError(data.error || "خطا در ارسال پیامک");
       }
-    } catch (err) {
+    } catch {
       setError("خطا در ارتباط با سرور.");
     } finally {
       setLoading(false);
     }
   }
 
-  // هندلر مرحله دوم: تایید پیامک
-  async function handleVerifyOtp() {
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
     if (!otpCode || otpCode.length < 4) {
       setError("کد تایید معتبر نیست.");
       return;
@@ -101,11 +104,11 @@ function LoginForm() {
       const data = await res.json();
 
       if (res.ok) {
-        window.location.href = data.role === "ADMIN" ? "/admin" : callbackUrl;
+        window.location.href = getRedirectTarget(data.role);
       } else {
         setError(data.error || "کد تایید اشتباه است.");
       }
-    } catch (err) {
+    } catch {
       setError("خطا در ارتباط با سرور.");
     } finally {
       setLoading(false);
@@ -127,12 +130,14 @@ function LoginForm() {
       {otpEnabled && (
         <div className="flex bg-zinc-100 p-1 rounded-xl">
           <button
+            type="button"
             onClick={() => { setLoginMode("PASSWORD"); setError(""); }}
             className={`flex-1 text-xs font-bold py-2.5 rounded-lg transition ${loginMode === "PASSWORD" ? "bg-white text-blue-600 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
           >
             با رمز عبور
           </button>
           <button
+            type="button"
             onClick={() => { setLoginMode("OTP"); setError(""); setOtpStep("SEND"); }}
             className={`flex-1 text-xs font-bold py-2.5 rounded-lg transition ${loginMode === "OTP" ? "bg-white text-blue-600 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
           >
@@ -142,19 +147,19 @@ function LoginForm() {
       )}
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs rounded-xl flex items-center gap-2">
-          <span>{error}</span>
+        <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs rounded-xl">
+          {error}
         </div>
       )}
 
-      {/* فرم ورود با رمز عبور */}
       {loginMode === "PASSWORD" && (
-        <div className="space-y-5 animate-fade-in">
+        <form onSubmit={handlePasswordLogin} className="space-y-5 animate-fade-in">
           <div>
-            <label className="block text-sm font-semibold text-zinc-700 mb-2">نام کاربری یا ایمیل</label>
+            <label className="block text-sm font-semibold text-zinc-700 mb-2">نام کاربری یا موبایل</label>
             <input
               type="text"
               dir="ltr"
+              required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="username"
@@ -166,6 +171,7 @@ function LoginForm() {
             <input
               type="password"
               dir="ltr"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="******"
@@ -173,25 +179,25 @@ function LoginForm() {
             />
           </div>
           <button
-            onClick={handlePasswordLogin}
+            type="submit"
             disabled={loading}
             className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white shadow-sm transition bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400"
           >
             {loading ? "در حال بررسی..." : "ورود به حساب"}
           </button>
-        </div>
+        </form>
       )}
 
-      {/* فرم ورود با پیامک */}
       {loginMode === "OTP" && (
         <div className="space-y-5 animate-fade-in">
           {otpStep === "SEND" ? (
-            <>
+            <form onSubmit={handleSendOtp} className="space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-zinc-700 mb-2">شماره موبایل</label>
                 <input
                   type="tel"
                   dir="ltr"
+                  required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="09123456789"
@@ -199,41 +205,54 @@ function LoginForm() {
                 />
               </div>
               <button
-                onClick={handleSendOtp}
+                type="submit"
                 disabled={loading}
                 className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white shadow-sm transition bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400"
               >
                 {loading ? "در حال ارسال پیامک..." : "دریافت کد تایید"}
               </button>
-            </>
+            </form>
           ) : (
-            <>
+            <form onSubmit={handleVerifyOtp} className="space-y-5">
               <div className="text-center pb-2">
                 <span className="text-xs text-zinc-500">کد تایید به شماره {phone} ارسال شد. </span>
-                <button onClick={() => setOtpStep("SEND")} className="text-xs text-blue-600 font-bold hover:underline">ویرایش شماره</button>
+                <button type="button" onClick={() => setOtpStep("SEND")} className="text-xs text-blue-600 font-bold hover:underline">
+                  ویرایش شماره
+                </button>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-zinc-700 mb-2">کد تایید پیامکی</label>
                 <input
                   type="text"
                   dir="ltr"
+                  required
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
-                  placeholder="وارد کردن کد ۵ رقمی"
+                  placeholder="کد ۵ رقمی"
                   className="w-full px-4 py-3 border border-zinc-200 rounded-xl bg-zinc-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-center tracking-widest text-lg font-bold"
                 />
               </div>
               <button
-                onClick={handleVerifyOtp}
+                type="submit"
                 disabled={loading}
                 className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white shadow-sm transition bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-400"
               >
                 {loading ? "در حال بررسی..." : "تایید و ورود"}
               </button>
-            </>
+            </form>
           )}
         </div>
       )}
+
+      <div className="pt-4 border-t border-zinc-100 text-center text-xs text-zinc-500">
+        حساب کاربری ندارید؟{" "}
+        <Link
+          href={explicitCallback ? `/register?callbackUrl=${encodeURIComponent(explicitCallback)}` : "/register"}
+          className="text-blue-600 hover:text-blue-700 font-bold"
+        >
+          ثبت‌نام کنید
+        </Link>
+      </div>
     </div>
   );
 }

@@ -74,9 +74,18 @@ export async function POST(req: Request) {
     });
 
     const cookieStore = await cookies();
+    const host = req.headers.get("host") || "";
+    const isLocalNetwork =
+      host.includes("192.168") ||
+      host.includes("10.95") ||
+      host.includes("10.85") ||
+      host.includes("localhost") ||
+      host.includes("127.0.0.1");
+
     cookieStore.set("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" && !isLocalNetwork,
+      sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
     });

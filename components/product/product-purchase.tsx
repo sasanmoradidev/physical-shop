@@ -14,7 +14,7 @@ export function ProductPurchase({ product }: { product: any }) {
 
   // محاسبه قیمت پایه (اگر تنوع انتخاب شده قیمت اختصاصی دارد آن را می‌گیریم، وگرنه قیمت اصلی محصول)
   const basePrice = selectedVariant?.price ? Number(selectedVariant.price) : Number(product.price);
-  
+
   // محاسبه موجودی فعال
   const activeStock = selectedVariant ? selectedVariant.stock : product.stock;
 
@@ -32,7 +32,7 @@ export function ProductPurchase({ product }: { product: any }) {
 
   return (
     <div className="space-y-6">
-      
+
       {/* 🌟 بخش انتخاب تنوع‌ها */}
       {product.variants?.length > 0 && (
         <div className="space-y-3 pt-2">
@@ -42,11 +42,10 @@ export function ProductPurchase({ product }: { product: any }) {
               <button
                 key={variant.id}
                 onClick={() => setSelectedVariant(variant)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
-                  selectedVariant?.id === variant.id
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${selectedVariant?.id === variant.id
                     ? "border-blue-500 bg-blue-50/50 text-blue-700 ring-1 ring-blue-500 shadow-sm"
                     : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
-                }`}
+                  }`}
               >
                 {variant.name}
               </button>
@@ -103,7 +102,9 @@ export function ProductPurchase({ product }: { product: any }) {
           title={selectedVariant ? `${product.title} (${selectedVariant.name})` : product.title}
           price={finalPrice}
           stock={activeStock}
-          variantId={selectedVariant?.id} // 👈 پاس دادن ID تنوع به سبد خرید
+          variantId={selectedVariant?.id}
+          image={product.images?.[0]?.url}
+          slug={product.slug}
         />
       </div>
     </div>

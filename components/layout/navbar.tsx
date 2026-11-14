@@ -43,8 +43,11 @@ export function Navbar() {
     state.items.reduce((sum, item) => sum + item.quantity, 0)
   );
 
+  const [mounted, setMounted] = useState(false);
+  
   // واکشی درخت دسته‌بندی‌ها از دیتابیس
   useEffect(() => {
+    setMounted(true);
     fetch("/api/categories")
       .then((res) => res.json())
       .then((data) => {
@@ -74,7 +77,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b shadow-sm select-none">
-      
+
       {/* بنر تستی متحرک بالای هدر */}
       {/* بنر متحرک بالای هدر (نسخه واکنش‌گرا ویژه موبایل و دسکتاپ) */}
       {/* <div className="w-full">
@@ -172,7 +175,7 @@ export function Navbar() {
             className="relative p-2.5 bg-zinc-50 hover:bg-zinc-100 border rounded-xl transition flex items-center justify-center text-zinc-700"
           >
             <ShoppingCart size={18} />
-            {count > 0 && (
+            {mounted && count > 0 && (
               <span className="absolute -top-1.5 -left-1.5 bg-red-500 text-white text-[10px] font-extrabold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm animate-pulse">
                 {count.toLocaleString("fa-IR")}
               </span>
@@ -216,8 +219,8 @@ export function Navbar() {
                           key={parent.id}
                           onMouseEnter={() => setActiveParentId(parent.id)}
                           className={`px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-between ${isParentActive
-                              ? "bg-white text-blue-600 shadow-sm border border-zinc-100"
-                              : "text-zinc-500 hover:bg-zinc-100/40 hover:text-zinc-900"
+                            ? "bg-white text-blue-600 shadow-sm border border-zinc-100"
+                            : "text-zinc-500 hover:bg-zinc-100/40 hover:text-zinc-900"
                             }`}
                         >
                           <span>{parent.name}</span>

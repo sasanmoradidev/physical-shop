@@ -6,7 +6,9 @@ export type CartItem = {
   title: string;
   price: number;
   quantity: number;
-  variantId?: string; // 👈 شناسه تنوع
+  variantId?: string;
+  image?: string;
+  slug?: string;
 };
 
 type CartStore = {
@@ -38,9 +40,9 @@ export const useCartStore = create<CartStore>()(
               items: state.items.map((i) =>
                 i.id === item.id && i.variantId === item.variantId
                   ? {
-                      ...i,
-                      quantity: i.quantity + 1,
-                    }
+                    ...i,
+                    quantity: i.quantity + 1,
+                  }
                   : i
               ),
             };
@@ -64,9 +66,9 @@ export const useCartStore = create<CartStore>()(
           items: state.items.map((i) =>
             i.id === id && i.variantId === variantId
               ? {
-                  ...i,
-                  quantity: i.quantity + 1,
-                }
+                ...i,
+                quantity: i.quantity + 1,
+              }
               : i
           ),
         })),
@@ -77,14 +79,14 @@ export const useCartStore = create<CartStore>()(
             .map((i) =>
               i.id === id && i.variantId === variantId
                 ? {
-                    ...i,
-                    quantity: i.quantity - 1,
-                  }
+                  ...i,
+                  quantity: i.quantity - 1,
+                }
                 : i
             )
             .filter((i) => i.quantity > 0),
         })),
-        
+
       clearCart: () =>
         set({
           items: [],

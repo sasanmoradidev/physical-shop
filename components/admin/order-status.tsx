@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export function OrderStatus({
   orderId,
@@ -45,7 +46,7 @@ export function OrderStatus({
     } catch (err) {
       // rollback
       setValue(prev);
-      alert("خطا در تغییر وضعیت");
+      toast.error("خطا در تغییر وضعیت");
     } finally {
       setLoading(false);
     }
@@ -60,12 +61,12 @@ export function OrderStatus({
       disabled={loading}
       className="border p-2"
     >
-      <option value="PENDING">PENDING</option>
-      <option value="PAID">PAID</option>
-      <option value="PROCESSING">PROCESSING</option>
-      <option value="SHIPPED">SHIPPED</option>
-      <option value="DELIVERED">DELIVERED</option>
-      <option value="CANCELLED">CANCELLED</option>
+      <option value="PENDING">در انتظار پرداخت</option>
+      <option value="PAID">پرداخت شده</option>
+      <option value="PROCESSING">در حال پردازش</option>
+      <option value="SHIPPED">ارسال شده</option>
+      <option value="DELIVERED">تحویل شده</option>
+      <option value="CANCELLED">لغو شده</option>
     </select>
   );
 }

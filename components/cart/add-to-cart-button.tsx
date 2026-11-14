@@ -1,6 +1,7 @@
 "use client";
 
 import { useCartStore } from "@/stores/cart-store";
+import { toast } from "sonner";
 
 type Props = {
   id: string;
@@ -8,6 +9,8 @@ type Props = {
   price: number;
   stock: number;
   variantId?: string;
+  image?: string;
+  slug?: string;
 };
 
 export function AddToCartButton({
@@ -16,11 +19,10 @@ export function AddToCartButton({
   price,
   stock,
   variantId,
+  image,
+  slug,
 }: Props) {
-
-  const addItem = useCartStore(
-    (state) => state.addItem
-  );
+  const addItem = useCartStore((state) => state.addItem);
 
   function handleAdd() {
     addItem({
@@ -29,30 +31,19 @@ export function AddToCartButton({
       price,
       quantity: 1,
       variantId,
+      image,
+      slug,
     });
+    toast.success("محصول به سبد خرید اضافه شد.");
   }
 
   return (
     <button
       disabled={stock <= 0}
       onClick={handleAdd}
-      className="
-        w-full
-        rounded-xl
-        py-3
-        font-medium
-        transition
-        disabled:bg-gray-300
-        disabled:text-gray-500
-        disabled:cursor-not-allowed
-        bg-green-600
-        text-white
-        hover:bg-green-700
-      "
+      className="w-full rounded-xl py-3 font-medium transition disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed bg-green-600 text-white hover:bg-green-700"
     >
-      {stock > 0
-        ? "افزودن به سبد خرید"
-        : "ناموجود"}
+      {stock > 0 ? "افزودن به سبد خرید" : "ناموجود"}
     </button>
   );
 }
