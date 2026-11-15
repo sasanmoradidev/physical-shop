@@ -9,6 +9,9 @@ type RelatedProductsSliderProps = {
         title: string;
         slug: string;
         price: number;
+        offerPrice?: number | null;
+        offerStartsAt?: Date | null;
+        offerEndsAt?: Date | null;
         stock: number;
         images: {
             url: string;

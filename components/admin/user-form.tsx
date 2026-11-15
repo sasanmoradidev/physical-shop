@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { createUser, updateUser } from "@/app/admin/users/actions";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { toast } from "sonner";
 
 type PlainUser = {
   id: string;
@@ -35,16 +36,17 @@ export default function UserForm({ user }: Props) {
         } else {
           await createUser(formData);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const err = error as { digest?: string; message?: string };
         if (
-          error?.digest?.includes("NEXT_REDIRECT") ||
-          error?.message?.includes("NEXT_REDIRECT")
+          err?.digest?.includes("NEXT_REDIRECT") ||
+          err?.message?.includes("NEXT_REDIRECT")
         ) {
           throw error;
         }
 
         console.error(error);
-        alert(error?.message || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+        toast.error(err?.message || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
       }
     });
   }

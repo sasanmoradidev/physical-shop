@@ -38,7 +38,7 @@ export function BrandManager({ initialBrands }: { initialBrands: Brand[] }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !slug) {
-      alert("لطفاً تمامی فیلدها را پر کنید.");
+      toast.error("لطفاً تمامی فیلدها را پر کنید.");
       return;
     }
 
@@ -49,18 +49,23 @@ export function BrandManager({ initialBrands }: { initialBrands: Brand[] }) {
           toast.success("تغییرات با موفقیت ذخیره شد.");
         } else {
           await createBrand(name, slug);
-          alert("برند جدید با موفقیت ثبت شد.");
+          toast.success("برند جدید با موفقیت ثبت شد.");
         }
         handleCancelEdit();
-      } catch (error: any) {
-        alert(error?.message || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+      } catch (error: unknown) {
+        console.error(error);
+        const message =
+          error instanceof Error
+            ? error.message
+            : "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
+        toast.error(message);
       }
     });
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start animate-fade-in">
-      
+
       {/* فرم ایجاد/ویرایش برند */}
       <Card className="border-zinc-100 shadow-sm rounded-2xl bg-white">
         <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
@@ -136,13 +141,12 @@ export function BrandManager({ initialBrands }: { initialBrands: Brand[] }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {initialBrands.map((brand) => {
               const isEditing = selectedBrand?.id === brand.id;
-              
+
               return (
                 <Card
                   key={brand.id}
-                  className={`border p-4 rounded-xl transition duration-200 ${
-                    isEditing ? "border-blue-500 bg-blue-50/10 ring-1 ring-blue-500 shadow-inner" : "border-zinc-100 bg-white"
-                  }`}
+                  className={`border p-4 rounded-xl transition duration-200 ${isEditing ? "border-blue-500 bg-blue-50/10 ring-1 ring-blue-500 shadow-inner" : "border-zinc-100 bg-white"
+                    }`}
                 >
                   <CardContent className="p-0 flex flex-col justify-between h-full gap-4">
                     <div className="flex items-start justify-between gap-2">

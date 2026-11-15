@@ -8,6 +8,7 @@ import {
   deletePaymentMethod,
 } from "@/app/admin/payments/actions";
 
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Edit, Check, X, ShieldAlert, ShieldCheck } from "lucide-react";
@@ -44,7 +45,7 @@ export function PaymentManager({ initialMethods }: Props) {
     setDescription(method.description || "");
     setIsActive(method.isActive);
     setMerchantId(method.merchantId || ""); // پر کردن مرچنت آی‌دی قبلی
-    
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -61,13 +62,13 @@ export function PaymentManager({ initialMethods }: Props) {
     e.preventDefault();
 
     if (!name || !code || !description) {
-      alert("لطفاً تمامی فیلدها را با مقادیر معتبر پر کنید.");
+      toast("لطفاً تمامی فیلدها را با مقادیر معتبر پر کنید.");
       return;
     }
 
     // اگر روش آنلاین بود، مرچنت آی‌دی الزامی است
     if (code.toUpperCase() === "ONLINE" && !merchantId) {
-      alert("برای روش پرداخت آنلاین، وارد کردن مرچنت آی‌دی زرین‌پال الزامی است.");
+      toast("برای روش پرداخت آنلاین، وارد کردن مرچنت آی‌دی زرین‌پال الزامی است.");
       return;
     }
 
@@ -94,16 +95,20 @@ export function PaymentManager({ initialMethods }: Props) {
           alert("روش پرداخت جدید با موفقیت ثبت شد.");
         }
         handleCancelEdit();
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(error);
-        alert(error?.message || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+        const message =
+          error instanceof Error
+            ? error.message
+            : "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
+        toast.error(message);
       }
     });
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start animate-fade-in">
-      
+
       {/* فرم چپ */}
       <Card className="border-zinc-100 shadow-sm rounded-2xl bg-white">
         <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
@@ -222,29 +227,27 @@ export function PaymentManager({ initialMethods }: Props) {
               return (
                 <Card
                   key={method.id}
-                  className={`border p-5 rounded-2xl transition duration-200 ${
-                    isSelectedForEdit
+                  className={`border p-5 rounded-2xl transition duration-200 ${isSelectedForEdit
                       ? "border-blue-500 bg-blue-50/10 ring-1 ring-blue-500 shadow-inner"
                       : "border-zinc-100 bg-white shadow-sm"
-                  }`}
+                    }`}
                 >
                   <CardContent className="p-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    
+
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
                         <span className="font-bold text-sm text-zinc-800">{method.name}</span>
                         <span className="font-mono text-[9px] font-bold bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200 text-zinc-500">
                           {method.code}
                         </span>
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[9px] font-bold ${
-                          isMethodActive 
-                            ? "bg-green-50 text-green-700 border border-green-100" 
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[9px] font-bold ${isMethodActive
+                            ? "bg-green-50 text-green-700 border border-green-100"
                             : "bg-red-50 text-red-700 border border-red-100"
-                        }`}>
+                          }`}>
                           {isMethodActive ? "فعال" : "غیرفعال"}
                         </span>
                       </div>
-                      
+
                       {/* نمایش آی‌دی مرچنت در صورت وجود برای پیگیری راحت‌تر مدیریت */}
                       <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
                         توضیحات: {method.description || "ثبت‌نشده"}

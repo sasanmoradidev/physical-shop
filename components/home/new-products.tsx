@@ -4,7 +4,19 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import { ProductCard } from "@/components/product/product-card";
 
-export function NewProducts({ products }: any) {
+type HomeProduct = {
+  id: string;
+  title: string;
+  slug: string;
+  price: number;
+  offerPrice?: number | null;
+  offerStartsAt?: Date | null;
+  offerEndsAt?: Date | null;
+  stock: number;
+  images?: { url: string }[];
+};
+
+export function NewProducts({ products }: { products: HomeProduct[] }) {
   return (
     <div className="container mx-auto mt-14 px-4">
       <h2 className="text-xl font-bold text-zinc-900 mb-6 tracking-tight mr-1">
@@ -21,7 +33,7 @@ export function NewProducts({ products }: any) {
         }}
         className="select-none"
       >
-        {products.map((p: any) => (
+        {products.map((p) => (
           <SwiperSlide key={p.id} className="py-1">
             <ProductCard
               product={{

@@ -6,24 +6,44 @@ import { TomanIcon } from "@/components/ui/toman-icon";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { hasActiveOffer, getFinalPrice, getDiscountPercent } from "@/lib/product-price";
 
-export function ProductPurchase({ product }: { product: any }) {
-  // اگر محصول تنوع دارد، اولین تنوع را به صورت پیش‌فرض انتخاب می‌کنیم
-  const [selectedVariant, setSelectedVariant] = useState(
-    product.variants?.length > 0 ? product.variants[0] : null
+type VariantItem = {
+  id: string;
+  name: string;
+  price?: number | null;
+  stock: number;
+};
+
+type ProductPurchaseData = {
+  id: string;
+  title: string;
+  slug: string;
+  price: number;
+  offerPrice?: number | null;
+  offerStartsAt?: Date | string | null;
+  offerEndsAt?: Date | string | null;
+  stock: number;
+  images?: { url: string }[];
+  variants?: VariantItem[];
+};
+
+export function ProductPurchase({ product }: { product: ProductPurchaseData }) {
+ const variants = product.variants ?? [];
+
+  const [selectedVariant, setSelectedVariant] = useState<VariantItem | null>(
+    variants.length > 0 ? variants[0] : null
   );
 
-  // محاسبه قیمت پایه (اگر تنوع انتخاب شده قیمت اختصاصی دارد آن را می‌گیریم، وگرنه قیمت اصلی محصول)
-  const basePrice = selectedVariant?.price ? Number(selectedVariant.price) : Number(product.price);
+  const basePrice = selectedVariant?.price
+    ? Number(selectedVariant.price)
+    : Number(product.price);
 
-  // محاسبه موجودی فعال
   const activeStock = selectedVariant ? selectedVariant.stock : product.stock;
 
-  // قالب‌بندی برای توابع تخفیف
   const priceProps = {
     price: basePrice,
     offerPrice: product.offerPrice ? Number(product.offerPrice) : null,
-    offerStartsAt: product.offerStartsAt,
-    offerEndsAt: product.offerEndsAt,
+    offerStartsAt: product.offerStartsAt ?? null,
+    offerEndsAt: product.offerEndsAt ?? null,
   };
 
   const hasDiscount = hasActiveOffer(priceProps);
@@ -34,18 +54,19 @@ export function ProductPurchase({ product }: { product: any }) {
     <div className="space-y-6">
 
       {/* 🌟 بخش انتخاب تنوع‌ها */}
-      {product.variants?.length > 0 && (
+     {variants.length > 0 && (
         <div className="space-y-3 pt-2">
           <span className="text-xs font-bold text-zinc-700">انتخاب تنوع:</span>
           <div className="flex flex-wrap gap-2">
-            {product.variants.map((variant: any) => (
+            {variants.map((variant) => (
               <button
                 key={variant.id}
                 onClick={() => setSelectedVariant(variant)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${selectedVariant?.id === variant.id
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                  selectedVariant?.id === variant.id
                     ? "border-blue-500 bg-blue-50/50 text-blue-700 ring-1 ring-blue-500 shadow-sm"
                     : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
-                  }`}
+                }`}
               >
                 {variant.name}
               </button>

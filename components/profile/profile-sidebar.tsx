@@ -51,7 +51,7 @@ export function ProfileSidebar() {
               {user?.name || "کاربر مهمان"}
             </span>
             <span className="text-[10px] text-zinc-400 block truncate" dir="ltr">
-              {(user as any)?.phone || (user as any)?.username || ""}
+              {user?.phone || user?.username || ""}
             </span>
           </div>
         </div>

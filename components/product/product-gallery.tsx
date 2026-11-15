@@ -11,6 +11,7 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 import "swiper/css/zoom"; // استایل اختصاصی زوم دو انگشتی Swiper
+import type { Swiper as SwiperType } from "swiper";
 
 // ایمپورت آیکون‌های ناوبری ظریف Lucide
 import { ChevronLeft, ChevronRight, MapPinOff } from "lucide-react";
@@ -27,7 +28,7 @@ type Props = {
 
 export function ProductGallery({ images, productTitle = "" }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [swiperInstance, setSwiperInstance] = useState<any>(null);
+  const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 
   if (!images || images.length === 0) {
     return (

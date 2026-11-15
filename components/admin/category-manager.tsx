@@ -72,9 +72,13 @@ export function CategoryManager({ initialCategories }: Props) {
                     toast.success("دسته‌بندی جدید با موفقیت ثبت شد."); // 👈 توست موفقیت
                 }
                 handleCancelEdit();
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error(error);
-                toast.error(error?.message || "خطایی رخ داد. لطفاً دوباره تلاش کنید."); // 👈 توست خطا
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
+                toast.error(message);
             }
         });
     };

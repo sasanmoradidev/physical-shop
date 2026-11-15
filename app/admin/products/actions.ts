@@ -47,24 +47,29 @@ async function deleteImageFile(url: string) {
 }
 
 function resolvePriceAndStock(formData: FormData, parsedVariants: VariantInput[]) {
-
   let finalPrice = Number(formData.get("price"));
   let finalStock = Number(formData.get("stock"));
 
   if (parsedVariants.length > 0) {
     finalStock = parsedVariants.reduce(
-      (sum: number, v: VariantInput) => sum + (Number(v.stock) || 0),
+      (sum, v) => sum + (Number(v.stock) || 0),
       0
     );
 
     const variantPrices = parsedVariants
-      .map((v: VariantInput) => Number(v.price))
-      .filter((p: number) => p > 0);
+      .map((v) => Number(v.price))
+      .filter((p) => !Number.isNaN(p) && p > 0);
 
     if (variantPrices.length > 0) {
       finalPrice = Math.min(...variantPrices);
     }
   }
+
+  if (Number.isNaN(finalPrice) || finalPrice <= 0) {
+    throw new Error("قیمت محصول نامعتبر است. لطفاً قیمت اصلی یا قیمت تنوع‌ها را وارد کنید.");
+  }
+
+  finalStock = Number.isNaN(finalStock) || finalStock < 0 ? 0 : Math.floor(finalStock);
 
   return { finalPrice, finalStock };
 }
@@ -128,7 +133,7 @@ export async function createProduct(formData: FormData) {
       offerStartsAt,
       offerEndsAt,
       variants: {
-        create: parsedVariants.map((v: VariantInput) => ({
+        create: parsedVariants.map((v) => ({
           name: v.name,
           sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
           price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
@@ -186,7 +191,7 @@ export async function updateProduct(id: string, formData: FormData) {
   const isActive = formData.get("isActive") === "on";
 
   const variantsRaw = formData.get("variants") as string;
-  const parsedVariants = variantsRaw ? JSON.parse(variantsRaw) : [];
+  const parsedVariants: VariantInput[] = variantsRaw ? JSON.parse(variantsRaw) : [];
   const { finalPrice, finalStock } = resolvePriceAndStock(formData, parsedVariants);
 
   await prisma.$transaction(async (tx) => {
@@ -197,7 +202,7 @@ export async function updateProduct(id: string, formData: FormData) {
         slug,
         sku,
         brandId,
-        categoryId, // 👈 اضافه شد تا تغییر دسته‌بندی ذخیره شود
+        categoryId,
         description,
         price: finalPrice,
         stock: finalStock,
@@ -208,15 +213,19 @@ export async function updateProduct(id: string, formData: FormData) {
       },
     });
 
-    // همگام‌سازی هوشمند تنوع‌ها بدون پاک کردن رکوردهای قدیمی
     const existingVariants = await tx.productVariant.findMany({
       where: { productId: id },
       select: { id: true },
     });
     const existingIds = new Set(existingVariants.map((v) => v.id));
 
-    const toUpdate = parsedVariants.filter((v) => v.id && existingIds.has(v.id));
-    const toCreate = parsedVariants.filter((v) => !v.id || !existingIds.has(v.id));
+    const toUpdate = parsedVariants.filter(
+      (v): v is VariantInput & { id: string } =>
+        Boolean(v.id && existingIds.has(v.id))
+    );
+    const toCreate = parsedVariants.filter(
+      (v) => !v.id || !existingIds.has(v.id)
+    );
     const keptIds = new Set(toUpdate.map((v) => v.id));
     const idsToDelete = existingVariants
       .filter((v) => !keptIds.has(v.id))

@@ -8,6 +8,7 @@ import {
   deleteShippingMethod,
 } from "@/app/admin/shipping/actions";
 
+import { toast } from "sonner";
 // ایمپورت کامپوننت‌های شکیل پروژه (Shadcn UI)
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import { Trash2, Edit, Check, X, ShieldAlert, ShieldCheck } from "lucide-react";
 type ShippingMethod = {
   id: string;
   name: string;
-  price: any; // شیء Decimal از دیتابیس پریزما
+  price: number | string; // شیء Decimal از دیتابیس پریزما
   estimatedTime: string;
   isActive: boolean;
 };
@@ -46,7 +47,7 @@ export function ShippingManager({ initialMethods }: Props) {
     setPrice(String(Number(method.price)));
     setEstimatedTime(method.estimatedTime);
     setIsActive(method.isActive);
-    
+
     // اسکرول نرم به بالای صفحه در موبایل برای دیدن فرم
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -65,7 +66,7 @@ export function ShippingManager({ initialMethods }: Props) {
     e.preventDefault();
 
     if (!name || !price || Number(price) < 0 || !estimatedTime) {
-      alert("لطفاً تمامی فیلدها را با مقادیر معتبر پر کنید.");
+      toast("لطفاً تمامی فیلدها را با مقادیر معتبر پر کنید.");
       return;
     }
 
@@ -80,7 +81,7 @@ export function ShippingManager({ initialMethods }: Props) {
             estimatedTime,
             isActive
           );
-          alert("تغییرات با موفقیت ذخیره شد.");
+          toast.success("تغییرات با موفقیت ذخیره شد.");
         } else {
           // ۲. اجرای اکشن ایجاد
           await createShippingMethod(
@@ -89,20 +90,24 @@ export function ShippingManager({ initialMethods }: Props) {
             estimatedTime,
             isActive
           );
-          alert("روش ارسال جدید با موفقیت ثبت شد.");
+          toast.success("روش ارسال جدید با موفقیت ثبت شد.");
         }
         // ریست فرم بعد از موفقیت
         handleCancelEdit();
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(error);
-        alert(error?.message || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+        const message =
+          error instanceof Error
+            ? error.message
+            : "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
+        toast.error(message);
       }
     });
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-      
+
       {/* سمت راست (عرض ۱ از ۳): فرم پویا که بر حسب انتخاب، عنوانش تغییر می‌کند */}
       <Card className="border-zinc-100 shadow-sm rounded-2xl bg-white">
         <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
@@ -208,22 +213,20 @@ export function ShippingManager({ initialMethods }: Props) {
               return (
                 <Card
                   key={method.id}
-                  className={`border p-5 rounded-2xl transition duration-200 ${
-                    isSelectedForEdit
+                  className={`border p-5 rounded-2xl transition duration-200 ${isSelectedForEdit
                       ? "border-blue-500 bg-blue-50/10 ring-1 ring-blue-500 shadow-inner"
                       : "border-zinc-100 bg-white shadow-sm"
-                  }`}
+                    }`}
                 >
                   <CardContent className="p-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    
+
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
                         <span className="font-bold text-sm text-zinc-800">{method.name}</span>
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[9px] font-bold ${
-                          isMethodActive 
-                            ? "bg-green-50 text-green-700 border border-green-100" 
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[9px] font-bold ${isMethodActive
+                            ? "bg-green-50 text-green-700 border border-green-100"
                             : "bg-red-50 text-red-700 border border-red-100"
-                        }`}>
+                          }`}>
                           {isMethodActive ? "فعال" : "غیرفعال"}
                         </span>
                       </div>

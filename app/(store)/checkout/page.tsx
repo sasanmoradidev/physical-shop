@@ -3,9 +3,8 @@
 import { useCartStore } from "@/stores/cart-store";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Truck, CreditCard, Plus, ArrowRight } from "lucide-react";
+import { MapPin, Truck, CreditCard, Plus } from "lucide-react";
 
 type Address = {
   id: string;
@@ -16,7 +15,7 @@ type Address = {
 type ShippingMethod = {
   id: string;
   name: string;
-  price: any;
+  price: number | string;
   estimatedTime: string;
   isActive: boolean;
 };
@@ -45,7 +44,7 @@ export default function CheckoutPage() {
   const [paymentMethodCode, setPaymentMethodCode] = useState("");
 
   const items = useCartStore((state) => state.items);
- 
+
   const subtotal = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
@@ -188,10 +187,10 @@ export default function CheckoutPage() {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        
+
         {/* ستون راست */}
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* بخش ۱: آدرس‌ها */}
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2 mr-1">
@@ -205,11 +204,10 @@ export default function CheckoutPage() {
                 return (
                   <label
                     key={address.id}
-                    className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${
-                      isSelected
+                    className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${isSelected
                         ? "border-blue-600 bg-blue-50/20 ring-1 ring-blue-600"
                         : "border-zinc-200 hover:border-zinc-300 bg-white"
-                    }`}
+                      }`}
                   >
                     <div className="pt-1">
                       <input
@@ -232,10 +230,10 @@ export default function CheckoutPage() {
                 );
               })}
             </div>
-            
+
             <div className="text-left pt-1">
-              <Link 
-                href="/profile/addresses/new?back=checkout" 
+              <Link
+                href="/profile/addresses/new?back=checkout"
                 className="text-xs font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1.5 mr-1"
               >
                 <Plus className="h-4 w-4" />
@@ -263,11 +261,10 @@ export default function CheckoutPage() {
                   return (
                     <label
                       key={method.id}
-                      className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${
-                        isSelected
+                      className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${isSelected
                           ? "border-blue-600 bg-blue-50/20 ring-1 ring-blue-600"
                           : "border-zinc-200 hover:border-zinc-300 bg-white"
-                      }`}
+                        }`}
                     >
                       <div className="pt-1">
                         <input
@@ -316,11 +313,10 @@ export default function CheckoutPage() {
                   return (
                     <label
                       key={method.id}
-                      className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${
-                        isSelected
+                      className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${isSelected
                           ? "border-blue-600 bg-blue-50/20 ring-1 ring-blue-600"
                           : "border-zinc-200 hover:border-zinc-300 bg-white"
-                      }`}
+                        }`}
                     >
                       <div className="pt-1">
                         <input
@@ -394,11 +390,10 @@ export default function CheckoutPage() {
           <button
             disabled={loading || shippingMethods.length === 0 || paymentMethods.length === 0}
             onClick={submitOrder}
-            className={`w-full flex items-center justify-center text-white font-medium py-3.5 px-4 rounded-xl shadow-sm transition-all duration-200 ${
-              loading || shippingMethods.length === 0 || paymentMethods.length === 0
-                ? "bg-zinc-400 cursor-not-allowed" 
+            className={`w-full flex items-center justify-center text-white font-medium py-3.5 px-4 rounded-xl shadow-sm transition-all duration-200 ${loading || shippingMethods.length === 0 || paymentMethods.length === 0
+                ? "bg-zinc-400 cursor-not-allowed"
                 : "bg-emerald-600 hover:bg-emerald-700"
-            }`}
+              }`}
           >
             {loading ? (
               <span className="flex items-center gap-2">

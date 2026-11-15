@@ -2,7 +2,7 @@
 // npm install --save-dev prisma dotenv
 import "dotenv/config";
 
-// @ts-ignore
+// @ts-expect-error
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({

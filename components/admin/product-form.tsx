@@ -6,6 +6,7 @@ import { ImageManager } from "@/components/admin/image-manager";
 
 import { createBrandInline } from "@/app/admin/brands/actions";
 import { Plus, X, Check, Loader2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 type Category = {
     id: string;
@@ -21,8 +22,8 @@ type ProductWithImages = {
     slug: string;
     sku?: string | null;
     description: string;
-    price: any;
-    offerPrice: any;
+    price: number;
+    offerPrice: number | null;
     offerStartsAt: Date | null;
     offerEndsAt: Date | null;
     stock: number;
@@ -39,6 +40,20 @@ type Props = {
     product?: ProductWithImages;
 };
 
+type VariantItem = {
+    id?: string;
+    name: string;
+    sku?: string;
+    price?: number | string | null;
+    stock: number;
+};
+
+type ImageItem = {
+    id: string;
+    url: string;
+    file?: File;
+};
+
 export default function ProductForm({ categories, brands, product }: Props) {
     const [isPending, startTransition] = useTransition();
     const isEditMode = !!product;
@@ -48,8 +63,8 @@ export default function ProductForm({ categories, brands, product }: Props) {
     const [isAddingBrand, setIsAddingBrand] = useState(false);
     const [newBrandName, setNewBrandName] = useState("");
     const [isBrandPending, setIsBrandPending] = useState(false);
-    
-    const [variants, setVariants] = useState<any[]>(product?.variants || []);
+
+    const [variants, setVariants] = useState<VariantItem[]>(product?.variants || []);
 
     async function handleInlineBrandCreate() {
         if (!newBrandName.trim()) return;
@@ -67,7 +82,7 @@ export default function ProductForm({ categories, brands, product }: Props) {
         }
     }
 
-    const [images, setImages] = useState<any[]>(
+    const [images, setImages] = useState<ImageItem[]>(
         product
             ? product.images.map((img) => ({ id: img.id, url: img.url }))
             : []
@@ -106,16 +121,16 @@ export default function ProductForm({ categories, brands, product }: Props) {
                 } else {
                     await createProduct(formData);
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const err = error as { digest?: string; message?: string };
                 if (
-                    error?.digest?.includes("NEXT_REDIRECT") ||
-                    error?.message?.includes("NEXT_REDIRECT")
+                    err?.digest?.includes("NEXT_REDIRECT") ||
+                    err?.message?.includes("NEXT_REDIRECT")
                 ) {
                     throw error;
                 }
-
                 console.error(error);
-                alert("خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+                toast.error("خطایی رخ داد. لطفاً دوباره تلاش کنید.");
             }
         });
     }
@@ -329,7 +344,7 @@ export default function ProductForm({ categories, brands, product }: Props) {
 
                 {variants.length === 0 ? (
                     <div className="border border-dashed border-zinc-200 rounded-2xl p-6 text-center text-xs text-zinc-400 bg-zinc-50/50">
-                        این محصول در حال حاضر ساده است. برای اضافه کردن رنگ یا سایز، روی "افزودن تنوع جدید" کلیک کنید.
+                        این محصول در حال حاضر ساده است. برای اضافه کردن رنگ یا سایز، روی «افزودن تنوع جدید» کلیک کنید.
                     </div>
                 ) : (
                     <div className="space-y-3">

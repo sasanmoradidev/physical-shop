@@ -7,7 +7,19 @@ import "swiper/css";
 import { ProductCard } from "@/components/product/product-card";
 import Link from "next/link";
 
-export function OfferSection({ products }: any) {
+type HomeProduct = {
+  id: string;
+  title: string;
+  slug: string;
+  price: number;
+  offerPrice?: number | null;
+  offerStartsAt?: Date | null;
+  offerEndsAt?: Date | null;
+  stock: number;
+  images?: { url: string }[];
+};
+
+export function OfferSection({ products }: { products: HomeProduct[] }) {
   return (
     <div className="container mx-auto px-4 mt-10">
       {/* GRID */}
@@ -68,7 +80,7 @@ export function OfferSection({ products }: any) {
               }}
               className="h-full select-none"
             >
-              {products.map((p: any) => (
+              {products.map((p) => (
                 <SwiperSlide key={p.id} className="py-1">
                   <ProductCard
                     product={{

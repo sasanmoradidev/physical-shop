@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { OrderBadge } from "@/components/admin/order-badge";
+import { OrderStatus } from "@prisma/client";
 
 // ایمپورت کامپوننت‌های شکیل پروژه (Shadcn UI)
 import { Button } from "@/components/ui/button";

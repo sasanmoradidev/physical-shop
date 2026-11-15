@@ -36,7 +36,7 @@ export function serializeProduct(
       order: img.order,
     })),
 
-    variants: product.variants ? product.variants.map((v: any) => ({
+    variants: product.variants ? product.variants.map((v) => ({
       id: v.id,
       name: v.name,
       sku: v.sku ?? "",
