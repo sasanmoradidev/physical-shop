@@ -6,112 +6,109 @@ import {
   Truck,
   ShieldCheck,
   Headphones,
-  Globe, // 👈 جایگزین Instagram شد
+  Globe,
   Send,
 } from "lucide-react";
-import Image from "next/image";
+import { siteConfig } from "@/theme/config";
 
 export function Footer() {
   return (
     <footer className="bg-zinc-200 text-zinc-400 border-t border-zinc-300 mt-8">
-      {/* بخش ۱: کارت‌های تضمین و مزایای خرید */}
       <div className="container mx-auto px-4 py-8 border-b border-zinc-300">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-
           <div className="flex flex-col items-center space-y-2">
-            <div className="p-3 bg-zinc-300 text-zinc-100 rounded-2xl shadow-sm">
-              <Truck className="h-6 w-6 text-blue-500" />
+            <div className="p-3 bg-zinc-300 rounded-2xl shadow-sm">
+              <Truck className="h-6 w-6 text-brand" />
             </div>
             <span className="text-[12px] font-bold text-zinc-800">ارسال سریع مرسولات</span>
             <span className="text-[12px] text-zinc-900">تحویل فوری با بهترین روش‌های ارسال</span>
           </div>
 
           <div className="flex flex-col items-center space-y-2">
-            <div className="p-3 bg-zinc-300 text-zinc-100 rounded-2xl shadow-sm">
-              <ShieldCheck className="h-6 w-6 text-blue-500" />
+            <div className="p-3 bg-zinc-300 rounded-2xl shadow-sm">
+              <ShieldCheck className="h-6 w-6 text-brand" />
             </div>
             <span className="text-[12px] font-bold text-zinc-800">امکان پرداخت بصورت اقساطی</span>
             <span className="text-[12px] text-zinc-900">پرداختی اقساطی برای خریدهای شما!</span>
           </div>
 
           <div className="flex flex-col items-center space-y-2">
-            <div className="p-3 bg-zinc-300 text-zinc-100 rounded-2xl shadow-sm">
-              <Headphones className="h-6 w-6 text-blue-500" />
+            <div className="p-3 bg-zinc-300 rounded-2xl shadow-sm">
+              <Headphones className="h-6 w-6 text-brand" />
             </div>
             <span className="text-[12px] font-bold text-zinc-800">پشتیبانی ۲۴ ساعته</span>
             <span className="text-[12px] text-zinc-900">پاسخگویی سریع در تمامی روزهای هفته</span>
           </div>
 
           <div className="flex flex-col items-center space-y-2">
-            <div className="p-3 bg-zinc-300 text-zinc-100 rounded-2xl shadow-sm">
-              <MapPin className="h-6 w-6 text-blue-500" />
+            <div className="p-3 bg-zinc-300 rounded-2xl shadow-sm">
+              <MapPin className="h-6 w-6 text-brand" />
             </div>
             <span className="text-[12px] font-bold text-zinc-800">امکان خرید حضوری</span>
             <span className="text-[12px] text-zinc-900">پشتیبانی از مراجعات و خریدهای حضوری</span>
           </div>
-
         </div>
       </div>
 
-      {/* بخش ۲: لینک‌های دسترسی سریع، آدرس‌ها و مجوزها */}
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-
-          {/* ستون اول: معرفی فروشگاه */}
           <div className="space-y-4">
-            <span className="text-base font-extrabold text-zinc-900 block">فروشگاه فیزیکی</span>
-            <p className="text-[12px] leading-relaxed text-zinc-500">
-              بهترین مقصد برای خرید مطمئن و سریع انواع محصولات با اصالت. ما همواره تلاش می‌کنیم تا بهترین کالاها را با روش‌های ارسال سریع و پاسخگویی مداوم به دست شما برسانیم.
-            </p>
+            <span className="text-base font-extrabold text-zinc-900 block">{siteConfig.name}</span>
+            <p className="text-[12px] leading-relaxed text-zinc-500">{siteConfig.description}</p>
             <div className="flex items-center gap-3 pt-2">
-              <a href="#" aria-label="وب‌سایت" className="p-2.5 bg-zinc-300 hover:bg-blue-600 hover:text-white rounded-xl transition text-zinc-400">
+              <a
+                href={siteConfig.socials.website}
+                aria-label="وب‌سایت"
+                className="p-2.5 bg-zinc-300 hover:bg-brand hover:text-brand-foreground rounded-xl transition text-zinc-400"
+              >
                 <Globe className="h-4 w-4" />
               </a>
-              <a href="#" aria-label="پیام‌رسان" className="p-2.5 bg-zinc-300 hover:bg-blue-600 hover:text-white rounded-xl transition text-zinc-400">
+              <a
+                href={siteConfig.socials.telegram}
+                aria-label="پیام‌رسان"
+                className="p-2.5 bg-zinc-300 hover:bg-brand hover:text-brand-foreground rounded-xl transition text-zinc-400"
+              >
                 <Send className="h-4 w-4" />
               </a>
             </div>
           </div>
 
-          {/* ستون دوم: دسترسی سریع */}
           <div className="space-y-4">
             <span className="text-[12px] font-bold text-zinc-800 block">دسترسی سریع</span>
             <ul className="space-y-3 text-[12px] text-zinc-500">
+              {siteConfig.navLinks.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className="hover:text-zinc-900 transition">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
               <li>
-                <Link href="/" className="hover:text-zinc-100 transition">صفحه اصلی</Link>
-              </li>
-              <li>
-                <Link href="/products" className="hover:text-zinc-100 transition">مشاهده محصولات</Link>
-              </li>
-              <li>
-                <Link href="/contactus" className="hover:text-zinc-100 transition">تماس با ما</Link>
-              </li>
-              <li>
-                <Link href="/profile" className="hover:text-zinc-100 transition">پنل کاربری من</Link>
+                <Link href="/profile" className="hover:text-zinc-900 transition">
+                  پنل کاربری من
+                </Link>
               </li>
             </ul>
           </div>
 
-          {/* ستون سوم: اطلاعات ارتباطی */}
           <div className="space-y-4">
             <span className="text-[12px] font-bold text-zinc-800 block">ارتباط با ما</span>
             <ul className="space-y-3.5 text-[12px] text-zinc-500">
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-zinc-600 flex-shrink-0" />
-                <span dir="ltr">۰۲۱-۸۸۸۸۸۸۸۸</span>
+                <span dir="ltr">{siteConfig.phoneDisplay}</span>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-zinc-600 flex-shrink-0" />
-                <span>info@example.com</span>
+                <span>{siteConfig.email}</span>
               </li>
               <li className="flex items-start gap-2 leading-relaxed">
                 <MapPin className="h-4 w-4 text-zinc-600 flex-shrink-0 mt-0.5" />
-                <span>تهران، خیابان ولیعصر، دفتر مرکزی فروشگاه فیزیکی</span>
+                <span>{siteConfig.address.full}</span>
               </li>
             </ul>
           </div>
 
-          {/* ستون چهارم: نمادهای اعتماد الکترونیکی */}
           <div className="space-y-4">
             <span className="text-[12px] font-bold text-zinc-800 block">مجوزهای قانونی</span>
             <div className="flex gap-3 bg-zinc-300/50 p-4 rounded-2xl w-fit border border-zinc-300">
@@ -123,15 +120,11 @@ export function Footer() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* بخش ۳: کپی‌رایت انتهای فوتر */}
       <div className="bg-zinc-950/40 py-5 border-t border-zinc-300/40 text-center">
-        <p className="text-[10px] text-zinc-200 leading-relaxed px-4">
-          © کلیه حقوق این وب‌سایت متعلق به شرکت فروشگاه فیزیکی می‌باشد. هرگونه کپی‌برداری غیرمجاز پیگرد قانونی دارد.
-        </p>
+        <p className="text-[10px] text-zinc-200 leading-relaxed px-4">{siteConfig.copyright}</p>
       </div>
     </footer>
   );

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/rbac-server";
 import { PrintButton } from "@/components/admin/print-button";
+import { siteConfig } from "@/theme/config";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -46,7 +47,7 @@ export default async function InvoicePage({ params }: Props) {
         {/* هدر فاکتور */}
         <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-6">
           <div>
-            <h1 className="text-2xl font-black mb-2">فروشگاه فیزیکی</h1>
+            <h1 className="text-2xl font-black mb-2">{siteConfig.name}</h1>
             <p className="text-xs text-gray-600">فاکتور فروش کالا و خدمات</p>
           </div>
           <div className="text-left space-y-2 text-sm font-semibold">

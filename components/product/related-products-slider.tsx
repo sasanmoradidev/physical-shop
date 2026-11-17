@@ -1,7 +1,7 @@
 "use client";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
-import { ProductCard } from "./product-card";
+import { ProductCard } from "@/theme/product/ProductCard";
 
 type RelatedProductsSliderProps = {
     relatedProducts: {

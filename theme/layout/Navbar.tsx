@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useMounted } from "@/hooks/use-mounted";
-
 import {
   Menu,
   X,
@@ -20,33 +18,30 @@ import {
 
 import { useCartStore } from "@/stores/cart-store";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useMounted } from "@/hooks/use-mounted";
+import { siteConfig } from "@/theme/config";
 
 type Category = {
   id: string;
   name: string;
   slug: string;
-  subcategories?: Category[]; // مدل درختی برای زیردسته‌بندی‌ها
+  subcategories?: Category[];
 };
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const [showMegaMenu, setShowMegaMenu] = useState(false);
-
-  // استیت‌های مدیریت مگا منوی نردبانی
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
-
   const [searchQuery, setSearchQuery] = useState("");
 
   const { user } = useCurrentUser();
+  const mounted = useMounted();
 
   const count = useCartStore((state) =>
     state.items.reduce((sum, item) => sum + item.quantity, 0)
   );
 
-  const mounted = useMounted();
-
-  // واکشی درخت دسته‌بندی‌ها از دیتابیس
   useEffect(() => {
     fetch("/api/categories")
       .then((res) => res.json())
@@ -54,7 +49,7 @@ export function Navbar() {
         if (Array.isArray(data)) {
           setCategories(data);
           if (data.length > 0) {
-            setActiveParentId(data[0].id); // فعال‌سازی پیش‌فرض دسته‌بندی اول ریشه
+            setActiveParentId(data[0].id);
           }
         }
       })
@@ -62,9 +57,7 @@ export function Navbar() {
   }, []);
 
   async function logout() {
-    await fetch("/api/logout", {
-      method: "POST",
-    });
+    await fetch("/api/logout", { method: "POST" });
     window.location.href = "/";
   }
 
@@ -77,33 +70,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b shadow-sm select-none">
-
-      {/* بنر تستی متحرک بالای هدر */}
-      {/* بنر متحرک بالای هدر (نسخه واکنش‌گرا ویژه موبایل و دسکتاپ) */}
-      {/* <div className="w-full">
-        <Image
-          src="/uploads/topbanner2.gif"
-          alt="تخفیف ویژه موبایل"
-          width={768} // تنظیم عرض بهینه برای پهنای موبایل
-          height={40}
-          priority
-          className="w-full h-auto object-cover max-h-[45px] block md:hidden"
-        />
-
-        <Image
-          src="/uploads/topbanner.gif"
-          alt="تخفیف ویژه دسکتاپ"
-          width={1920}
-          height={40}
-          priority
-          className="w-full h-auto object-cover max-h-[45px] hidden md:block"
-        />
-      </div> */}
-
-      {/* نوار اصلی هدر */}
       <div className="container mx-auto flex items-center justify-between gap-4 py-3.5 px-4 max-w-6xl">
-
-        {/* دکمه منوی موبایل */}
         <button
           className="md:hidden p-1.5 bg-zinc-50 border rounded-xl"
           onClick={() => setOpen(!open)}
@@ -111,11 +78,10 @@ export function Navbar() {
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        {/* لوگو سایت */}
         <Link href="/" className="shrink-0 flex items-center">
           <Image
-            src="/uploads/logo.png"
-            alt="فروشگاه فیزیکی"
+            src={siteConfig.logo}
+            alt={siteConfig.name}
             width={160}
             height={50}
             priority
@@ -123,7 +89,6 @@ export function Navbar() {
           />
         </Link>
 
-        {/* فیلد جستجوی فعال */}
         <form
           onSubmit={handleSearchSubmit}
           className="hidden md:flex flex-1 max-w-lg relative"
@@ -133,13 +98,11 @@ export function Navbar() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="جستجو در بین تمامی کالاها..."
-            className="w-full border rounded-xl pr-10 pl-4 py-2.5 bg-zinc-50/50 text-xs focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+            className="w-full border rounded-xl pr-10 pl-4 py-2.5 bg-zinc-50/50 text-xs focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition"
           />
         </form>
 
-        {/* دکمه‌های سمت چپ */}
         <div className="flex items-center gap-4.5">
-
           {!user ? (
             <Link
               href="/login"
@@ -150,13 +113,13 @@ export function Navbar() {
             </Link>
           ) : (
             <div className="hidden md:flex gap-4 items-center text-xs font-semibold text-zinc-500">
-              <Link href="/profile" className="hover:text-blue-600 transition flex items-center gap-1">
+              <Link href="/profile" className="hover:text-brand transition flex items-center gap-1">
                 <User size={16} />
                 <span>حساب من</span>
               </Link>
 
               {user.role === "ADMIN" && (
-                <Link href="/admin" className="hover:text-blue-600 transition flex items-center gap-1">
+                <Link href="/admin" className="hover:text-brand transition flex items-center gap-1">
                   <LayoutDashboard size={16} />
                   <span>پنل ادمین</span>
                 </Link>
@@ -169,7 +132,6 @@ export function Navbar() {
             </div>
           )}
 
-          {/* سبد خرید */}
           <Link
             href="/cart"
             className="relative p-2.5 bg-zinc-50 hover:bg-zinc-100 border rounded-xl transition flex items-center justify-center text-zinc-700"
@@ -181,15 +143,11 @@ export function Navbar() {
               </span>
             )}
           </Link>
-
         </div>
       </div>
 
-      {/* نوار ناوبری مگا منوی نردبانی یکپارچه (دسکتاپ) */}
       <nav className="hidden md:flex border-t bg-white select-none">
         <div className="container mx-auto flex items-center gap-7 py-2.5 px-4 text-xs font-bold text-zinc-500 max-w-6xl">
-
-          {/* 👇 ۱. مگا منوی پویای دسته‌بندی‌ها به عنوان اولین آیتم منو */}
           <div
             onMouseEnter={() => setShowMegaMenu(true)}
             onMouseLeave={() => setShowMegaMenu(false)}
@@ -200,17 +158,15 @@ export function Navbar() {
               <span>دسته‌بندی کالاها</span>
               <ChevronDown
                 size={14}
-                className={`transition-transform duration-200 text-zinc-400 ${showMegaMenu ? "rotate-180" : ""
-                  }`}
+                className={`transition-transform duration-200 text-zinc-400 ${
+                  showMegaMenu ? "rotate-180" : ""
+                }`}
               />
             </span>
 
-            {/* درگاه مگا منوی نردبانی پیشرفته (RTL) */}
             {showMegaMenu && categories.length > 0 && (
               <div className="absolute right-0 top-full pt-3 w-[720px] z-50 animate-fade-in">
                 <div className="bg-white border border-zinc-150 shadow-xl rounded-2xl overflow-hidden grid grid-cols-4 items-stretch min-h-[300px]">
-
-                  {/* ستون راست (سایدبار تیره اتمسفریک دسته‌بندی‌های والد) */}
                   <div className="col-span-1 bg-zinc-50/80 border-l border-zinc-150 flex flex-col p-2 space-y-1">
                     {categories.map((parent) => {
                       const isParentActive = parent.id === activeParentId;
@@ -218,19 +174,22 @@ export function Navbar() {
                         <div
                           key={parent.id}
                           onMouseEnter={() => setActiveParentId(parent.id)}
-                          className={`px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-between ${isParentActive
-                            ? "bg-white text-blue-600 shadow-sm border border-zinc-100"
-                            : "text-zinc-500 hover:bg-zinc-100/40 hover:text-zinc-900"
-                            }`}
+                          className={`px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-between ${
+                            isParentActive
+                              ? "bg-white text-brand shadow-sm border border-zinc-100"
+                              : "text-zinc-500 hover:bg-zinc-100/40 hover:text-zinc-900"
+                          }`}
                         >
                           <span>{parent.name}</span>
-                          <ChevronLeft size={12} className={isParentActive ? "text-blue-500 animate-pulse" : "text-zinc-300"} />
+                          <ChevronLeft
+                            size={12}
+                            className={isParentActive ? "text-brand animate-pulse" : "text-zinc-300"}
+                          />
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* سه ستون چپ (نمایش زیردسته‌بندی‌های والدِ هاور شده) */}
                   <div className="col-span-3 p-6 grid grid-cols-2 content-start gap-4">
                     {categories
                       .find((c) => c.id === activeParentId)
@@ -239,43 +198,33 @@ export function Navbar() {
                           key={sub.id}
                           href={`/products?category=${sub.slug}`}
                           onClick={() => setShowMegaMenu(false)}
-                          className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-zinc-50 hover:text-blue-600 transition"
+                          className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-zinc-50 hover:text-brand transition"
                         >
-                          <div className="h-1.5 w-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-brand flex-shrink-0" />
                           <span className="text-xs font-semibold text-zinc-700">{sub.name}</span>
                         </Link>
                       ))}
 
                     {(!categories.find((c) => c.id === activeParentId)?.subcategories ||
                       categories.find((c) => c.id === activeParentId)?.subcategories?.length === 0) && (
-                        <div className="col-span-2 text-center text-xs text-zinc-400 py-10">
-                          زیردسته‌بندی برای این کالا تعریف نشده است.
-                        </div>
-                      )}
+                      <div className="col-span-2 text-center text-xs text-zinc-400 py-10">
+                        زیردسته‌بندی برای این کالا تعریف نشده است.
+                      </div>
+                    )}
                   </div>
-
                 </div>
               </div>
             )}
           </div>
 
-          {/* سایر منوها به ترتیب در کنار مگا منو */}
-          <Link className="hover:text-zinc-900 transition py-1" href="/">
-            خانه
-          </Link>
-
-          <Link className="hover:text-zinc-900 transition py-1" href="/products">
-            همه محصولات
-          </Link>
-
-          <Link className="hover:text-zinc-900 transition py-1" href="/contactus">
-            تماس با ما
-          </Link>
-
+          {siteConfig.navLinks.map((item) => (
+            <Link key={item.href} className="hover:text-zinc-900 transition py-1" href={item.href}>
+              {item.label}
+            </Link>
+          ))}
         </div>
       </nav>
 
-      {/* منوی ریسپانسیو موبایل */}
       {open && (
         <div className="md:hidden border-t bg-white p-4 flex flex-col gap-4 text-xs font-bold text-zinc-600 animate-fade-in">
           <form onSubmit={handleSearchSubmit} className="relative w-full">
@@ -288,19 +237,22 @@ export function Navbar() {
             />
           </form>
 
-          <Link href="/">خانه</Link>
-          <Link href="/products">همه محصولات</Link>
-          <Link href="/contactus">تماس با ما</Link>
+          {siteConfig.navLinks.map((item) => (
+            <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+              {item.label}
+            </Link>
+          ))}
 
           {categories.length > 0 && (
             <div className="border-t pt-3 space-y-2.5">
-              <span className="text-[10px] text-zinc-400 block mr-1 font-semibold">دسته‌بندی‌های ریشه</span>
+              <span className="text-[10px] text-zinc-400 block mr-1 font-semibold">دسته‌بندی کالاها</span>
               <div className="grid grid-cols-2 gap-2">
                 {categories.map((cat) => (
                   <Link
                     key={cat.id}
                     href={`/products?category=${cat.slug}`}
-                    className="p-2 bg-zinc-50 rounded-xl hover:bg-blue-50 hover:text-blue-600 text-center transition"
+                    onClick={() => setOpen(false)}
+                    className="p-2 bg-zinc-50 rounded-xl hover:bg-brand-soft hover:text-brand text-center transition"
                   >
                     {cat.name}
                   </Link>
@@ -311,13 +263,16 @@ export function Navbar() {
 
           {user && (
             <div className="border-t pt-3 flex items-center justify-between">
-              <Link href="/profile" className="text-blue-600">پنل کاربری من</Link>
-              <button onClick={logout} className="text-red-500">خروج از حساب</button>
+              <Link href="/profile" onClick={() => setOpen(false)} className="text-brand">
+                پنل کاربری من
+              </Link>
+              <button onClick={logout} className="text-red-500">
+                خروج از حساب
+              </button>
             </div>
           )}
         </div>
       )}
-
     </header>
   );
 }

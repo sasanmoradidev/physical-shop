@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { siteConfig } from "@/theme/config";
 
 export default function ContactPage() {
   const [name, setName] = useState("");
@@ -32,7 +33,7 @@ export default function ContactPage() {
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-6xl">
-      
+
       {/* سربرگ صفحه */}
       <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
         <h1 className="text-3xl font-extrabold text-zinc-900">تماس با ما</h1>
@@ -42,13 +43,13 @@ export default function ContactPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-        
+
         {/* ستون راست: اطلاعات ارتباطی و فرم تماس */}
         <div className="lg:col-span-7 space-y-6 flex flex-col justify-between">
-          
+
           {/* کارت‌های اطلاعات تماس سریع */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            
+
             {/* تلفن */}
             <div className="bg-zinc-50 border border-zinc-100 p-4 rounded-2xl flex flex-col items-center text-center space-y-2">
               <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
@@ -57,7 +58,7 @@ export default function ContactPage() {
                 </svg>
               </div>
               <span className="text-xs text-zinc-400">تلفن تماس</span>
-              <span className="text-sm font-semibold text-zinc-800" dir="ltr">۰۲۱-۸۸۸۸۸۸۸۸</span>
+              <span className="text-sm font-semibold text-zinc-800" dir="ltr">{siteConfig.phone}</span>
             </div>
 
             {/* ایمیل */}
@@ -68,7 +69,7 @@ export default function ContactPage() {
                 </svg>
               </div>
               <span className="text-xs text-zinc-400">ایمیل پشتیبانی</span>
-              <span className="text-sm font-semibold text-zinc-800 break-all">info@example.com</span>
+              <span className="text-sm font-semibold text-zinc-800 break-all">{siteConfig.email}</span>
             </div>
 
             {/* آدرس حضوری */}
@@ -79,7 +80,7 @@ export default function ContactPage() {
                 </svg>
               </div>
               <span className="text-xs text-zinc-400">دفتر مرکزی</span>
-              <span className="text-xs font-semibold text-zinc-800 leading-relaxed">تهران، خیابان ولیعصر</span>
+              <span className="text-xs font-semibold text-zinc-800 leading-relaxed">{siteConfig.address.full}</span>
             </div>
 
           </div>
@@ -151,11 +152,10 @@ export default function ContactPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white shadow-sm transition-all flex items-center justify-center gap-2 ${
-                  loading 
-                    ? "bg-zinc-400 cursor-not-allowed" 
+                className={`w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white shadow-sm transition-all flex items-center justify-center gap-2 ${loading
+                    ? "bg-zinc-400 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
-                }`}
+                  }`}
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -184,9 +184,9 @@ export default function ContactPage() {
                 </svg>
                 موقعیت ما روی نقشه
               </h2>
-              <a 
+              <a
                 href="https://www.openstreetmap.org/?mlat=35.6892&mlon=51.3890#map=13/35.6892/51.3890"
-                target="_blank" 
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
               >
@@ -204,10 +204,8 @@ export default function ContactPage() {
                 title="موقعیت ما در تهران بر روی OpenStreetMap"
               ></iframe>
             </div>
-            
-            <p className="text-[11px] text-zinc-400 mt-3 leading-relaxed">
-              * دفتر پشتیبانی ما در محدوده مرکزی تهران واقع شده است. برای مراجعات حضوری هماهنگی قبلی الزامی است.
-            </p>
+
+            <p className="text-[11px] text-zinc-400 mt-3 leading-relaxed">{siteConfig.address.note}</p>
           </div>
         </div>
 

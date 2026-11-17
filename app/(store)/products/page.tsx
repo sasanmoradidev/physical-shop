@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { ProductCard } from "@/components/product/product-card";
+import { ProductCard } from "@/theme/product/ProductCard";
 import { ProductFilters } from "@/components/product/product-filters";
 import { ProductPagination } from "@/components/product/product-pagination";
+import { siteConfig } from "@/theme/config";
 import { Metadata } from "next";
 
 type Props = {
@@ -21,7 +22,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const canonicalUrl = new URL(`${baseUrl}/products`);
 
-  let title = "خرید کالا | فروشگاه فیزیکی";
+  let title = siteConfig.name;
   const description = "مشاهده و بررسی بهترین محصولات با تضمین قیمت و کیفیت.";
 
   if (category) {

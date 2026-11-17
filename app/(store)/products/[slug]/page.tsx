@@ -11,7 +11,7 @@ import { Tag, FileText } from "lucide-react";
 import Script from "next/script";
 import { ChevronLeft, Home } from "lucide-react";
 import Link from "next/link";
-
+import { siteConfig } from "@/theme/config";
 type Props = {
   params: Promise<{
     slug: string;
@@ -31,7 +31,7 @@ export async function generateMetadata(
     include: { images: { orderBy: { order: "asc" } }, variants: true },
   });
 
-  if (!product) return { title: "محصول یافت نشد | فروشگاه فیزیکی" };
+  if (!product) return { title: `محصول یافت نشد | ${siteConfig.name}` };
 
   const finalPrice = getFinalPrice({
     price: Number(product.price),
@@ -45,7 +45,7 @@ export async function generateMetadata(
     : `${process.env.NEXT_PUBLIC_APP_URL}/placeholder.png`;
 
   return {
-    title: `${product.title} | فروشگاه فیزیکی`,
+    title: `${product.title} | ${siteConfig.name}`,
     description: product.description.slice(0, 150),
     openGraph: {
       title: product.title,

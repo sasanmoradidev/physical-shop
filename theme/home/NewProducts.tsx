@@ -2,19 +2,8 @@
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
-import { ProductCard } from "@/components/product/product-card";
-
-type HomeProduct = {
-  id: string;
-  title: string;
-  slug: string;
-  price: number;
-  offerPrice?: number | null;
-  offerStartsAt?: Date | null;
-  offerEndsAt?: Date | null;
-  stock: number;
-  images?: { url: string }[];
-};
+import { ProductCard } from "@/theme/product/ProductCard";
+import type { HomeProduct } from "./OfferSection";
 
 export function NewProducts({ products }: { products: HomeProduct[] }) {
   return (
@@ -26,7 +15,7 @@ export function NewProducts({ products }: { products: HomeProduct[] }) {
       <Swiper
         spaceBetween={16}
         breakpoints={{
-          0: { slidesPerView: 1.5, spaceBetween: 12 }, // تبلور حرکت لمسی با نمایش بخشی از اسلاید بعدی
+          0: { slidesPerView: 1.5, spaceBetween: 12 },
           480: { slidesPerView: 2, spaceBetween: 16 },
           768: { slidesPerView: 3, spaceBetween: 16 },
           1024: { slidesPerView: 6.5, spaceBetween: 20 },
