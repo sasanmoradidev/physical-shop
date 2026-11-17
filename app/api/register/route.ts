@@ -1,9 +1,7 @@
-// app/api/register/route.ts
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
 import { createToken } from "@/lib/auth";
-import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
   try {
@@ -17,31 +15,52 @@ export async function POST(req: Request) {
       );
     }
 
-    // ۱. بررسی صحت کد OTP در جدول OtpRequest
     const otpRequest = await prisma.otpRequest.findUnique({
       where: { phone },
     });
 
-    if (!otpRequest || otpRequest.code !== code) {
+    if (!otpRequest) {
       return NextResponse.json(
-        { error: "کد تایید وارد شده نامعتبر است." },
+        { error: "کد تاییدی یافت نشد. لطفاً دوباره کد بگیرید.", maxAttemptsReached: true },
         { status: 400 }
       );
     }
 
     if (new Date() > otpRequest.expiresAt) {
+      await prisma.otpRequest.delete({ where: { phone } });
       return NextResponse.json(
-        { error: "کد تایید منقضی شده است. مجدداً اقدام کنید." },
+        { error: "کد تایید منقضی شده است. مجدداً اقدام کنید.", maxAttemptsReached: true },
         { status: 400 }
       );
     }
 
-    // ۲. حذف کد استفاده شده
-    await prisma.otpRequest.delete({
-      where: { phone },
-    });
+    if (otpRequest.code !== code) {
+      const nextAttempts = otpRequest.attempts + 1;
 
-    // ۳. بررسی تکراری نبودن نام کاربری یا موبایل
+      if (nextAttempts >= 5) {
+        await prisma.otpRequest.delete({ where: { phone } });
+        return NextResponse.json(
+          {
+            error: "تعداد تلاش‌های ناموفق بیش از حد مجاز بود. لطفاً کد جدید دریافت کنید.",
+            maxAttemptsReached: true,
+          },
+          { status: 400 }
+        );
+      }
+
+      await prisma.otpRequest.update({
+        where: { phone },
+        data: { attempts: nextAttempts },
+      });
+
+      return NextResponse.json(
+        {
+          error: `کد تایید وارد شده نامعتبر است. (${(5 - nextAttempts).toLocaleString("fa-IR")} تلاش باقی‌مانده)`,
+        },
+        { status: 400 }
+      );
+    }
+
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [{ username }, { phone }],
@@ -55,9 +74,10 @@ export async function POST(req: Request) {
       );
     }
 
+    await prisma.otpRequest.delete({ where: { phone } });
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ۴. ساخت نهایی کاربر در دیتابیس
     const user = await prisma.user.create({
       data: {
         name,
@@ -67,13 +87,11 @@ export async function POST(req: Request) {
       },
     });
 
-    // ۵. ساخت توکن و لاگین خودکار
     const token = await createToken({
       userId: user.id,
       role: user.role,
     });
 
-    const cookieStore = await cookies();
     const host = req.headers.get("host") || "";
     const isLocalNetwork =
       host.includes("192.168") ||
@@ -82,7 +100,12 @@ export async function POST(req: Request) {
       host.includes("localhost") ||
       host.includes("127.0.0.1");
 
-    cookieStore.set("token", token, {
+    const response = NextResponse.json({
+      success: true,
+      user: { id: user.id, name: user.name, username: user.username, role: user.role },
+    });
+
+    response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production" && !isLocalNetwork,
       sameSite: "lax",
@@ -90,10 +113,7 @@ export async function POST(req: Request) {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    return NextResponse.json({
-      success: true,
-      user: { id: user.id, name: user.name, username: user.username, role: user.role },
-    });
+    return response;
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "خطای سرور در فرآیند ثبت‌نام" }, { status: 500 });

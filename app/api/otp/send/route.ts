@@ -13,7 +13,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // غیرفعال بودن OTP در تنظیمات، فقط برای تب «ورود با پیامک» اعمال شود نه «ثبت‌نام»
     if (purpose !== "REGISTER") {
       const otpSetting = await prisma.systemSetting.findUnique({
         where: { key: "OTP_ENABLED" },
@@ -38,28 +37,31 @@ export async function POST(req: Request) {
       }
     }
 
-    // محدودیت ارسال مجدد (حداقل ۶۰ ثانیه فاصله بین دو پیامک)
     const existingOtp = await prisma.otpRequest.findUnique({
       where: { phone },
     });
+
     if (existingOtp) {
       const remainingMs = existingOtp.expiresAt.getTime() - Date.now();
-      // زمان انقضا ۳ دقیقه (۱۸۰ ثانیه) است؛ اگر بالای ۱۲۰ ثانیه مانده یعنی کمتر از ۶۰ ثانیه گذشته
       if (remainingMs > 2 * 60 * 1000) {
+        const retryAfter = Math.ceil((remainingMs - 2 * 60 * 1000) / 1000);
         return NextResponse.json(
-          { error: "لطفاً ۱ دقیقه صبر کنید و سپس دوباره درخواست کد دهید." },
+          {
+            error: `لطفاً ${retryAfter.toLocaleString("fa-IR")} ثانیه صبر کنید و دوباره درخواست دهید.`,
+            retryAfter,
+          },
           { status: 429 }
         );
       }
     }
 
     const code = Math.floor(10000 + Math.random() * 90000).toString();
-    const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 1 * 60 * 1000);
 
     await prisma.otpRequest.upsert({
       where: { phone },
-      update: { code, expiresAt },
-      create: { phone, code, expiresAt },
+      update: { code, expiresAt, attempts: 0 },
+      create: { phone, code, expiresAt, attempts: 0 },
     });
 
     const isSent = await sendOtpSms(phone, code);
