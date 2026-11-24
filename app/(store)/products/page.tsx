@@ -23,15 +23,15 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const canonicalUrl = new URL(`${baseUrl}/products`);
 
   let title = siteConfig.name;
-  const description = "مشاهده و بررسی بهترین محصولات با تضمین قیمت و کیفیت.";
+  const description = siteConfig.description;
 
   if (category) {
     canonicalUrl.searchParams.set("category", category);
-    title = `خرید محصولات ${category.replace("-", " ")} | فروشگاه فیزیکی`;
+    title = `خرید محصولات ${category.replace("-", " ")} | ${siteConfig.title}`;
   }
   if (q) {
     canonicalUrl.searchParams.set("q", q);
-    title = `جستجوی ${q} | فروشگاه فیزیکی`;
+    title = `جستجوی ${q} | ${siteConfig.title}`;
   }
   if (page && page !== "1") {
     canonicalUrl.searchParams.set("page", page);

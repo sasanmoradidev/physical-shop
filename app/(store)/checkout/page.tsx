@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { MapPin, Truck, CreditCard, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 type Address = {
   id: string;
@@ -99,7 +100,7 @@ export default function CheckoutPage() {
 
   async function submitOrder() {
     if (!addressId || !shippingMethodId || !paymentMethodId) {
-      alert("لطفاً اطلاعات ارسال و پرداخت را تکمیل کنید.");
+      toast("لطفاً اطلاعات ارسال و پرداخت را تکمیل کنید.");
       return;
     }
 
@@ -121,14 +122,14 @@ export default function CheckoutPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "خطا در ثبت سفارش");
+        toast.error(data.error || "خطا در ثبت سفارش");
         setLoading(false);
         return;
       }
 
       // اگر پرداخت آنلاین نبود (پرداخت در محل یا کارت به کارت)، مستقیم برو صفحه سفارش‌ها
       if (paymentMethodCode !== "ONLINE") {
-        alert("سفارش شما با موفقیت ثبت شد. جهت هماهنگی‌های بعدی با شما تماس گرفته خواهد شد.");
+        toast.success("سفارش شما با موفقیت ثبت شد. جهت هماهنگی‌های بعدی با شما تماس گرفته خواهد شد.");
         useCartStore.getState().clearCart();
         window.location.href = "/profile/orders";
         return;
@@ -150,11 +151,11 @@ export default function CheckoutPage() {
       if (payment.url) {
         window.location.href = payment.url;
       } else {
-        alert("خطا در ایجاد درگاه پرداخت آنلاین");
+        toast.error("خطا در ایجاد درگاه پرداخت آنلاین");
       }
     } catch (error) {
       console.error(error);
-      alert("خطایی رخ داده است.");
+      toast.error("خطایی رخ داده است.");
     } finally {
       setLoading(false);
     }

@@ -83,7 +83,7 @@ export function PaymentManager({ initialMethods }: Props) {
             isActive,
             code.toUpperCase() === "ONLINE" ? merchantId : undefined
           );
-          alert("تغییرات با موفقیت ذخیره شد.");
+          toast.success("تغییرات با موفقیت ذخیره شد.");
         } else {
           await createPaymentMethod(
             name,
@@ -92,7 +92,7 @@ export function PaymentManager({ initialMethods }: Props) {
             isActive,
             code.toUpperCase() === "ONLINE" ? merchantId : undefined
           );
-          alert("روش پرداخت جدید با موفقیت ثبت شد.");
+          toast.success("روش پرداخت جدید با موفقیت ثبت شد.");
         }
         handleCancelEdit();
       } catch (error: unknown) {

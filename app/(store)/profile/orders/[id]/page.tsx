@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderBadge } from "@/components/admin/order-badge";
+import { toast } from "sonner";
 import {
   ArrowRight,
   ShoppingBag,
@@ -76,11 +77,11 @@ export default function OrderDetailPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert("خطا در ایجاد درگاه پرداخت");
+        toast.error("خطا در ایجاد درگاه پرداخت");
       }
     } catch (error) {
       console.error(error);
-      alert("خطایی رخ داده است.");
+      toast.error("خطایی رخ داده است.");
     } finally {
       setRepaying(false);
     }

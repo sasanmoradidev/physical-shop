@@ -8,7 +8,6 @@ import { ProductGallery } from "@/components/product/product-gallery";
 import { ProductPurchase } from "@/components/product/product-purchase"; // 👈 ایمپورت کامپوننت جدید
 import { getFinalPrice } from "@/lib/product-price";
 import { Tag, FileText } from "lucide-react";
-import Script from "next/script";
 import { ChevronLeft, Home } from "lucide-react";
 import Link from "next/link";
 import { siteConfig } from "@/theme/config";
@@ -160,14 +159,15 @@ export default async function ProductPage({ params }: Props) {
   return (
     <>
       {/* 👇 تزریق اسکیمای محصول به صفحه */}
-      <Script
+      <script
         id={`product-schema-${product.id}`}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        
       />
 
       {/* 👇 تزریق اسکیمای Breadcrumb */}
-      <Script
+      <script
         id={`breadcrumb-schema-${product.id}`}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}

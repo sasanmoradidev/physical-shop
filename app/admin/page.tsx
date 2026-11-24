@@ -28,12 +28,6 @@ export default async function AdminPage() {
   const productsCount = await prisma.product.count();
   const ordersCount = await prisma.order.count();
 
-  const orders = await prisma.order.findMany({
-    select: {
-      totalPrice: true,
-    },
-  });
-
   const salesAgg = await prisma.order.aggregate({
     where: {
       status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] },

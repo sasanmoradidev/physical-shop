@@ -76,7 +76,7 @@ export default function ProductForm({ categories, brands, product }: Props) {
             setIsAddingBrand(false);
             setNewBrandName("");
         } catch (error) {
-            alert("خطا در ایجاد برند. ممکن است نام تکراری باشد.");
+            toast.error("خطا در ایجاد برند. ممکن است نام تکراری باشد.");
         } finally {
             setIsBrandPending(false);
         }

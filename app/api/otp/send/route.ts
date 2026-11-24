@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     }
 
     const code = Math.floor(10000 + Math.random() * 90000).toString();
-    const expiresAt = new Date(Date.now() + 1 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
 
     await prisma.otpRequest.upsert({
       where: { phone },

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { OrderBadge } from "@/components/admin/order-badge"; // 👈 استفاده از کامپوننت وضعیت سفارشات
-
+import { toast } from "sonner";
 // ایمپورت آیکون‌های مورد نظر از خانواده Lucide
 import {
   ClipboardList,
@@ -61,11 +61,11 @@ export default function OrdersPage() {
       if (data.url) {
         window.location.assign(data.url);
       } else {
-        alert("خطا در ایجاد درگاه پرداخت");
+        toast.error("خطا در ایجاد درگاه پرداخت");
       }
     } catch (error) {
       console.error(error);
-      alert("خطایی در ارتباط با سرور رخ داده است.");
+      toast.error("خطایی در ارتباط با سرور رخ داده است.");
     } finally {
       setRepayingId(null);
     }
