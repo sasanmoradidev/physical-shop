@@ -10,14 +10,20 @@ export async function POST(req: Request) {
     const token = cookieStore.get("token")?.value;
 
     if (!token) {
-      return NextResponse.json({ error: "لطفاً ابتدا وارد حساب کاربری شوید." }, { status: 401 });
+      return NextResponse.json(
+        { error: "لطفاً ابتدا وارد حساب کاربری شوید." },
+        { status: 401 }
+      );
     }
 
     let payload;
     try {
       payload = await verifyToken(token);
     } catch {
-      return NextResponse.json({ error: "نشست کاربری نامعتبر است. مجدداً وارد شوید." }, { status: 401 });
+      return NextResponse.json(
+        { error: "نشست کاربری نامعتبر است. مجدداً وارد شوید." },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();
@@ -37,7 +43,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "سبد خرید خالی است" }, { status: 400 });
     }
 
-    // اعتبارسنجی تعداد تمام اقلام قبل از شروع تراکنش
     for (const item of items) {
       if (
         !item?.id ||
@@ -63,7 +68,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "روش پرداخت انتخابی نامعتبر است" }, { status: 400 });
     }
 
-    // بررسی وجود و مالکیت آدرس برای همین کاربر
     const address = await prisma.address.findFirst({
       where: {
         id: body.addressId,
@@ -86,6 +90,10 @@ export async function POST(req: Request) {
 
         if (!product) {
           throw new Error(`محصول ${item.title || ""} یافت نشد یا غیرفعال است.`);
+        }
+
+        if (product.variants.length > 0 && !item.variantId) {
+          throw new Error(`لطفاً تنوع محصول ${product.title} را انتخاب کنید.`);
         }
 
         let itemPrice = Number(product.price);
@@ -170,4 +178,4 @@ export async function POST(req: Request) {
     const message = error instanceof Error ? error.message : "Server Error";
     return NextResponse.json({ error: message }, { status: 400 });
   }
-}
+} 

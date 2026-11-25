@@ -15,8 +15,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { username },
+    const identifier = String(username).trim();
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ username: identifier }, { phone: identifier }],
+      },
     });
 
     if (!user) {

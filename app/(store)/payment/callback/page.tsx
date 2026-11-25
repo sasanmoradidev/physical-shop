@@ -19,7 +19,6 @@ type Props = {
 export default async function PaymentCallbackPage({
   searchParams,
 }: Props) {
-  console.log("CALLBACK PARAMS:", await searchParams);
   const { Authority, Status } = await searchParams;
 
   if (!Authority) {
@@ -43,7 +42,6 @@ export default async function PaymentCallbackPage({
   );
 
   const data = await response.json();
-  console.log("VERIFY RESULT:", data);
 
   // بررسی وضعیت نهایی وریفای تراکنش [2]
   const isSuccess = response.ok && data.ok === true;

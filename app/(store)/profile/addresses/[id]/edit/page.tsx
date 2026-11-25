@@ -3,47 +3,31 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/rbac-server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-
-// ایمپورت کامپوننت‌های شکیل پروژه (Shadcn UI)
 import { Button } from "@/components/ui/button";
-
-// ایمپورت آیکون‌های شکیل از خانواده Lucide
 import { ArrowRight, MapPin, Check } from "lucide-react";
 
 type Props = {
-  params: Promise<{
-    id: string;
-  }>;
-  searchParams: Promise<{
-    back?: string;
-  }>;
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ back?: string }>;
 };
 
 export default async function EditAddressPage({ params, searchParams }: Props) {
   const user = await requireAuth();
-
-  // ۱. دریافت شناسه‌ها و پارامترها
   const { id } = await params;
   const { back } = await searchParams;
   const isFromCheckout = back === "checkout";
 
-  // ۲. دریافت اطلاعات آدرس از دیتابیس با اعتبارسنجی مالکیت کاربر
-  const address = await prisma.address.findUnique({
-    where: { id },
-  });
+  const address = await prisma.address.findUnique({ where: { id } });
 
   if (!address || address.userId !== user.id) {
     notFound();
   }
 
-  // ۳. مدیریت داینامیک مسیرها بر اساس مبدا ورود کاربر
   const backUrl = isFromCheckout ? "/checkout" : "/profile/addresses";
   const backLabel = isFromCheckout ? "بازگشت به تسویه حساب" : "بازگشت به آدرس‌ها";
 
   return (
     <div className="animate-fade-in space-y-6">
-      
-      {/* دکمه بازگشت داینامیک بالا با آیکون راست‌چین استاندارد */}
       <div>
         <Button
           variant="link"
@@ -59,8 +43,6 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
       </div>
 
       <div className="bg-white border border-zinc-100 rounded-3xl shadow-sm p-6 sm:p-8">
-        
-        {/* سربرگ فرم */}
         <div className="flex items-center gap-3 mb-8 pb-5 border-b border-zinc-100">
           <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600 border border-blue-100 shadow-sm">
             <MapPin className="h-5 w-5" />
@@ -71,14 +53,11 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
           </div>
         </div>
 
-        {/* بدنه فرم متصل به اکشن آپدیت */}
         <form action={updateAddress.bind(null, address.id)} className="space-y-6">
-          
-          {/* عنوان آدرس */}
+          <input type="hidden" name="back" value={back || ""} />
+
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 mb-2">
-              عنوان آدرس
-            </label>
+            <label className="block text-xs font-semibold text-zinc-500 mb-2">عنوان آدرس</label>
             <input
               name="title"
               defaultValue={address.title}
@@ -88,12 +67,9 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
             />
           </div>
 
-          {/* گیرنده و موبایل */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-2">
-                نام و نام خانوادگی گیرنده
-              </label>
+              <label className="block text-xs font-semibold text-zinc-500 mb-2">نام و نام خانوادگی گیرنده</label>
               <input
                 name="fullName"
                 defaultValue={address.fullName}
@@ -104,9 +80,7 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-2">
-                شماره موبایل
-              </label>
+              <label className="block text-xs font-semibold text-zinc-500 mb-2">شماره موبایل</label>
               <input
                 name="phone"
                 defaultValue={address.phone}
@@ -118,12 +92,9 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
             </div>
           </div>
 
-          {/* استان و شهر */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-2">
-                استان
-              </label>
+              <label className="block text-xs font-semibold text-zinc-500 mb-2">استان</label>
               <input
                 name="province"
                 defaultValue={address.province}
@@ -134,9 +105,7 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-2">
-                شهر
-              </label>
+              <label className="block text-xs font-semibold text-zinc-500 mb-2">شهر</label>
               <input
                 name="city"
                 defaultValue={address.city}
@@ -147,11 +116,8 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
             </div>
           </div>
 
-          {/* کد پستی */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 mb-2">
-              کد پستی ده رقمی
-            </label>
+            <label className="block text-xs font-semibold text-zinc-500 mb-2">کد پستی ده رقمی</label>
             <input
               name="postalCode"
               defaultValue={address.postalCode}
@@ -161,11 +127,8 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
             />
           </div>
 
-          {/* جزئیات آدرس */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 mb-2">
-              نشانی پستی (آدرس دقیق)
-            </label>
+            <label className="block text-xs font-semibold text-zinc-500 mb-2">نشانی پستی (آدرس دقیق)</label>
             <textarea
               name="addressLine"
               defaultValue={address.addressLine}
@@ -176,7 +139,6 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
             />
           </div>
 
-          {/* دکمه‌های انتهای فرم */}
           <div className="flex items-center justify-end gap-3 pt-6 border-t border-zinc-100">
             <Button
               variant="outline"
@@ -187,7 +149,7 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
                 <span>انصراف</span>
               </Link>
             </Button>
-            
+
             <Button
               type="submit"
               className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs h-10 shadow-sm transition-all flex items-center gap-1.5"
@@ -196,7 +158,6 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
               <span>ذخیره تغییرات</span>
             </Button>
           </div>
-
         </form>
       </div>
     </div>

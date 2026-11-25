@@ -1,22 +1,19 @@
-import "server-only"; // تضمین امنیت کامل در عدم خروج کد از سرور
+import "server-only";
 
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission, Permission } from "./rbac";
-
-import { redirect } from 'next/navigation';
-
+import { redirect } from "next/navigation";
 
 /**
- * گارد مرکزی ورود کاربر (مخصوص فرآیندهای خرید و صفحات کاربری)
+ * گارد مرکزی ورود کاربر
  */
 export async function requireAuth(redirectTo?: string) {
   const user = await getCurrentUser();
 
   if (!user) {
-    // اگر آدرس برگشت وجود داشت، آن را به عنوان پارامتر می‌فرستیم
     const loginUrl = redirectTo
       ? `/login?callbackUrl=${encodeURIComponent(redirectTo)}`
-      : '/login';
+      : "/login";
 
     redirect(loginUrl);
   }
@@ -25,13 +22,26 @@ export async function requireAuth(redirectTo?: string) {
 }
 
 /**
- * گارد مرکزی سطوح دسترسی ادمین (مخصوص Server Actions)
+ * گارد سطوح دسترسی برای Server Actions (خطا برمی‌گرداند)
  */
 export async function requirePermission(permission: Permission) {
-  const user = await requireAuth(); // ابتدا بررسی ورود
+  const user = await requireAuth();
 
   if (!hasPermission(user.role, permission)) {
     throw new Error("شما مجوز کافی برای انجام این عملیات را ندارید.");
+  }
+
+  return user;
+}
+
+/**
+ * گارد سطوح دسترسی برای Server Components (به صفحه عدم دسترسی هدایت می‌کند)
+ */
+export async function requirePagePermission(permission: Permission) {
+  const user = await requireAuth();
+
+  if (!hasPermission(user.role, permission)) {
+    redirect("/unauthorized");
   }
 
   return user;

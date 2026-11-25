@@ -1,13 +1,12 @@
-// app/(store)/profile/orders/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderBadge } from "@/components/admin/order-badge";
-import { toast } from "sonner";
 import {
   ArrowRight,
   ShoppingBag,
@@ -17,6 +16,7 @@ import {
   User,
   Phone,
   Hash,
+  Printer,
 } from "lucide-react";
 
 type Order = {
@@ -24,7 +24,7 @@ type Order = {
   status: string;
   totalPrice: number;
   createdAt?: string;
-  shippingCost?: number;
+  shippingCost?: number | null;
   shippingFullName: string;
   shippingPhone: string;
   shippingCity: string;
@@ -37,7 +37,7 @@ type Order = {
     price: number;
     variant: {
       name: string;
-    }
+    } | null;
     product: {
       title: string;
     };
@@ -52,7 +52,10 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     fetch(`/api/orders/${id}`)
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json()) as Order;
+      })
       .then((data) => {
         setOrder(data);
         setLoading(false);
@@ -74,10 +77,10 @@ export default function OrderDetailPage() {
       });
 
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
+      if (res.ok && data.url) {
+        window.location.assign(data.url);
       } else {
-        toast.error("خطا در ایجاد درگاه پرداخت");
+        toast.error(data.error || "خطا در ایجاد درگاه پرداخت");
       }
     } catch (error) {
       console.error(error);
@@ -101,13 +104,19 @@ export default function OrderDetailPage() {
 
   if (!order) {
     return (
-      <div className="text-center py-20 text-xs text-zinc-400">
-        سفارش مورد نظر در تاریخچه خریدهای شما یافت نشد.
+      <div className="text-center py-20 space-y-4">
+        <p className="text-xs text-zinc-400">سفارش مورد نظر در تاریخچه خریدهای شما یافت نشد.</p>
+        <Button variant="outline" size="sm" asChild className="rounded-xl">
+          <Link href="/profile/orders">بازگشت به سفارش‌ها</Link>
+        </Button>
       </div>
     );
   }
 
-  const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString("fa-IR") : "";
+  const orderDate = order.createdAt
+    ? new Date(order.createdAt).toLocaleDateString("fa-IR")
+    : "";
+  const shippingCostNum = Number(order.shippingCost || 0);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -117,12 +126,21 @@ export default function OrderDetailPage() {
           <p className="text-xs text-zinc-400">فاکتور نهایی و مشخصات ارسال مرسوله خود را پیگیری کنید.</p>
         </div>
 
-        <Button variant="outline" size="sm" asChild className="w-fit rounded-xl border-zinc-200 text-zinc-700">
-          <Link href="/profile/orders" className="flex items-center gap-2">
-            <ArrowRight className="h-4 w-4" />
-            <span>بازگشت به سفارش‌ها</span>
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="default" size="sm" asChild className="w-fit rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
+            <Link target="_blank" href={`/invoice/${order.id}`} className="flex items-center gap-2">
+              <Printer className="h-4 w-4" />
+              <span>چاپ فاکتور</span>
+            </Link>
+          </Button>
+
+          <Button variant="outline" size="sm" asChild className="w-fit rounded-xl border-zinc-200 text-zinc-700">
+            <Link href="/profile/orders" className="flex items-center gap-2">
+              <ArrowRight className="h-4 w-4" />
+              <span>بازگشت به سفارش‌ها</span>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -171,14 +189,15 @@ export default function OrderDetailPage() {
             <div className="flex justify-between items-center text-zinc-600 text-sm">
               <span>جمع مبالغ اقلام سبد</span>
               <span className="font-semibold text-zinc-800">
-                {/* کم کردن هزینه ارسال از کل مبلغ برای به دست آوردن قیمت خالص کالاها */}
-                {(Number(order.totalPrice) - Number(order.shippingCost || 0)).toLocaleString("fa-IR")} تومان
+                {(Number(order.totalPrice) - shippingCostNum).toLocaleString("fa-IR")} تومان
               </span>
             </div>
             <div className="flex justify-between items-center text-zinc-600 text-sm mt-3">
               <span>هزینه تحویل و ارسال</span>
               <span className="text-emerald-600 font-medium">
-                {Number(order.shippingCost).toLocaleString("fa-IR")}
+                {shippingCostNum > 0
+                  ? `${shippingCostNum.toLocaleString("fa-IR")} تومان`
+                  : "رایگان"}
               </span>
             </div>
             <div className="border-t border-zinc-200/60 my-4" />
@@ -228,14 +247,13 @@ export default function OrderDetailPage() {
                     className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 flex items-center justify-center gap-1.5 shadow-sm"
                   >
                     <CreditCard className="h-4 w-4" />
-                    <span>پرداخت مجدد فاکتور</span>
+                    <span>{repaying ? "در حال اتصال..." : "پرداخت مجدد فاکتور"}</span>
                   </Button>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* کارت اسنپ‌شات آدرس تحویل سفارش */}
           <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
               <div className="flex items-center gap-2 text-zinc-800">

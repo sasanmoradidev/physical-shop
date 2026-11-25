@@ -160,7 +160,6 @@ export default async function ProductPage({ params }: Props) {
     <>
       {/* 👇 تزریق اسکیمای محصول به صفحه */}
       <script
-        id={`product-schema-${product.id}`}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         
@@ -168,7 +167,6 @@ export default async function ProductPage({ params }: Props) {
 
       {/* 👇 تزریق اسکیمای Breadcrumb */}
       <script
-        id={`breadcrumb-schema-${product.id}`}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />

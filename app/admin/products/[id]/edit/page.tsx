@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { requirePermission } from "@/lib/rbac-server";
 import ProductForm from "@/components/admin/product-form";
-import { serializeProduct } from "@/lib/mappers/product.mapper"; // 👈 ایمپورت مپر
+import { serializeProduct } from "@/lib/mappers/product.mapper";
 import { notFound } from "next/navigation";
 
 type Props = {
@@ -10,15 +11,14 @@ type Props = {
 };
 
 export default async function EditProductPage({ params }: Props) {
+  await requirePermission("MANAGE_PRODUCTS");
   const { id } = await params;
 
   const product = await prisma.product.findUnique({
     where: { id },
     include: {
-      images: {
-        orderBy: { order: "asc" }, // لود تصاویر بر اساس درگ اند دراپ
-      },
-      variants: true
+      images: { orderBy: { order: "asc" } },
+      variants: true,
     },
   });
 
@@ -26,15 +26,12 @@ export default async function EditProductPage({ params }: Props) {
     notFound();
   }
 
-  // 👇 ساده‌سازی محصول با استفاده از مپری که ساختید [2]
   const safeProduct = serializeProduct(product);
 
-  const categories = await prisma.category.findMany({
-    orderBy: {
-      name: "asc",
-    },
-  });
-  const brands = await prisma.brand.findMany({ orderBy: { name: "asc" } });
+  const [categories, brands] = await Promise.all([
+    prisma.category.findMany({ orderBy: { name: "asc" } }),
+    prisma.brand.findMany({ orderBy: { name: "asc" } }),
+  ]);
 
   return (
     <div className="container max-w-5xl mx-auto py-10 px-4">

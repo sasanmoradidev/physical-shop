@@ -1,18 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { requirePermission } from "@/lib/rbac-server";
 import Link from "next/link";
 
-// ایمپورت کامپوننت‌های شکیل پروژه (Shadcn UI)
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import { OrderBadge } from "@/components/admin/order-badge"; // 👈 ایمپورت کامپوننت رنگی وضعیت سفارشات
+import { Card, CardContent } from "@/components/ui/card";
+import { OrderBadge } from "@/components/admin/order-badge";
 
-// ایمپورت آیکون‌های استاندارد Lucide
 import {
   Users,
   Package,
@@ -24,29 +17,28 @@ import {
 } from "lucide-react";
 
 export default async function AdminPage() {
-  const usersCount = await prisma.user.count();
-  const productsCount = await prisma.product.count();
-  const ordersCount = await prisma.order.count();
+  await requirePermission("VIEW_ADMIN_DASHBOARD");
 
-  const salesAgg = await prisma.order.aggregate({
-    where: {
-      status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] },
-    },
-    _sum: { totalPrice: true },
-  });
+  const [usersCount, productsCount, ordersCount, salesAgg, latestOrders] =
+    await Promise.all([
+      prisma.user.count(),
+      prisma.product.count(),
+      prisma.order.count(),
+      prisma.order.aggregate({
+        where: {
+          status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] },
+        },
+        _sum: { totalPrice: true },
+      }),
+      prisma.order.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: { user: true },
+      }),
+    ]);
+
   const totalSales = Number(salesAgg._sum.totalPrice ?? 0);
 
-  const latestOrders = await prisma.order.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 5,
-    include: {
-      user: true,
-    },
-  });
-
-  // مدل آماری کارت‌ها
   const stats = [
     {
       title: "کل فروش",
@@ -80,8 +72,6 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-
-      {/* هدر بالایی داشبورد */}
       <div className="flex items-center gap-3.5 pb-6 border-b border-zinc-100">
         <div className="p-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-zinc-700 shadow-sm">
           <LayoutDashboard className="h-6 w-6" />
@@ -92,7 +82,6 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      {/* ۱. گرید شکیل کارت‌های آمار کلان فروشگاه */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
@@ -115,7 +104,6 @@ export default async function AdminPage() {
         })}
       </div>
 
-      {/* ۲. بخش آخرین سفارش‌ها */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-zinc-800">
           <Clock className="h-5 w-5 text-blue-600" />
@@ -131,7 +119,6 @@ export default async function AdminPage() {
         ) : (
           <div className="space-y-4">
             {latestOrders.map((order) => {
-              // تاریخ شمسی سفارش (در صورت تمایل)
               const orderDate = new Date(order.createdAt).toLocaleDateString("fa-IR");
 
               return (
@@ -140,8 +127,6 @@ export default async function AdminPage() {
                   className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition duration-200"
                 >
                   <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-
-                    {/* اطلاعات مشتری و وضعیت */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="space-y-1">
                         <p className="font-bold text-sm text-zinc-800">
@@ -151,12 +136,9 @@ export default async function AdminPage() {
                           ثبت‌شده در تاریخ: {orderDate}
                         </p>
                       </div>
-
-                      {/* برچسب رنگی وضعیت سفارش */}
                       <OrderBadge status={order.status} />
                     </div>
 
-                    {/* مبلغ نهایی و دکمه جزئیات سفارش */}
                     <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 pt-4 sm:pt-0 border-zinc-50">
                       <div className="flex flex-col text-right">
                         <span className="font-extrabold text-base text-zinc-950">
@@ -165,7 +147,6 @@ export default async function AdminPage() {
                         <span className="text-[9px] text-zinc-400">تومان</span>
                       </div>
 
-                      {/* دکمه مشاهده جزئیات سفارش */}
                       <Button variant="outline" size="sm" asChild className="rounded-xl border-zinc-200 h-9 px-4">
                         <Link href={`/admin/orders/${order.id}`} className="flex items-center gap-1.5 text-xs font-semibold">
                           <span>جزئیات</span>
@@ -173,7 +154,6 @@ export default async function AdminPage() {
                         </Link>
                       </Button>
                     </div>
-
                   </CardContent>
                 </Card>
               );
@@ -181,7 +161,6 @@ export default async function AdminPage() {
           </div>
         )}
       </div>
-
     </div>
   );
 }

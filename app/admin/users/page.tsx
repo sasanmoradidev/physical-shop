@@ -1,9 +1,8 @@
-// app/admin/users/page.tsx
 import { prisma } from "@/lib/prisma";
-import { toggleUserRole, deleteUser } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requirePermission } from "@/lib/rbac-server";
+import { UserRowActions } from "@/components/admin/user-row-actions";
 import Link from "next/link";
 import { Role } from "@prisma/client";
 
@@ -11,10 +10,7 @@ import {
   Users as UsersIcon,
   AtSign,
   Phone,
-  ShieldCheck,
-  ShieldAlert,
   Calendar,
-  Trash2,
   Search,
   Plus,
   Edit,
@@ -31,6 +27,9 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   const admin = await requirePermission("MANAGE_USERS");
   const { q = "", role = "" } = await searchParams;
 
+  const validRole =
+    role && Object.values(Role).includes(role as Role) ? (role as Role) : undefined;
+
   const where = {
     ...(q
       ? {
@@ -41,7 +40,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           ],
         }
       : {}),
-    ...(role ? { role: role as Role } : {}),
+    ...(validRole ? { role: validRole } : {}),
   };
 
   const users = await prisma.user.findMany({
@@ -66,7 +65,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           <div>
             <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">مدیریت کاربران</h1>
             <p className="text-xs text-zinc-400 mt-1">
-              مشاهده مشخصات کاربران، جستجوی نام/نام کاربری/موبایل و مدیریت نقش‌ها ({users.length} کاربر)
+              مشاهده مشخصات کاربران، جستجوی نام/نام کاربری/موبایل و مدیریت نقش‌ها ({users.length.toLocaleString("fa-IR")} کاربر)
             </p>
           </div>
         </div>
@@ -95,7 +94,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
         <select
           name="role"
-          defaultValue={role}
+          defaultValue={validRole || ""}
           className="w-full md:w-44 border rounded-xl px-4 py-2.5 bg-white text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition cursor-pointer"
         >
           <option value="">همه نقش‌ها</option>
@@ -193,39 +192,12 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                       </Link>
                     </Button>
 
-                    <form action={toggleUserRole.bind(null, item.id)}>
-                      <Button
-                        type="submit"
-                        variant="outline"
-                        size="sm"
-                        disabled={isSelf}
-                        className="rounded-xl h-9 text-xs font-semibold border-zinc-200"
-                      >
-                        {isUserAdmin ? (
-                          <span className="flex items-center gap-1.5 text-red-600">
-                            <ShieldAlert className="h-3.5 w-3.5" />
-                            <span>عزل ادمین</span>
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-emerald-600">
-                            <ShieldCheck className="h-3.5 w-3.5" />
-                            <span>ارتقا به ادمین</span>
-                          </span>
-                        )}
-                      </Button>
-                    </form>
-
-                    <form action={deleteUser.bind(null, item.id)}>
-                      <Button
-                        type="submit"
-                        variant="destructive"
-                        disabled={isSelf}
-                        className="rounded-xl h-9 w-9 flex items-center justify-center p-0"
-                        aria-label="حذف کاربر"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </form>
+                    <UserRowActions
+                      userId={item.id}
+                      userName={item.name}
+                      isUserAdmin={isUserAdmin}
+                      isSelf={isSelf}
+                    />
                   </div>
                 </CardContent>
               </Card>

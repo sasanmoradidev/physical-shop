@@ -1,70 +1,57 @@
 "use client";
+
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import { ProductCard } from "@/theme/product/ProductCard";
 
 type RelatedProductsSliderProps = {
-    relatedProducts: {
-        id: string;
-        title: string;
-        slug: string;
-        price: number;
-        offerPrice?: number | null;
-        offerStartsAt?: Date | null;
-        offerEndsAt?: Date | null;
-        stock: number;
-        images: {
-            url: string;
-        }[];
+  relatedProducts: {
+    id: string;
+    title: string;
+    slug: string;
+    price: number;
+    offerPrice?: number | null;
+    offerStartsAt?: Date | null;
+    offerEndsAt?: Date | null;
+    stock: number;
+    images: {
+      url: string;
     }[];
+  }[];
 };
 
 export function RelatedProductsSlider({
-    relatedProducts,
+  relatedProducts,
 }: RelatedProductsSliderProps) {
-    return (
-        <section className="container mx-auto mt-20">
+  return (
+    <section className="container mx-auto mt-20 px-4">
+      <h2 className="text-2xl font-bold mb-8">محصولات مرتبط</h2>
 
-            <h2
-                className="
-                                text-2xl
-                                font-bold
-                                mb-8
-                            "
-            >
-                محصولات مرتبط
-            </h2>
-
-            <Swiper
-                spaceBetween={16}
-                slidesPerView={2}
-                breakpoints={{
-                    768: { slidesPerView: 6 },
-                }}
-            >
-                {relatedProducts.map(
-                    (related: any) => (
-                        <SwiperSlide key={related.id}>
-                            <ProductCard
-                                product={{
-                                    id: related.id,
-                                    title: related.title,
-                                    slug: related.slug,
-                                    price: Number(related.price),
-                                    stock: related.stock,
-                                    images: related.images,
-                                    offerPrice: related.offerPrice ? Number(related.offerPrice) : null,
-                                    offerStartsAt: related.offerStartsAt,
-                                    offerEndsAt: related.offerEndsAt,
-
-                                }}
-                            />
-                        </SwiperSlide>
-                    )
-                )}
-            </Swiper>
-
-
-        </section>
-    );
+      <Swiper
+        spaceBetween={16}
+        slidesPerView={2}
+        breakpoints={{
+          768: { slidesPerView: 6 },
+        }}
+      >
+        {relatedProducts.map((related) => (
+          <SwiperSlide key={related.id}>
+            <ProductCard
+              product={{
+                id: related.id,
+                title: related.title,
+                slug: related.slug,
+                price: Number(related.price),
+                stock: related.stock,
+                images: related.images,
+                offerPrice: related.offerPrice ? Number(related.offerPrice) : null,
+                offerStartsAt: related.offerStartsAt,
+                offerEndsAt: related.offerEndsAt,
+              }}
+            />
+          </SwiperSlide>
+        ))}
+      </Swiper>
+    </section>
+  );
 }

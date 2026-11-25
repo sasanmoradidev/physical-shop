@@ -8,3 +8,24 @@ git fetch origin
 git reset --hard origin/master
 git clean -fd -e public/uploads
 
+
+
+# ۱. اعمال ستون attempts روی دیتابیس لوکال (بدون حذف دیتا)
+npx prisma db push
+
+# ۲. خالی کردن فقط جدول تاریخچه مایگریشن‌ها
+'TRUNCATE TABLE "_prisma_migrations";' | npx prisma db execute --stdin --schema prisma/schema.prisma
+
+# ۳. حذف خودکار همه ۲۰ پوشه قدیمی (فایل migration_lock.toml دست‌نخورده می‌ماند)
+Get-ChildItem -Path prisma\migrations -Directory | Remove-Item -Recurse -Force
+
+# ۴. ساخت پوشه مایگریشن پایه 0_init و تولید فایل SQL آن از روی schema.prisma فعلی
+New-Item -ItemType Directory -Force -Path prisma\migrations\0_init
+npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script --output prisma/migrations/0_init/migration.sql
+
+# ۵. ثبت 0_init به عنوان مایگریشنِ اعمال‌شده در دیتابیس
+npx prisma migrate resolve --applied 0_init
+
+# ۶. تولید مجدد Prisma Client و بررسی وضعیت نهایی
+npx prisma generate
+npx prisma migrate status

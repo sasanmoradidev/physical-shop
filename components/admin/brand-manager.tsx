@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { createBrand, updateBrand, deleteBrand } from "@/app/admin/brands/actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Edit, Check, X, Tag } from "lucide-react";
+import { Trash2, Edit, Check, X, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 type Brand = {
@@ -37,36 +37,46 @@ export function BrandManager({ initialBrands }: { initialBrands: Brand[] }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !slug) {
+    if (!name.trim() || !slug.trim()) {
       toast.error("لطفاً تمامی فیلدها را پر کنید.");
       return;
     }
 
     startTransition(async () => {
       try {
-        if (isEditMode && selectedBrand) {
-          await updateBrand(selectedBrand.id, name, slug);
-          toast.success("تغییرات با موفقیت ذخیره شد.");
+        const result =
+          isEditMode && selectedBrand
+            ? await updateBrand(selectedBrand.id, name, slug)
+            : await createBrand(name, slug);
+
+        if (result.success) {
+          toast.success(result.message);
+          handleCancelEdit();
         } else {
-          await createBrand(name, slug);
-          toast.success("برند جدید با موفقیت ثبت شد.");
+          toast.error(result.message || "خطایی رخ داد.");
         }
-        handleCancelEdit();
-      } catch (error: unknown) {
-        console.error(error);
-        const message =
-          error instanceof Error
-            ? error.message
-            : "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
-        toast.error(message);
+      } catch {
+        toast.error("خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+      }
+    });
+  };
+
+  const handleDelete = (brand: Brand) => {
+    if (!window.confirm(`آیا از حذف برند «${brand.name}» مطمئن هستید؟`)) return;
+
+    startTransition(async () => {
+      const result = await deleteBrand(brand.id);
+      if (result.success) {
+        toast.success(result.message);
+        if (selectedBrand?.id === brand.id) handleCancelEdit();
+      } else {
+        toast.error(result.message || "خطا در حذف برند.");
       }
     });
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start animate-fade-in">
-
-      {/* فرم ایجاد/ویرایش برند */}
       <Card className="border-zinc-100 shadow-sm rounded-2xl bg-white">
         <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
           <CardTitle className="text-sm font-extrabold text-zinc-800">
@@ -131,7 +141,6 @@ export function BrandManager({ initialBrands }: { initialBrands: Brand[] }) {
         </CardContent>
       </Card>
 
-      {/* لیست برندها */}
       <div className="lg:col-span-2 space-y-4">
         {initialBrands.length === 0 ? (
           <Card className="border-dashed border-zinc-200 p-12 text-center bg-zinc-50/20">
@@ -145,8 +154,11 @@ export function BrandManager({ initialBrands }: { initialBrands: Brand[] }) {
               return (
                 <Card
                   key={brand.id}
-                  className={`border p-4 rounded-xl transition duration-200 ${isEditing ? "border-blue-500 bg-blue-50/10 ring-1 ring-blue-500 shadow-inner" : "border-zinc-100 bg-white"
-                    }`}
+                  className={`border p-4 rounded-xl transition duration-200 ${
+                    isEditing
+                      ? "border-blue-500 bg-blue-50/10 ring-1 ring-blue-500 shadow-inner"
+                      : "border-zinc-100 bg-white"
+                  }`}
                 >
                   <CardContent className="p-0 flex flex-col justify-between h-full gap-4">
                     <div className="flex items-start justify-between gap-2">
@@ -164,6 +176,7 @@ export function BrandManager({ initialBrands }: { initialBrands: Brand[] }) {
 
                     <div className="flex items-center justify-end gap-1.5 pt-3 border-t border-zinc-50">
                       <Button
+                        type="button"
                         onClick={() => handleStartEdit(brand)}
                         variant="outline"
                         size="sm"
@@ -172,11 +185,17 @@ export function BrandManager({ initialBrands }: { initialBrands: Brand[] }) {
                         <Edit className="h-3.5 w-3.5 ml-1" />
                         ویرایش
                       </Button>
-                      <form action={deleteBrand.bind(null, brand.id)}>
-                        <Button type="submit" variant="destructive" size="icon" className="h-8 w-8 rounded-lg">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </form>
+                      <Button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => handleDelete(brand)}
+                        variant="destructive"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg"
+                        title="حذف برند"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

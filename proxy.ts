@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
+import { hasPermission, Permission } from "@/lib/rbac";
+
+const ADMIN_ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
+  { prefix: "/admin/products", permission: "MANAGE_PRODUCTS" },
+  { prefix: "/admin/brands", permission: "MANAGE_PRODUCTS" },
+  { prefix: "/admin/categories", permission: "MANAGE_CATEGORIES" },
+  { prefix: "/admin/orders", permission: "MANAGE_ORDERS" },
+  { prefix: "/api/admin/orders", permission: "MANAGE_ORDERS" },
+  { prefix: "/admin/transactions", permission: "MANAGE_ORDERS" },
+  { prefix: "/admin/shipping", permission: "MANAGE_SHIPPING" },
+  { prefix: "/admin/payments", permission: "MANAGE_PAYMENT" },
+  { prefix: "/admin/users", permission: "MANAGE_USERS" },
+  { prefix: "/admin/settings", permission: "MANAGE_SETTINGS" },
+];
+
+function getRequiredAdminPermission(pathname: string): Permission {
+  const matched = ADMIN_ROUTE_PERMISSIONS.find((rule) =>
+    pathname.startsWith(rule.prefix)
+  );
+  return matched ? matched.permission : "VIEW_ADMIN_DASHBOARD";
+}
 
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
@@ -18,7 +38,12 @@ export async function proxy(req: NextRequest) {
 
     try {
       const payload = await verifyToken(token);
-      if (!hasPermission(payload.role, "VIEW_ADMIN_DASHBOARD")) {
+      const requiredPermission = getRequiredAdminPermission(pathname);
+
+      if (
+        !hasPermission(payload.role, "VIEW_ADMIN_DASHBOARD") ||
+        !hasPermission(payload.role, requiredPermission)
+      ) {
         if (pathname.startsWith("/api/")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
@@ -36,7 +61,7 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  if (pathname.startsWith("/profile")) {
+  if (pathname.startsWith("/profile") || pathname.startsWith("/checkout")) {
     if (!token) {
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("callbackUrl", pathname + search);
@@ -70,5 +95,11 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*", "/profile/:path*", "/login"],
+  matcher: [
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/profile/:path*",
+    "/checkout/:path*",
+    "/login",
+  ],
 };

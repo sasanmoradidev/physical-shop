@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendOtpSms } from "@/lib/sms";
 
+const OTP_TTL_MS = 3 * 60 * 1000;       // اعتبار کد: ۳ دقیقه
+const RESEND_COOLDOWN_MS = 60 * 1000;   // فاصله مجاز بین دو ارسال: ۶۰ ثانیه
+
 export async function POST(req: Request) {
   try {
     const { phone, purpose = "LOGIN" } = await req.json();
@@ -43,8 +46,10 @@ export async function POST(req: Request) {
 
     if (existingOtp) {
       const remainingMs = existingOtp.expiresAt.getTime() - Date.now();
-      if (remainingMs > 2 * 60 * 1000) {
-        const retryAfter = Math.ceil((remainingMs - 2 * 60 * 1000) / 1000);
+      const cooldownThreshold = OTP_TTL_MS - RESEND_COOLDOWN_MS;
+
+      if (remainingMs > cooldownThreshold) {
+        const retryAfter = Math.ceil((remainingMs - cooldownThreshold) / 1000);
         return NextResponse.json(
           {
             error: `لطفاً ${retryAfter.toLocaleString("fa-IR")} ثانیه صبر کنید و دوباره درخواست دهید.`,
@@ -56,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     const code = Math.floor(10000 + Math.random() * 90000).toString();
-    const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
     await prisma.otpRequest.upsert({
       where: { phone },
@@ -66,6 +71,7 @@ export async function POST(req: Request) {
 
     const isSent = await sendOtpSms(phone, code);
     if (!isSent) {
+      await prisma.otpRequest.delete({ where: { phone } }).catch(() => {});
       return NextResponse.json(
         { error: "خطا در ارسال پیامک. لطفاً دقایقی دیگر تلاش کنید." },
         { status: 500 }

@@ -2,20 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-
-// ایمپورت کامپوننت‌های شکیل پروژه (Shadcn UI)
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { OrderBadge } from "@/components/admin/order-badge"; // 👈 استفاده از کامپوننت وضعیت سفارشات
-import { toast } from "sonner";
-// ایمپورت آیکون‌های مورد نظر از خانواده Lucide
-import {
-  ClipboardList,
-  Calendar,
-  CreditCard,
-  ArrowUpRight,
-  Inbox,
-} from "lucide-react";
+import { OrderBadge } from "@/components/admin/order-badge";
+import { Calendar, CreditCard, ArrowUpRight, Inbox } from "lucide-react";
 
 type Order = {
   id: string;
@@ -31,7 +22,11 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetch("/api/orders/my")
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      })
       .then((data) => {
         setOrders(data);
         setLoading(false);
@@ -42,26 +37,21 @@ export default function OrdersPage() {
       });
   }, []);
 
-  // تابع پرداخت مجدد سفارش‌های در انتظار پرداخت
   async function handleRepay(orderId: string) {
     setRepayingId(orderId);
     try {
       const res = await fetch("/api/payment/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          orderId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
       });
 
       const data = await res.json();
 
-      if (data.url) {
+      if (res.ok && data.url) {
         window.location.assign(data.url);
       } else {
-        toast.error("خطا در ایجاد درگاه پرداخت");
+        toast.error(data.error || "خطا در ایجاد درگاه پرداخت");
       }
     } catch (error) {
       console.error(error);
@@ -71,7 +61,6 @@ export default function OrdersPage() {
     }
   }
 
-  // وضعیت لودینگ برای لود اولیه داده‌ها
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -86,14 +75,11 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-
-      {/* هدر بالای لیست سفارش‌ها */}
       <div className="space-y-1 pb-4 border-b border-zinc-100">
         <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">سفارش‌های من</h1>
         <p className="text-xs text-zinc-400">تاریخچه خریدها و پیگیری وضعیت ارسال مرسولات خود را در زیر مشاهده کنید.</p>
       </div>
 
-      {/* بررسی وضعیت خالی بودن سفارش‌ها */}
       {orders.length === 0 ? (
         <Card className="border-dashed border-zinc-200 p-12 text-center bg-zinc-50/20">
           <CardContent className="flex flex-col items-center justify-center space-y-4">
@@ -112,7 +98,6 @@ export default function OrdersPage() {
           </CardContent>
         </Card>
       ) : (
-        /* لیست سفارش‌های کاربر */
         <div className="space-y-4">
           {orders.map((order) => {
             const orderDate = new Date(order.createdAt).toLocaleDateString("fa-IR");
@@ -125,8 +110,6 @@ export default function OrdersPage() {
                 className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition duration-200 bg-white"
               >
                 <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-
-                  {/* اطلاعات کلی شناسه و تاریخ */}
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200/80 tracking-tight">
@@ -139,16 +122,12 @@ export default function OrdersPage() {
                       </span>
                     </div>
 
-                    {/* برچسب رنگی وضعیت سفارش */}
                     <div className="pt-0.5">
                       <OrderBadge status={order.status} />
                     </div>
                   </div>
 
-                  {/* مبالغ و دکمه‌های کنترلی فاکتور */}
                   <div className="flex items-center justify-between sm:justify-end gap-5 border-t sm:border-t-0 pt-4 sm:pt-0 border-zinc-50">
-
-                    {/* مبلغ سفارش */}
                     <div className="flex flex-col text-right">
                       <span className="text-[9px] text-zinc-400">جمع مبالغ فاکتور</span>
                       <span className="font-extrabold text-base text-zinc-950 tracking-tight">
@@ -158,7 +137,6 @@ export default function OrdersPage() {
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {/* دکمه پرداخت مجدد (فقط برای سفارش‌های در انتظار پرداخت) */}
                       {isPending && (
                         <Button
                           disabled={isRepaying}
@@ -182,7 +160,6 @@ export default function OrdersPage() {
                         </Button>
                       )}
 
-                      {/* دکمه رفتن به صفحه جزئیات سفارش */}
                       <Button variant="outline" size="sm" asChild className="rounded-xl border-zinc-200 h-9 px-4">
                         <Link href={`/profile/orders/${order.id}`} className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700">
                           <span>جزئیات</span>
@@ -190,9 +167,7 @@ export default function OrdersPage() {
                         </Link>
                       </Button>
                     </div>
-
                   </div>
-
                 </CardContent>
               </Card>
             );

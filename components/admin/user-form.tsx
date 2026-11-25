@@ -1,4 +1,3 @@
-// components/admin/user-form.tsx
 "use client";
 
 import { useTransition } from "react";
@@ -25,16 +24,17 @@ export default function UserForm({ user }: Props) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const formElement = event.currentTarget;
-    const formData = new FormData(formElement);
+    const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
       try {
-        if (isEditMode && user) {
-          await updateUser(user.id, formData);
-        } else {
-          await createUser(formData);
+        const result =
+          isEditMode && user
+            ? await updateUser(user.id, formData)
+            : await createUser(formData);
+
+        if (result && !result.success) {
+          toast.error(result.message || "خطایی رخ داد.");
         }
       } catch (error: unknown) {
         const err = error as { digest?: string; message?: string };
@@ -46,14 +46,13 @@ export default function UserForm({ user }: Props) {
         }
 
         console.error(error);
-        toast.error(err?.message || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+        toast.error("خطایی رخ داد. لطفاً دوباره تلاش کنید.");
       }
     });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
-      {/* سطر نام، نام کاربری و موبایل */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div>
           <label className="block text-[10px] font-bold text-zinc-400 mb-2 mr-1">نام و نام خانوادگی</label>
@@ -92,7 +91,6 @@ export default function UserForm({ user }: Props) {
         </div>
       </div>
 
-      {/* سطر کلمه عبور و انتخاب نقش */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
           <label className="block text-[10px] font-bold text-zinc-400 mb-2 mr-1">

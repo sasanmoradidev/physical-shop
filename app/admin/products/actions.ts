@@ -8,7 +8,11 @@ import path from "path";
 import { requirePermission } from "@/lib/rbac-server";
 import { revalidatePath } from "next/cache";
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MIME_TO_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 const MAX_SIZE = 5 * 1024 * 1024;
 
 type VariantInput = {
@@ -19,9 +23,15 @@ type VariantInput = {
   stock?: number | string;
 };
 
+type ActionResult = {
+  success: boolean;
+  message?: string;
+};
+
 async function saveImage(file: File) {
-  if (!ALLOWED_TYPES.includes(file.type)) throw new Error("فرمت تصویر مجاز نیست");
-  if (file.size > MAX_SIZE) throw new Error("حجم تصویر بیش از ۵ مگابایت است");
+  const ext = MIME_TO_EXT[file.type];
+  if (!ext) throw new Error("فرمت تصویر مجاز نیست (فقط JPG، PNG و WebP).");
+  if (file.size > MAX_SIZE) throw new Error("حجم تصویر بیش از ۵ مگابایت است.");
 
   const uploadDir = path.join(process.cwd(), "public", "uploads", "products");
   await fs.mkdir(uploadDir, { recursive: true });
@@ -29,7 +39,6 @@ async function saveImage(file: File) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
   const fileName = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
   const filePath = path.join(uploadDir, fileName);
 
@@ -47,7 +56,13 @@ async function deleteImageFile(url: string) {
 }
 
 function resolvePriceAndStock(formData: FormData, parsedVariants: VariantInput[]) {
-  let finalPrice = Number(formData.get("price"));
+  const basePriceRaw = formData.get("price");
+  const basePrice =
+    basePriceRaw !== null && String(basePriceRaw).trim() !== ""
+      ? Number(basePriceRaw)
+      : 0;
+
+  let finalPrice = basePrice;
   let finalStock = Number(formData.get("stock"));
 
   if (parsedVariants.length > 0) {
@@ -56,94 +71,115 @@ function resolvePriceAndStock(formData: FormData, parsedVariants: VariantInput[]
       0
     );
 
-    const variantPrices = parsedVariants
-      .map((v) => Number(v.price))
-      .filter((p) => !Number.isNaN(p) && p > 0);
+    const hasVariantWithoutCustomPrice = parsedVariants.some(
+      (v) => !v.price || Number(v.price) <= 0
+    );
 
-    if (variantPrices.length > 0) {
+    if (hasVariantWithoutCustomPrice) {
+      // اگر حداقل یک تنوع قیمت مجزا نداشته باشد، باید قیمت پایه معتبر باشد تا قیمت آن تنوع حفظ شود
+      if (Number.isNaN(basePrice) || basePrice <= 0) {
+        throw new Error(
+          "برای تنوع‌هایی که قیمت مجزا ندارند، وارد کردن قیمت پایه محصول الزامی است."
+        );
+      }
+      finalPrice = basePrice;
+    } else {
+      const variantPrices = parsedVariants.map((v) => Number(v.price));
       finalPrice = Math.min(...variantPrices);
     }
   }
 
   if (Number.isNaN(finalPrice) || finalPrice <= 0) {
-    throw new Error("قیمت محصول نامعتبر است. لطفاً قیمت اصلی یا قیمت تنوع‌ها را وارد کنید.");
+    throw new Error("قیمت محصول نامعتبر است. لطفاً قیمت معتبر وارد کنید.");
   }
 
-  finalStock = Number.isNaN(finalStock) || finalStock < 0 ? 0 : Math.floor(finalStock);
+  finalStock =
+    Number.isNaN(finalStock) || finalStock < 0 ? 0 : Math.floor(finalStock);
 
   return { finalPrice, finalStock };
+}
+
+function formatPrismaError(error: unknown): string {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    return "این اسلاگ یا کد محصول (SKU) قبلاً ثبت شده است.";
+  }
+  return error instanceof Error ? error.message : "خطایی در ثبت اطلاعات رخ داد.";
 }
 
 /* =========================
    🟢 CREATE PRODUCT
 ========================= */
-export async function createProduct(formData: FormData) {
+export async function createProduct(formData: FormData): Promise<ActionResult | void> {
   await requirePermission("MANAGE_PRODUCTS");
 
-  const title = formData.get("title") as string;
-  const slug = formData.get("slug") as string;
-  const description = formData.get("description") as string;
+  try {
+    const title = String(formData.get("title") || "").trim();
+    const slug = String(formData.get("slug") || "").trim();
+    const description = String(formData.get("description") || "").trim();
 
-  const skuRaw = formData.get("sku") as string;
-  const sku = skuRaw && skuRaw.trim() !== "" ? skuRaw.trim() : null;
+    const skuRaw = formData.get("sku") as string;
+    const sku = skuRaw && skuRaw.trim() !== "" ? skuRaw.trim() : null;
 
-  const brandIdRaw = formData.get("brandId") as string;
-  const brandId = brandIdRaw && brandIdRaw.trim() !== "" ? brandIdRaw : null;
+    const brandIdRaw = formData.get("brandId") as string;
+    const brandId = brandIdRaw && brandIdRaw.trim() !== "" ? brandIdRaw : null;
 
-  const categoryId = formData.get("categoryId") as string;
-  if (!categoryId) {
-    throw new Error("انتخاب دسته‌بندی الزامی است.");
-  }
+    const categoryId = formData.get("categoryId") as string;
+    if (!categoryId) {
+      return { success: false, message: "انتخاب دسته‌بندی الزامی است." };
+    }
 
-  const offerPriceValue = formData.get("offerPrice");
-  const offerPrice =
-    offerPriceValue && offerPriceValue !== "" ? Number(offerPriceValue) : null;
+    const offerPriceValue = formData.get("offerPrice");
+    const offerPrice =
+      offerPriceValue && offerPriceValue !== "" ? Number(offerPriceValue) : null;
 
-  const offerStartsAtValue = formData.get("offerStartsAt");
-  const offerEndsAtValue = formData.get("offerEndsAt");
+    const offerStartsAtValue = formData.get("offerStartsAt");
+    const offerEndsAtValue = formData.get("offerEndsAt");
 
-  const offerStartsAt =
-    offerStartsAtValue && offerStartsAtValue !== ""
-      ? new Date(offerStartsAtValue as string)
-      : null;
+    const offerStartsAt =
+      offerStartsAtValue && offerStartsAtValue !== ""
+        ? new Date(offerStartsAtValue as string)
+        : null;
 
-  const offerEndsAt =
-    offerEndsAtValue && offerEndsAtValue !== ""
-      ? new Date(offerEndsAtValue as string)
-      : null;
+    const offerEndsAt =
+      offerEndsAtValue && offerEndsAtValue !== ""
+        ? new Date(offerEndsAtValue as string)
+        : null;
 
-  const isActive = formData.get("isActive") === "on";
+    const isActive = formData.get("isActive") === "on";
 
-  const variantsRaw = formData.get("variants") as string;
-  const parsedVariants: VariantInput[] = variantsRaw ? JSON.parse(variantsRaw) : [];
-  const { finalPrice, finalStock } = resolvePriceAndStock(formData, parsedVariants);
+    const variantsRaw = formData.get("variants") as string;
+    const parsedVariants: VariantInput[] = variantsRaw ? JSON.parse(variantsRaw) : [];
+    const { finalPrice, finalStock } = resolvePriceAndStock(formData, parsedVariants);
 
-  const product = await prisma.product.create({
-    data: {
-      title,
-      slug,
-      sku,
-      brandId,
-      description,
-      price: finalPrice,
-      stock: finalStock,
-      categoryId,
-      isActive,
-      offerPrice,
-      offerStartsAt,
-      offerEndsAt,
-      variants: {
-        create: parsedVariants.map((v) => ({
-          name: v.name,
-          sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
-          price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
-          stock: Number(v.stock) || 0,
-        })),
+    const product = await prisma.product.create({
+      data: {
+        title,
+        slug,
+        sku,
+        brandId,
+        description,
+        price: finalPrice,
+        stock: finalStock,
+        categoryId,
+        isActive,
+        offerPrice,
+        offerStartsAt,
+        offerEndsAt,
+        variants: {
+          create: parsedVariants.map((v) => ({
+            name: v.name,
+            sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
+            price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
+            stock: Number(v.stock) || 0,
+          })),
+        },
       },
-    },
-  });
+    });
 
-  await processOrderedImages(formData, product.id);
+    await processOrderedImages(formData, product.id);
+  } catch (error) {
+    return { success: false, message: formatPrismaError(error) };
+  }
 
   revalidatePath("/");
   revalidatePath("/products");
@@ -153,116 +189,125 @@ export async function createProduct(formData: FormData) {
 /* =========================
    🟡 UPDATE PRODUCT
 ========================= */
-export async function updateProduct(id: string, formData: FormData) {
+export async function updateProduct(
+  id: string,
+  formData: FormData
+): Promise<ActionResult | void> {
   await requirePermission("MANAGE_PRODUCTS");
 
-  const title = formData.get("title") as string;
-  const slug = formData.get("slug") as string;
-  const description = formData.get("description") as string;
+  let slug = "";
 
-  const skuRaw = formData.get("sku") as string;
-  const sku = skuRaw && skuRaw.trim() !== "" ? skuRaw.trim() : null;
+  try {
+    const title = String(formData.get("title") || "").trim();
+    slug = String(formData.get("slug") || "").trim();
+    const description = String(formData.get("description") || "").trim();
 
-  const brandIdRaw = formData.get("brandId") as string;
-  const brandId = brandIdRaw && brandIdRaw.trim() !== "" ? brandIdRaw : null;
+    const skuRaw = formData.get("sku") as string;
+    const sku = skuRaw && skuRaw.trim() !== "" ? skuRaw.trim() : null;
 
-  const categoryId = formData.get("categoryId") as string;
-  if (!categoryId) {
-    throw new Error("انتخاب دسته‌بندی الزامی است.");
-  }
+    const brandIdRaw = formData.get("brandId") as string;
+    const brandId = brandIdRaw && brandIdRaw.trim() !== "" ? brandIdRaw : null;
 
-  const offerPriceValue = formData.get("offerPrice");
-  const offerPrice =
-    offerPriceValue && offerPriceValue !== "" ? Number(offerPriceValue) : null;
-
-  const offerStartsAtValue = formData.get("offerStartsAt");
-  const offerEndsAtValue = formData.get("offerEndsAt");
-
-  const offerStartsAt =
-    offerStartsAtValue && offerStartsAtValue !== ""
-      ? new Date(offerStartsAtValue as string)
-      : null;
-
-  const offerEndsAt =
-    offerEndsAtValue && offerEndsAtValue !== ""
-      ? new Date(offerEndsAtValue as string)
-      : null;
-
-  const isActive = formData.get("isActive") === "on";
-
-  const variantsRaw = formData.get("variants") as string;
-  const parsedVariants: VariantInput[] = variantsRaw ? JSON.parse(variantsRaw) : [];
-  const { finalPrice, finalStock } = resolvePriceAndStock(formData, parsedVariants);
-
-  await prisma.$transaction(async (tx) => {
-    await tx.product.update({
-      where: { id },
-      data: {
-        title,
-        slug,
-        sku,
-        brandId,
-        categoryId,
-        description,
-        price: finalPrice,
-        stock: finalStock,
-        isActive,
-        offerPrice,
-        offerStartsAt,
-        offerEndsAt,
-      },
-    });
-
-    const existingVariants = await tx.productVariant.findMany({
-      where: { productId: id },
-      select: { id: true },
-    });
-    const existingIds = new Set(existingVariants.map((v) => v.id));
-
-    const toUpdate = parsedVariants.filter(
-      (v): v is VariantInput & { id: string } =>
-        Boolean(v.id && existingIds.has(v.id))
-    );
-    const toCreate = parsedVariants.filter(
-      (v) => !v.id || !existingIds.has(v.id)
-    );
-    const keptIds = new Set(toUpdate.map((v) => v.id));
-    const idsToDelete = existingVariants
-      .filter((v) => !keptIds.has(v.id))
-      .map((v) => v.id);
-
-    if (idsToDelete.length > 0) {
-      await tx.productVariant.deleteMany({
-        where: { id: { in: idsToDelete } },
-      });
+    const categoryId = formData.get("categoryId") as string;
+    if (!categoryId) {
+      return { success: false, message: "انتخاب دسته‌بندی الزامی است." };
     }
 
-    for (const v of toUpdate) {
-      await tx.productVariant.update({
-        where: { id: v.id },
+    const offerPriceValue = formData.get("offerPrice");
+    const offerPrice =
+      offerPriceValue && offerPriceValue !== "" ? Number(offerPriceValue) : null;
+
+    const offerStartsAtValue = formData.get("offerStartsAt");
+    const offerEndsAtValue = formData.get("offerEndsAt");
+
+    const offerStartsAt =
+      offerStartsAtValue && offerStartsAtValue !== ""
+        ? new Date(offerStartsAtValue as string)
+        : null;
+
+    const offerEndsAt =
+      offerEndsAtValue && offerEndsAtValue !== ""
+        ? new Date(offerEndsAtValue as string)
+        : null;
+
+    const isActive = formData.get("isActive") === "on";
+
+    const variantsRaw = formData.get("variants") as string;
+    const parsedVariants: VariantInput[] = variantsRaw ? JSON.parse(variantsRaw) : [];
+    const { finalPrice, finalStock } = resolvePriceAndStock(formData, parsedVariants);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.product.update({
+        where: { id },
         data: {
-          name: v.name,
-          sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
-          price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
-          stock: Number(v.stock) || 0,
+          title,
+          slug,
+          sku,
+          brandId,
+          categoryId,
+          description,
+          price: finalPrice,
+          stock: finalStock,
+          isActive,
+          offerPrice,
+          offerStartsAt,
+          offerEndsAt,
         },
       });
-    }
 
-    if (toCreate.length > 0) {
-      await tx.productVariant.createMany({
-        data: toCreate.map((v) => ({
-          productId: id,
-          name: v.name,
-          sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
-          price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
-          stock: Number(v.stock) || 0,
-        })),
+      const existingVariants = await tx.productVariant.findMany({
+        where: { productId: id },
+        select: { id: true },
       });
-    }
-  });
+      const existingIds = new Set(existingVariants.map((v) => v.id));
 
-  await processOrderedImages(formData, id);
+      const toUpdate = parsedVariants.filter(
+        (v): v is VariantInput & { id: string } =>
+          Boolean(v.id && existingIds.has(v.id))
+      );
+      const toCreate = parsedVariants.filter(
+        (v) => !v.id || !existingIds.has(v.id)
+      );
+      const keptIds = new Set(toUpdate.map((v) => v.id));
+      const idsToDelete = existingVariants
+        .filter((v) => !keptIds.has(v.id))
+        .map((v) => v.id);
+
+      if (idsToDelete.length > 0) {
+        await tx.productVariant.deleteMany({
+          where: { id: { in: idsToDelete } },
+        });
+      }
+
+      for (const v of toUpdate) {
+        await tx.productVariant.update({
+          where: { id: v.id },
+          data: {
+            name: v.name,
+            sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
+            price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
+            stock: Number(v.stock) || 0,
+          },
+        });
+      }
+
+      if (toCreate.length > 0) {
+        await tx.productVariant.createMany({
+          data: toCreate.map((v) => ({
+            productId: id,
+            name: v.name,
+            sku: v.sku && String(v.sku).trim() !== "" ? String(v.sku).trim() : null,
+            price: v.price && Number(v.price) > 0 ? Number(v.price) : null,
+            stock: Number(v.stock) || 0,
+          })),
+        });
+      }
+    });
+
+    await processOrderedImages(formData, id);
+  } catch (error) {
+    return { success: false, message: formatPrismaError(error) };
+  }
 
   revalidatePath("/");
   revalidatePath("/products");

@@ -1,11 +1,12 @@
 "use client";
 
 import { useCartStore } from "@/stores/cart-store";
+import { useMounted } from "@/hooks/use-mounted";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { MapPin, Truck, CreditCard, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { MapPin, Truck, CreditCard, Plus, ShoppingBag } from "lucide-react";
 
 type Address = {
   id: string;
@@ -30,16 +31,17 @@ type PaymentMethod = {
 };
 
 export default function CheckoutPage() {
+  const mounted = useMounted();
+  const [initializing, setInitializing] = useState(true);
   const [loading, setLoading] = useState(false);
+
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressId, setAddressId] = useState("");
 
-  // فیلدهای داینامیک روش ارسال
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [shippingMethodId, setShippingMethodId] = useState("");
   const [shippingCost, setShippingCost] = useState(0);
 
-  // روش‌های پرداخت
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [paymentMethodCode, setPaymentMethodCode] = useState("");
@@ -53,54 +55,75 @@ export default function CheckoutPage() {
 
   const total = subtotal + shippingCost;
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString("fa-IR") + " تومان";
-  };
+  const formatPrice = (price: number) =>
+    price.toLocaleString("fa-IR") + " تومان";
 
-  // هندلر تغییر روش ارسال و آپدیت خودکار فاکتور مالی با ساختار ایمن ES6
   const handleShippingChange = (methodId: string, price: number) => {
     setShippingMethodId(methodId);
     setShippingCost(price);
   };
 
-  // واکشی هم‌زمان آدرس‌ها، روش‌های ارسال و پرداخت فعال
   useEffect(() => {
-    // ۱. دریافت آدرس‌ها
-    fetch("/api/addresses")
-      .then((r) => r.json())
-      .then((data) => {
-        setAddresses(data);
-        if (data.length > 0) {
-          setAddressId(data[0].id);
-        }
-      });
+    let active = true;
 
-    // ۲. دریافت روش‌های ارسال فعال
-    fetch("/api/shipping-methods")
-      .then((r) => r.json())
-      .then((data) => {
-        setShippingMethods(data);
-        if (data.length > 0) {
-          setShippingMethodId(data[0].id);
-          setShippingCost(Number(data[0].price));
-        }
-      });
+    async function loadCheckoutData() {
+      try {
+        const [addrRes, shipRes, payRes] = await Promise.all([
+          fetch("/api/addresses"),
+          fetch("/api/shipping-methods"),
+          fetch("/api/payment-methods"),
+        ]);
 
-    // ۳. دریافت روش‌های پرداخت فعال
-    fetch("/api/payment-methods")
-      .then((r) => r.json())
-      .then((data) => {
-        setPaymentMethods(data);
-        if (data.length > 0) {
-          setPaymentMethodId(data[0].id);
-          setPaymentMethodCode(data[0].code);
+        if (addrRes.status === 401) {
+          window.location.assign("/login?callbackUrl=/checkout");
+          return;
         }
-      });
+
+        const [addrData, shipData, payData] = await Promise.all([
+          addrRes.ok ? addrRes.json() : [],
+          shipRes.ok ? shipRes.json() : [],
+          payRes.ok ? payRes.json() : [],
+        ]);
+
+        if (!active) return;
+
+        if (Array.isArray(addrData)) {
+          setAddresses(addrData);
+          if (addrData.length > 0) setAddressId(addrData[0].id);
+        }
+
+        if (Array.isArray(shipData)) {
+          setShippingMethods(shipData);
+          if (shipData.length > 0) {
+            setShippingMethodId(shipData[0].id);
+            setShippingCost(Number(shipData[0].price));
+          }
+        }
+
+        if (Array.isArray(payData)) {
+          setPaymentMethods(payData);
+          if (payData.length > 0) {
+            setPaymentMethodId(payData[0].id);
+            setPaymentMethodCode(payData[0].code);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("خطا در بارگذاری اطلاعات تسویه حساب");
+      } finally {
+        if (active) setInitializing(false);
+      }
+    }
+
+    loadCheckoutData();
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function submitOrder() {
     if (!addressId || !shippingMethodId || !paymentMethodId) {
-      toast("لطفاً اطلاعات ارسال و پرداخت را تکمیل کنید.");
+      toast.warning("لطفاً اطلاعات ارسال و پرداخت را تکمیل کنید.");
       return;
     }
 
@@ -108,9 +131,7 @@ export default function CheckoutPage() {
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items,
           addressId,
@@ -123,42 +144,60 @@ export default function CheckoutPage() {
 
       if (!res.ok) {
         toast.error(data.error || "خطا در ثبت سفارش");
-        setLoading(false);
         return;
       }
 
-      // اگر پرداخت آنلاین نبود (پرداخت در محل یا کارت به کارت)، مستقیم برو صفحه سفارش‌ها
       if (paymentMethodCode !== "ONLINE") {
-        toast.success("سفارش شما با موفقیت ثبت شد. جهت هماهنگی‌های بعدی با شما تماس گرفته خواهد شد.");
+        toast.success("سفارش شما با موفقیت ثبت شد.");
         useCartStore.getState().clearCart();
-        window.location.href = "/profile/orders";
+        window.location.assign("/profile/orders");
         return;
       }
 
-      // فرآیند آنلاین: هدایت به درگاه پرداخت آنلاین زرین‌پال
       const paymentRes = await fetch("/api/payment/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          orderId: data.id,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: data.id }),
       });
 
       const payment = await paymentRes.json();
 
-      if (payment.url) {
-        window.location.href = payment.url;
+      if (paymentRes.ok && payment.url) {
+        window.location.assign(payment.url);
       } else {
-        toast.error("خطا در ایجاد درگاه پرداخت آنلاین");
+        toast.error(payment.error || "خطا در ایجاد درگاه پرداخت آنلاین");
       }
     } catch (error) {
       console.error(error);
-      toast.error("خطایی رخ داده است.");
+      toast.error("خطایی در ارتباط با سرور رخ داده است.");
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!mounted || initializing) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center text-xs text-zinc-400">
+        در حال بارگذاری اطلاعات تسویه حساب...
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center text-center max-w-md">
+        <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-full mb-6 text-zinc-400">
+          <ShoppingBag className="w-16 h-16" />
+        </div>
+        <h1 className="text-2xl font-bold text-zinc-800 mb-2">سبد خرید شما خالی است!</h1>
+        <p className="text-xs text-zinc-500 mb-8">
+          برای ادامه فرآیند تسویه حساب، ابتدا محصولی به سبد خرید اضافه کنید.
+        </p>
+        <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8">
+          <Link href="/products">مشاهده محصولات</Link>
+        </Button>
+      </div>
+    );
   }
 
   if (addresses.length === 0) {
@@ -188,11 +227,7 @@ export default function CheckoutPage() {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-
-        {/* ستون راست */}
         <div className="lg:col-span-2 space-y-8">
-
-          {/* بخش ۱: آدرس‌ها */}
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2 mr-1">
               <MapPin className="w-5 h-5 text-blue-600" />
@@ -205,10 +240,11 @@ export default function CheckoutPage() {
                 return (
                   <label
                     key={address.id}
-                    className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${isSelected
+                    className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${
+                      isSelected
                         ? "border-blue-600 bg-blue-50/20 ring-1 ring-blue-600"
                         : "border-zinc-200 hover:border-zinc-300 bg-white"
-                      }`}
+                    }`}
                   >
                     <div className="pt-1">
                       <input
@@ -243,7 +279,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* بخش ۲: انتخاب شیوه ارسال داینامیک */}
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2 mr-1">
               <Truck className="w-5 h-5 text-blue-600" />
@@ -262,10 +297,11 @@ export default function CheckoutPage() {
                   return (
                     <label
                       key={method.id}
-                      className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${isSelected
+                      className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${
+                        isSelected
                           ? "border-blue-600 bg-blue-50/20 ring-1 ring-blue-600"
                           : "border-zinc-200 hover:border-zinc-300 bg-white"
-                        }`}
+                      }`}
                     >
                       <div className="pt-1">
                         <input
@@ -296,7 +332,6 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* بخش ۳: انتخاب روش پرداخت داینامیک */}
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2 mr-1">
               <CreditCard className="w-5 h-5 text-blue-600" />
@@ -314,10 +349,11 @@ export default function CheckoutPage() {
                   return (
                     <label
                       key={method.id}
-                      className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${isSelected
+                      className={`flex items-start gap-4 p-5 border rounded-2xl cursor-pointer transition-all duration-200 ${
+                        isSelected
                           ? "border-blue-600 bg-blue-50/20 ring-1 ring-blue-600"
                           : "border-zinc-200 hover:border-zinc-300 bg-white"
-                        }`}
+                      }`}
                     >
                       <div className="pt-1">
                         <input
@@ -345,10 +381,8 @@ export default function CheckoutPage() {
               </div>
             )}
           </div>
-
         </div>
 
-        {/* ستون چپ: خلاصه فاکتور */}
         <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl lg:sticky lg:top-6 space-y-6">
           <h2 className="text-xl font-bold text-zinc-800 border-b border-zinc-200/60 pb-4">
             فاکتور نهایی
@@ -356,9 +390,12 @@ export default function CheckoutPage() {
 
           <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
             {items.map((item) => (
-              <div key={`${item.id}-${item.variantId || 'base'}`} className="flex justify-between items-center text-xs text-zinc-600">
+              <div key={`${item.id}-${item.variantId || "base"}`} className="flex justify-between items-center text-xs text-zinc-600">
                 <span className="line-clamp-1 flex-1 pl-4">
-                  {item.title} <span className="text-[10px] text-zinc-400">({item.quantity} عدد)</span>
+                  {item.title}{" "}
+                  <span className="text-[10px] text-zinc-400">
+                    ({item.quantity.toLocaleString("fa-IR")} عدد)
+                  </span>
                 </span>
                 <span className="font-semibold text-zinc-800">
                   {formatPrice(item.price * item.quantity)}
@@ -391,10 +428,11 @@ export default function CheckoutPage() {
           <button
             disabled={loading || shippingMethods.length === 0 || paymentMethods.length === 0}
             onClick={submitOrder}
-            className={`w-full flex items-center justify-center text-white font-medium py-3.5 px-4 rounded-xl shadow-sm transition-all duration-200 ${loading || shippingMethods.length === 0 || paymentMethods.length === 0
+            className={`w-full flex items-center justify-center text-white font-medium py-3.5 px-4 rounded-xl shadow-sm transition-all duration-200 ${
+              loading || shippingMethods.length === 0 || paymentMethods.length === 0
                 ? "bg-zinc-400 cursor-not-allowed"
                 : "bg-emerald-600 hover:bg-emerald-700"
-              }`}
+            }`}
           >
             {loading ? (
               <span className="flex items-center gap-2">
@@ -402,7 +440,7 @@ export default function CheckoutPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                در حال انتقال به درگاه...
+                در حال ثبت سفارش...
               </span>
             ) : (
               <span className="flex items-center gap-2 text-xs font-bold">
@@ -412,7 +450,6 @@ export default function CheckoutPage() {
             )}
           </button>
         </div>
-
       </div>
     </div>
   );

@@ -19,6 +19,7 @@ import {
 import { useCartStore } from "@/stores/cart-store";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useMounted } from "@/hooks/use-mounted";
+import { hasPermission } from "@/lib/rbac";
 import { siteConfig } from "@/theme/config";
 
 type Category = {
@@ -38,13 +39,17 @@ export function Navbar() {
   const { user } = useCurrentUser();
   const mounted = useMounted();
 
+  const canAccessAdmin = Boolean(
+    user && hasPermission(user.role, "VIEW_ADMIN_DASHBOARD")
+  );
+
   const count = useCartStore((state) =>
     state.items.reduce((sum, item) => sum + item.quantity, 0)
   );
 
   useEffect(() => {
     fetch("/api/categories")
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         if (Array.isArray(data)) {
           setCategories(data);
@@ -74,6 +79,7 @@ export function Navbar() {
         <button
           className="md:hidden p-1.5 bg-zinc-50 border rounded-xl"
           onClick={() => setOpen(!open)}
+          aria-label="منو"
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -118,10 +124,10 @@ export function Navbar() {
                 <span>حساب من</span>
               </Link>
 
-              {user.role === "ADMIN" && (
+              {canAccessAdmin && (
                 <Link href="/admin" className="hover:text-brand transition flex items-center gap-1">
                   <LayoutDashboard size={16} />
-                  <span>پنل ادمین</span>
+                  <span>پنل مدیریت</span>
                 </Link>
               )}
 
@@ -166,8 +172,8 @@ export function Navbar() {
 
             {showMegaMenu && categories.length > 0 && (
               <div className="absolute right-0 top-full pt-3 w-[720px] z-50 animate-fade-in">
-                <div className="bg-white border border-zinc-150 shadow-xl rounded-2xl overflow-hidden grid grid-cols-4 items-stretch min-h-[300px]">
-                  <div className="col-span-1 bg-zinc-50/80 border-l border-zinc-150 flex flex-col p-2 space-y-1">
+                <div className="bg-white border border-zinc-200 shadow-xl rounded-2xl overflow-hidden grid grid-cols-4 items-stretch min-h-[300px]">
+                  <div className="col-span-1 bg-zinc-50/80 border-l border-zinc-200 flex flex-col p-2 space-y-1">
                     {categories.map((parent) => {
                       const isParentActive = parent.id === activeParentId;
                       return (
@@ -262,10 +268,17 @@ export function Navbar() {
           )}
 
           {user && (
-            <div className="border-t pt-3 flex items-center justify-between">
-              <Link href="/profile" onClick={() => setOpen(false)} className="text-brand">
-                پنل کاربری من
-              </Link>
+            <div className="border-t pt-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <Link href="/profile" onClick={() => setOpen(false)} className="text-brand">
+                  پنل کاربری من
+                </Link>
+                {canAccessAdmin && (
+                  <Link href="/admin" onClick={() => setOpen(false)} className="text-zinc-800">
+                    پنل مدیریت
+                  </Link>
+                )}
+              </div>
               <button onClick={logout} className="text-red-500">
                 خروج از حساب
               </button>

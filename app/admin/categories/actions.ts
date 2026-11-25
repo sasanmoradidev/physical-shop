@@ -4,37 +4,30 @@ import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/rbac-server";
 import { revalidatePath } from "next/cache";
 
-/* =========================
-   🟢 CREATE CATEGORY
-========================= */
-
 export async function createCategory(
   name: string,
   slug: string,
   parentId?: string
 ) {
-  const user = await requirePermission("MANAGE_CATEGORIES");
+  await requirePermission("MANAGE_CATEGORIES");
 
-  // کنترل یکتا بودن اسلاگ
-  const existing = await prisma.category.findUnique({ where: { slug } });
+  const cleanSlug = slug.trim();
+  const existing = await prisma.category.findUnique({ where: { slug: cleanSlug } });
   if (existing) {
-    throw new Error("این اسلاگ قبلاً ثبت شده است.");
+    return { success: false, message: "این اسلاگ قبلاً ثبت شده است." };
   }
 
   await prisma.category.create({
     data: {
-      name,
-      slug,
+      name: name.trim(),
+      slug: cleanSlug,
       parentId: parentId || null,
     },
   });
 
   revalidatePath("/admin/categories");
+  return { success: true, message: "دسته‌بندی جدید با موفقیت ثبت شد." };
 }
-
-/* =========================
-   🟡 UPDATE CATEGORY
-========================= */
 
 export async function updateCategory(
   id: string,
@@ -42,51 +35,49 @@ export async function updateCategory(
   slug: string,
   parentId?: string
 ) {
-  const user = await requirePermission("MANAGE_CATEGORIES");
+  await requirePermission("MANAGE_CATEGORIES");
 
-  // جلوگیری از انتخاب خودِ دسته‌بندی به عنوان والد خودش
   if (parentId === id) {
-    throw new Error("یک دسته‌بندی نمی‌تواند والد خودش باشد.");
+    return { success: false, message: "یک دسته‌بندی نمی‌تواند والد خودش باشد." };
   }
 
+  const cleanSlug = slug.trim();
   const existing = await prisma.category.findFirst({
-    where: {
-      slug,
-      NOT: { id },
-    },
+    where: { slug: cleanSlug, NOT: { id } },
   });
   if (existing) {
-    throw new Error("این اسلاگ توسط دسته‌بندی دیگری استفاده شده است.");
+    return {
+      success: false,
+      message: "این اسلاگ توسط دسته‌بندی دیگری استفاده شده است.",
+    };
   }
 
   await prisma.category.update({
     where: { id },
     data: {
-      name,
-      slug,
+      name: name.trim(),
+      slug: cleanSlug,
       parentId: parentId || null,
     },
   });
 
   revalidatePath("/admin/categories");
+  return { success: true, message: "تغییرات با موفقیت ذخیره شد." };
 }
 
-/* =========================
-   🔴 DELETE CATEGORY
-========================= */
-
 export async function deleteCategory(id: string) {
-  const user = await requirePermission("MANAGE_CATEGORIES");
+  await requirePermission("MANAGE_CATEGORIES");
 
   try {
-    await prisma.category.delete({
-      where: { id },
-    });
+    await prisma.category.delete({ where: { id } });
   } catch (error) {
     console.error(error);
-    // اگر محصولی متصل به این دسته‌بندی باشد، دیتابیس خطا خواهد داد
-    throw new Error("این دسته‌بندی دارای محصولات متصل است و قابل حذف نیست.");
+    return {
+      success: false,
+      message: "این دسته‌بندی دارای محصولات متصل است و قابل حذف نیست.",
+    };
   }
 
   revalidatePath("/admin/categories");
+  return { success: true, message: "دسته‌بندی با موفقیت حذف شد." };
 }

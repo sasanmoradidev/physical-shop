@@ -1,5 +1,5 @@
-// app/admin/orders/[id]/page.tsx
 import { prisma } from "@/lib/prisma";
+import { requirePermission } from "@/lib/rbac-server";
 import { OrderStatus } from "@/components/admin/order-status";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -15,7 +15,6 @@ import {
   ShoppingBag,
   Calendar,
   CheckCircle2,
-  Hash,
   Printer,
 } from "lucide-react";
 
@@ -24,6 +23,7 @@ type Props = {
 };
 
 export default async function OrderDetailPage({ params }: Props) {
+  await requirePermission("MANAGE_ORDERS");
   const { id } = await params;
 
   const order = await prisma.order.findUnique({
@@ -33,7 +33,7 @@ export default async function OrderDetailPage({ params }: Props) {
       items: {
         include: {
           product: true,
-          variant: true
+          variant: true,
         },
       },
     },
@@ -51,7 +51,6 @@ export default async function OrderDetailPage({ params }: Props) {
 
   return (
     <div className="container max-w-5xl mx-auto py-8 px-4 space-y-6 animate-fade-in">
-      {/* هدر صفحه */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-zinc-100">
         <div className="flex items-center gap-3.5">
           <div className="p-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-zinc-700 shadow-sm">
@@ -60,28 +59,32 @@ export default async function OrderDetailPage({ params }: Props) {
           <div>
             <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">جزئیات سفارش</h1>
             <p className="text-xs text-zinc-400 mt-1">
-              شناسه سفارش: <span className="font-mono text-[10px] font-bold bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200 uppercase">{order.id.slice(-8)}</span>
+              شناسه سفارش:{" "}
+              <span className="font-mono text-[10px] font-bold bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200 uppercase">
+                {order.id.slice(-8)}
+              </span>
             </p>
           </div>
         </div>
 
-        <Button variant="default" size="sm" asChild className="w-fit rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
-          <Link target="_blank" href={`/invoice/${order.id}`} className="flex items-center gap-2">
-            <Printer className="h-4 w-4" />
-            <span>چاپ فاکتور</span>
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="default" size="sm" asChild className="w-fit rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
+            <Link target="_blank" href={`/invoice/${order.id}`} className="flex items-center gap-2">
+              <Printer className="h-4 w-4" />
+              <span>چاپ فاکتور</span>
+            </Link>
+          </Button>
 
-        <Button variant="outline" size="sm" asChild className="w-fit rounded-xl border-zinc-200 text-zinc-700">
-          <Link href="/admin/orders" className="flex items-center gap-2">
-            <ArrowRight className="h-4 w-4" />
-            <span>بازگشت به سفارشات</span>
-          </Link>
-        </Button>
+          <Button variant="outline" size="sm" asChild className="w-fit rounded-xl border-zinc-200 text-zinc-700">
+            <Link href="/admin/orders" className="flex items-center gap-2">
+              <ArrowRight className="h-4 w-4" />
+              <span>بازگشت به سفارشات</span>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* ستون راست (اقلام فاکتور) */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
@@ -127,14 +130,15 @@ export default async function OrderDetailPage({ params }: Props) {
             <div className="flex justify-between items-center text-zinc-600 text-sm">
               <span>جمع مبالغ اقلام سبد</span>
               <span className="font-semibold text-zinc-800">
-                {/* کم کردن هزینه ارسال از کل مبلغ برای به دست آوردن قیمت خالص کالاها */}
                 {(Number(order.totalPrice) - Number(order.shippingCost || 0)).toLocaleString("fa-IR")} تومان
               </span>
             </div>
             <div className="flex justify-between items-center text-zinc-600 text-sm mt-3">
               <span>هزینه تحویل و ارسال</span>
               <span className="text-emerald-600 font-medium">
-                {order.shippingCost ? `${Number(order.shippingCost).toLocaleString("fa-IR")} تومان` : "رایگان"}
+                {order.shippingCost && Number(order.shippingCost) > 0
+                  ? `${Number(order.shippingCost).toLocaleString("fa-IR")} تومان`
+                  : "رایگان"}
               </span>
             </div>
             <div className="border-t border-zinc-200/60 my-4" />
@@ -150,7 +154,6 @@ export default async function OrderDetailPage({ params }: Props) {
           </Card>
         </div>
 
-        {/* ستون چپ (وضعیت سفارش و اسنپ‌شات آدرس) */}
         <div className="space-y-6">
           <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
@@ -177,7 +180,6 @@ export default async function OrderDetailPage({ params }: Props) {
             </CardContent>
           </Card>
 
-          {/* کارت اسنپ‌شات آدرس ارسال */}
           <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
               <div className="flex items-center gap-2 text-zinc-800">
@@ -199,7 +201,7 @@ export default async function OrderDetailPage({ params }: Props) {
                 <div className="flex items-start gap-2.5">
                   <Mail className="h-4 w-4 text-zinc-400 flex-shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <span className="text-[9px] text-zinc-400 block">نام کاربری / ایمیل ثبت‌نامی</span>
+                    <span className="text-[9px] text-zinc-400 block">نام کاربری ثبت‌نامی</span>
                     <span className="font-semibold text-zinc-700 block truncate">{order.user.username}</span>
                   </div>
                 </div>

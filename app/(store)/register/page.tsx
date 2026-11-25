@@ -6,9 +6,16 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { UserPlus, User, Phone, Lock, AtSign, ArrowLeft, KeyRound } from "lucide-react";
 
+function getSafeCallbackUrl(url: string | null): string {
+  if (url && url.startsWith("/") && !url.startsWith("//")) {
+    return url;
+  }
+  return "/profile";
+}
+
 function RegisterForm() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/profile";
+  const callbackUrl = getSafeCallbackUrl(searchParams.get("callbackUrl"));
 
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");

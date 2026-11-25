@@ -1,4 +1,3 @@
-// app/admin/users/actions.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -8,59 +7,65 @@ import bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
 import { Prisma, Role } from "@prisma/client";
 
-/* =========================
-   🟢 CREATE USER
-========================= */
+type ActionResult = {
+  success: boolean;
+  message?: string;
+};
 
-export async function createUser(formData: FormData) {
+export async function createUser(formData: FormData): Promise<ActionResult | void> {
   await requirePermission("MANAGE_USERS");
 
-  const name = formData.get("name") as string;
-  const username = formData.get("username") as string;
-  const phone = formData.get("phone") as string;
-  const password = formData.get("password") as string;
+  const name = String(formData.get("name") || "").trim();
+  const username = String(formData.get("username") || "").trim();
+  const phone = String(formData.get("phone") || "").trim();
+  const password = String(formData.get("password") || "");
   const role = formData.get("role") as Role;
 
+  if (!Object.values(Role).includes(role)) {
+    return { success: false, message: "نقش کاربری نامعتبر است." };
+  }
+
   const existingUser = await prisma.user.findFirst({
-    where: {
-      OR: [{ username }, { phone }],
-    },
+    where: { OR: [{ username }, { phone }] },
   });
 
   if (existingUser) {
-    throw new Error("کاربری با این نام کاربری یا شماره موبایل از قبل وجود دارد.");
+    return {
+      success: false,
+      message: "کاربری با این نام کاربری یا شماره موبایل از قبل وجود دارد.",
+    };
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
   await prisma.user.create({
-    data: {
-      name,
-      username,
-      phone,
-      password: hashedPassword,
-      role,
-    },
+    data: { name, username, phone, password: hashedPassword, role },
   });
 
   redirect("/admin/users");
 }
 
-/* =========================
-   🟡 UPDATE USER
-========================= */
-
-export async function updateUser(id: string, formData: FormData) {
+export async function updateUser(
+  id: string,
+  formData: FormData
+): Promise<ActionResult | void> {
   const admin = await requirePermission("MANAGE_USERS");
 
-  const name = formData.get("name") as string;
-  const username = formData.get("username") as string;
-  const phone = formData.get("phone") as string;
-  const password = formData.get("password") as string;
+  const name = String(formData.get("name") || "").trim();
+  const username = String(formData.get("username") || "").trim();
+  const phone = String(formData.get("phone") || "").trim();
+  const password = String(formData.get("password") || "");
   const role = formData.get("role") as Role;
 
+  if (!Object.values(Role).includes(role)) {
+    return { success: false, message: "نقش کاربری نامعتبر است." };
+  }
+
   if (admin.id === id && role !== "ADMIN") {
-    throw new Error("شما مجاز به عزل نقش مدیریت خودتان نیستید.");
+    return {
+      success: false,
+      message: "شما مجاز به عزل نقش مدیریت خودتان نیستید.",
+    };
   }
 
   const existingUser = await prisma.user.findFirst({
@@ -71,78 +76,76 @@ export async function updateUser(id: string, formData: FormData) {
   });
 
   if (existingUser) {
-    throw new Error("این نام کاربری یا شماره موبایل توسط کاربر دیگری استفاده شده است.");
+    return {
+      success: false,
+      message: "این نام کاربری یا شماره موبایل توسط کاربر دیگری استفاده شده است.",
+    };
   }
 
-  const updateData: Prisma.UserUpdateInput = {
-    name,
-    username,
-    phone,
-    role,
-  };
+  const updateData: Prisma.UserUpdateInput = { name, username, phone, role };
 
-  if (password && password.trim() !== "") {
+  if (password.trim() !== "") {
     updateData.password = await bcrypt.hash(password, 10);
   }
 
-  await prisma.user.update({
-    where: { id },
-    data: updateData,
-  });
+  await prisma.user.update({ where: { id }, data: updateData });
 
   redirect("/admin/users");
 }
 
-/* =========================
-   🟡 TOGGLE USER ROLE
-========================= */
-
-export async function toggleUserRole(id: string) {
+export async function toggleUserRole(id: string): Promise<ActionResult> {
   const admin = await requirePermission("MANAGE_USERS");
 
   if (admin.id === id) {
-    throw new Error("شما نمی‌توانید نقش مدیریت خودتان را تغییر دهید.");
+    return {
+      success: false,
+      message: "شما نمی‌توانید نقش مدیریت خودتان را تغییر دهید.",
+    };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id },
-  });
-
+  const user = await prisma.user.findUnique({ where: { id } });
   if (!user) {
-    throw new Error("کاربر یافت نشد.");
+    return { success: false, message: "کاربر یافت نشد." };
   }
 
   const newRole = user.role === "ADMIN" ? "USER" : "ADMIN";
 
   await prisma.user.update({
     where: { id },
-    data: {
-      role: newRole,
-    },
+    data: { role: newRole },
   });
 
   revalidatePath("/admin/users");
+  return {
+    success: true,
+    message:
+      newRole === "ADMIN"
+        ? "کاربر به مدیر سایت ارتقا یافت."
+        : "دسترسی مدیریت از کاربر گرفته شد.",
+  };
 }
 
-/* =========================
-   🔴 DELETE USER
-========================= */
-
-export async function deleteUser(id: string) {
+export async function deleteUser(id: string): Promise<ActionResult> {
   const admin = await requirePermission("MANAGE_USERS");
 
   if (admin.id === id) {
-    throw new Error("شما نمی‌توانید حساب کاربری خودتان را حذف کنید.");
+    return {
+      success: false,
+      message: "شما نمی‌توانید حساب کاربری خودتان را حذف کنید.",
+    };
   }
 
   try {
-    await prisma.user.delete({
-      where: { id },
-    });
+    await prisma.user.delete({ where: { id } });
   } catch (error) {
     console.error(error);
-    throw new Error("این کاربر دارای تاریخچه خرید فعال در سیستم است و امکان حذف آن وجود ندارد.");
+    return {
+      success: false,
+      message:
+        "این کاربر دارای تاریخچه خرید فعال در سیستم است و امکان حذف آن وجود ندارد.",
+    };
   }
 
   revalidatePath("/admin/users");
+  return { success: true, message: "کاربر با موفقیت حذف شد." };
 }

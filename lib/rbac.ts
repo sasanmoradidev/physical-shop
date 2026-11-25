@@ -1,13 +1,13 @@
 export type Permission =
   | "VIEW_ADMIN_DASHBOARD" // مشاهده داشبورد اصلی
-  | "MANAGE_PRODUCTS"      // ایجاد، ویرایش و حذف محصولات و دسته‌بندی‌ها
-  | "MANAGE_CATEGORIES"
-  | "MANAGE_ORDERS"        // مشاهده و تغییر وضعیت سفارشات
-  | "MANAGE_SHIPPING"      // مدیریت روش‌های ارسال و پرداخت
-  | "MANAGE_PAYMENT"      // مدیریت روش‌های ارسال و پرداخت
-  | "MANAGE_USERS";        // مدیریت پرسنل و کاربران
+  | "MANAGE_PRODUCTS"      // ایجاد، ویرایش و حذف محصولات و برندها
+  | "MANAGE_CATEGORIES"    // مدیریت دسته‌بندی‌ها
+  | "MANAGE_ORDERS"        // مشاهده و تغییر وضعیت سفارشات و تراکنش‌ها
+  | "MANAGE_SHIPPING"      // مدیریت روش‌های ارسال
+  | "MANAGE_PAYMENT"       // مدیریت روش‌های پرداخت
+  | "MANAGE_USERS"         // مدیریت پرسنل و کاربران
+  | "MANAGE_SETTINGS";     // مدیریت تنظیمات حساس فروشگاه
 
-// نگاشت نقش‌ها به مجوزهای مجاز
 export const rolePermissions: Record<string, Permission[]> = {
   ADMIN: [
     "VIEW_ADMIN_DASHBOARD",
@@ -17,6 +17,7 @@ export const rolePermissions: Record<string, Permission[]> = {
     "MANAGE_SHIPPING",
     "MANAGE_PAYMENT",
     "MANAGE_USERS",
+    "MANAGE_SETTINGS",
   ],
   SUPPORT: [
     "VIEW_ADMIN_DASHBOARD",
@@ -31,9 +32,6 @@ export const rolePermissions: Record<string, Permission[]> = {
   USER: [],
 };
 
-/**
- * بررسی ساده دسترسی در سمت کلاینت (بدون هیچ ایمپورت سروری)
- */
 export function hasPermission(role: string, permission: Permission): boolean {
   const permissions = rolePermissions[role];
   return permissions ? permissions.includes(permission) : false;

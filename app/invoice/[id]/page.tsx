@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/rbac-server";
+import { hasPermission } from "@/lib/rbac";
 import { PrintButton } from "@/components/admin/print-button";
 import { siteConfig } from "@/theme/config";
 
@@ -10,8 +11,6 @@ type Props = {
 
 export default async function InvoicePage({ params }: Props) {
   const { id } = await params;
-
-  // بررسی دسترسی (فقط ادمین یا خریدارِ همین سفارش حق دیدن فاکتور را دارند)
   const user = await requireAuth();
 
   const order = await prisma.order.findUnique({
@@ -21,7 +20,7 @@ export default async function InvoicePage({ params }: Props) {
       items: {
         include: {
           product: true,
-          variant: true
+          variant: true,
         },
       },
     },
@@ -29,8 +28,8 @@ export default async function InvoicePage({ params }: Props) {
 
   if (!order) notFound();
 
-  // اگر کاربر ادمین نبود و سفارش هم مال خودش نبود، دسترسی مسدود شود
-  if (user.role !== "ADMIN" && order.userId !== user.id) {
+  const canManageOrders = hasPermission(user.role, "MANAGE_ORDERS");
+  if (!canManageOrders && order.userId !== user.id) {
     notFound();
   }
 
@@ -38,13 +37,9 @@ export default async function InvoicePage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-100 print:bg-white p-4 sm:p-8 font-vazirmatn text-gray-900" dir="rtl">
-      {/* دکمه شناور چاپ (در حالت پرینت مخفی می‌شود) */}
       <PrintButton />
 
-      {/* برگه A4 */}
       <div className="max-w-[210mm] mx-auto bg-white p-8 sm:p-12 shadow-md print:shadow-none print:p-0">
-
-        {/* هدر فاکتور */}
         <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-6">
           <div>
             <h1 className="text-2xl font-black mb-2">{siteConfig.name}</h1>
@@ -56,7 +51,6 @@ export default async function InvoicePage({ params }: Props) {
           </div>
         </div>
 
-        {/* مشخصات خریدار */}
         <div className="border border-gray-300 rounded-lg p-4 mb-8">
           <h2 className="text-sm font-bold bg-gray-100 -mx-4 -mt-4 px-4 py-2 mb-4 rounded-t-lg border-b border-gray-300">
             مشخصات خریدار
@@ -70,7 +64,6 @@ export default async function InvoicePage({ params }: Props) {
           </div>
         </div>
 
-        {/* جدول اقلام */}
         <table className="w-full text-sm border-collapse mb-8 text-center">
           <thead>
             <tr className="bg-gray-100 font-bold border-y-2 border-gray-800">
@@ -103,7 +96,6 @@ export default async function InvoicePage({ params }: Props) {
           </tbody>
         </table>
 
-        {/* جمع فاکتور */}
         <div className="flex justify-end">
           <div className="w-1/2 border border-gray-300 rounded-lg overflow-hidden">
             <div className="flex justify-between p-3 text-sm border-b border-gray-200">
@@ -112,7 +104,11 @@ export default async function InvoicePage({ params }: Props) {
             </div>
             <div className="flex justify-between p-3 text-sm border-b border-gray-200">
               <span className="font-semibold text-gray-600">هزینه ارسال:</span>
-              <span>{order.shippingCost ? `${Number(order.shippingCost).toLocaleString("fa-IR")} تومان` : "رایگان"}</span>
+              <span>
+                {order.shippingCost && Number(order.shippingCost) > 0
+                  ? `${Number(order.shippingCost).toLocaleString("fa-IR")} تومان`
+                  : "رایگان"}
+              </span>
             </div>
             <div className="flex justify-between p-4 bg-gray-100 text-base font-black">
               <span>مبلغ نهایی فاکتور:</span>
@@ -121,12 +117,10 @@ export default async function InvoicePage({ params }: Props) {
           </div>
         </div>
 
-        {/* فوتر فاکتور (محل مهر و امضا) */}
         <div className="mt-16 pt-8 border-t border-gray-300 flex justify-between text-sm text-gray-500 font-semibold">
           <div className="text-center w-32">مهر و امضای فروشنده</div>
           <div className="text-center w-32">امضای تحویل‌گیرنده</div>
         </div>
-
       </div>
     </div>
   );

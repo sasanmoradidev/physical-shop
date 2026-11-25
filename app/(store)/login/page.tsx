@@ -5,9 +5,17 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { hasPermission } from "@/lib/rbac";
 
+function getSafeCallbackUrl(url: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith("/") && !url.startsWith("//")) {
+    return url;
+  }
+  return null;
+}
+
 function LoginForm() {
   const searchParams = useSearchParams();
-  const explicitCallback = searchParams.get("callbackUrl");
+  const explicitCallback = getSafeCallbackUrl(searchParams.get("callbackUrl"));
 
   const [loginMode, setLoginMode] = useState<"PASSWORD" | "OTP">("PASSWORD");
   const [otpEnabled, setOtpEnabled] = useState(true);
@@ -190,7 +198,7 @@ function LoginForm() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="username"
+              placeholder="username یا 09123456789"
               className="w-full px-4 py-3 border border-zinc-200 rounded-xl bg-zinc-50/30 focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition text-sm font-medium"
             />
           </div>

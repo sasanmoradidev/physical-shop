@@ -11,25 +11,26 @@ export async function createPaymentMethod(
   isActive: boolean,
   merchantId?: string
 ) {
-  const admin = await requirePermission("MANAGE_PAYMENT");
+  await requirePermission("MANAGE_PAYMENT");
 
-  // کنترل یکتا بودن کد شناسایی روش پرداخت
-  const existing = await prisma.paymentMethod.findUnique({ where: { code } });
+  const upperCode = code.trim().toUpperCase();
+  const existing = await prisma.paymentMethod.findUnique({ where: { code: upperCode } });
   if (existing) {
-    throw new Error("این کد کلیدی قبلاً ثبت شده است.");
+    return { success: false, message: "این کد کلیدی قبلاً ثبت شده است." };
   }
 
   await prisma.paymentMethod.create({
     data: {
-      name,
-      code: code.toUpperCase(),
-      description,
+      name: name.trim(),
+      code: upperCode,
+      description: description.trim(),
       isActive,
-      merchantId: merchantId || null,
+      merchantId: merchantId?.trim() || null,
     },
   });
 
   revalidatePath("/admin/payments");
+  return { success: true, message: "روش پرداخت جدید با موفقیت ثبت شد." };
 }
 
 export async function updatePaymentMethod(
@@ -40,55 +41,61 @@ export async function updatePaymentMethod(
   isActive: boolean,
   merchantId?: string
 ) {
-  const admin = await requirePermission("MANAGE_PAYMENT");
+  await requirePermission("MANAGE_PAYMENT");
 
+  const upperCode = code.trim().toUpperCase();
   const existing = await prisma.paymentMethod.findFirst({
-    where: {
-      code,
-      NOT: { id },
-    },
+    where: { code: upperCode, NOT: { id } },
   });
   if (existing) {
-    throw new Error("این کد کلیدی توسط روش دیگری استفاده شده است.");
+    return {
+      success: false,
+      message: "این کد کلیدی توسط روش دیگری استفاده شده است.",
+    };
   }
 
   await prisma.paymentMethod.update({
     where: { id },
     data: {
-      name,
-      code: code.toUpperCase(),
-      description,
+      name: name.trim(),
+      code: upperCode,
+      description: description.trim(),
       isActive,
-      merchantId: merchantId || null,
+      merchantId: merchantId?.trim() || null,
     },
   });
 
   revalidatePath("/admin/payments");
+  return { success: true, message: "تغییرات با موفقیت ذخیره شد." };
 }
 
 export async function togglePaymentMethod(id: string, currentStatus: boolean) {
-  const admin = await requirePermission("MANAGE_PAYMENT");
+  await requirePermission("MANAGE_PAYMENT");
 
   await prisma.paymentMethod.update({
     where: { id },
-    data: {
-      isActive: !currentStatus,
-    },
+    data: { isActive: !currentStatus },
   });
 
   revalidatePath("/admin/payments");
+  return {
+    success: true,
+    message: !currentStatus ? "روش پرداخت فعال شد." : "روش پرداخت غیرفعال شد.",
+  };
 }
 
 export async function deletePaymentMethod(id: string) {
-  const admin = await requirePermission("MANAGE_PAYMENT");
+  await requirePermission("MANAGE_PAYMENT");
 
   try {
-    await prisma.paymentMethod.delete({
-      where: { id },
-    });
-  } catch (error) {
-    throw new Error("این روش پرداخت در فاکتورهای قبلی ثبت شده و قابل حذف نیست.");
+    await prisma.paymentMethod.delete({ where: { id } });
+  } catch {
+    return {
+      success: false,
+      message: "این روش پرداخت در فاکتورهای قبلی ثبت شده و قابل حذف نیست.",
+    };
   }
 
   revalidatePath("/admin/payments");
+  return { success: true, message: "روش پرداخت با موفقیت حذف شد." };
 }
