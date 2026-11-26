@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import { ShippingManager } from "@/components/admin/shipping-manager";
 import { Truck } from "lucide-react";
 
 export default async function AdminShippingPage() {
-  await requirePermission("MANAGE_SHIPPING");
+  await requirePagePermission("MANAGE_SHIPPING");
 
   const methods = await prisma.shippingMethod.findMany({
     orderBy: { createdAt: "desc" },

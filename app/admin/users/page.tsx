@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import { UserRowActions } from "@/components/admin/user-row-actions";
 import Link from "next/link";
 import { Role } from "@prisma/client";
@@ -24,7 +24,7 @@ type Props = {
 };
 
 export default async function AdminUsersPage({ searchParams }: Props) {
-  const admin = await requirePermission("MANAGE_USERS");
+  const admin = await requirePagePermission("MANAGE_USERS");
   const { q = "", role = "" } = await searchParams;
 
   const validRole =

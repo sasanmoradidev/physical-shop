@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import { PaymentManager } from "@/components/admin/payment-manager";
 import { CreditCard } from "lucide-react";
 
 export default async function AdminPaymentsPage() {
-  await requirePermission("MANAGE_PAYMENT");
+  await requirePagePermission("MANAGE_PAYMENT");
 
   const methods = await prisma.paymentMethod.findMany({
     orderBy: { createdAt: "desc" },

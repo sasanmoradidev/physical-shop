@@ -27,11 +27,11 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
   if (category) {
     canonicalUrl.searchParams.set("category", category);
-    title = `خرید محصولات ${category.replace("-", " ")} | ${siteConfig.title}`;
+    title = `خرید محصولات ${category.replace("-", " ")} | ${siteConfig.name}`;
   }
   if (q) {
     canonicalUrl.searchParams.set("q", q);
-    title = `جستجوی ${q} | ${siteConfig.title}`;
+    title = `جستجوی ${q} | ${siteConfig.name}`;
   }
   if (page && page !== "1") {
     canonicalUrl.searchParams.set("page", page);

@@ -17,6 +17,8 @@ type Props = {
   }>;
 };
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
 /* ==============================================
    🚀 GENERATE DYNAMIC METADATA
 ============================================== */
@@ -40,8 +42,8 @@ export async function generateMetadata(
   });
 
   const imageUrl = product.images?.[0]?.url
-    ? `${process.env.NEXT_PUBLIC_APP_URL}${product.images[0].url}`
-    : `${process.env.NEXT_PUBLIC_APP_URL}/placeholder.png`;
+    ? `${baseUrl}${product.images[0].url}`
+    : `${baseUrl}/placeholder.png`;
 
   return {
     title: `${product.title} | ${siteConfig.name}`,
@@ -49,7 +51,7 @@ export async function generateMetadata(
     openGraph: {
       title: product.title,
       description: `قیمت: ${finalPrice.toLocaleString("fa-IR")} تومان - ${product.description.slice(0, 100)}...`,
-      url: `${process.env.NEXT_PUBLIC_APP_URL}/products/${product.slug}`,
+      url: `${baseUrl}/products/${product.slug}`,
       images: [{ url: imageUrl, width: 500, height: 500, alt: product.title }],
       type: "website",
     },
@@ -102,8 +104,8 @@ export default async function ProductPage({ params }: Props) {
   const finalPriceIRR = finalPriceToman * 10;
 
   const imageUrl = product.images?.[0]?.url
-    ? `${process.env.NEXT_PUBLIC_APP_URL}${product.images[0].url}`
-    : `${process.env.NEXT_PUBLIC_APP_URL}/placeholder.png`;
+    ? `${baseUrl}${product.images[0].url}`
+    : `${baseUrl}/placeholder.png`;
 
   // 👇 ساخت اسکیمای محصول (Product JSON-LD)
   const jsonLd = {
@@ -115,7 +117,7 @@ export default async function ProductPage({ params }: Props) {
     sku: product.sku || product.id,
     offers: {
       "@type": "Offer",
-      url: `${process.env.NEXT_PUBLIC_APP_URL}/products/${product.slug}`,
+      url: `${baseUrl}/products/${product.slug}`,
       priceCurrency: "IRR",
       price: finalPriceIRR,
       priceValidUntil: product.offerEndsAt ? product.offerEndsAt.toISOString().split("T")[0] : undefined,
@@ -133,25 +135,25 @@ export default async function ProductPage({ params }: Props) {
         "@type": "ListItem",
         "position": 1,
         "name": "خانه",
-        "item": `${process.env.NEXT_PUBLIC_APP_URL}`
+        "item": `${baseUrl}`
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "محصولات",
-        "item": `${process.env.NEXT_PUBLIC_APP_URL}/products`
+        "item": `${baseUrl}/products`
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": product.category.name,
-        "item": `${process.env.NEXT_PUBLIC_APP_URL}/products?category=${product.category.slug}`
+        "item": `${baseUrl}/products?category=${product.category.slug}`
       },
       {
         "@type": "ListItem",
         "position": 4,
         "name": product.title,
-        "item": `${process.env.NEXT_PUBLIC_APP_URL}/products/${product.slug}`
+        "item": `${baseUrl}/products/${product.slug}`
       }
     ]
   };

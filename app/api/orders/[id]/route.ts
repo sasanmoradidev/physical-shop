@@ -5,7 +5,6 @@ import { verifyToken } from "@/lib/auth";
 
 export async function GET(
   req: Request,
-  // 👇 اینجا تایپ params باید حتما Promise باشد
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -13,20 +12,22 @@ export async function GET(
     const token = cookieStore.get("token")?.value;
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = await verifyToken(token);
-    
+    let payload;
+    try {
+      payload = await verifyToken(token);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
-    
+
     const order = await prisma.order.findFirst({
       where: {
-        id: id,
-        userId: payload.userId as string,
+        id,
+        userId: payload.userId,
       },
       include: {
         items: {
@@ -40,19 +41,12 @@ export async function GET(
     });
 
     if (!order) {
-      return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     return NextResponse.json(order);
   } catch (error) {
     console.error(error);
-
-    return NextResponse.json(
-      { error: "Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

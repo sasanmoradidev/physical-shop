@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import ProductForm from "@/components/admin/product-form";
 
 export default async function NewProductPage() {
-  await requirePermission("MANAGE_PRODUCTS");
+  await requirePagePermission("MANAGE_PRODUCTS");
 
   const [categories, brands] = await Promise.all([
     prisma.category.findMany({ orderBy: { name: "asc" } }),

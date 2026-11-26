@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export default async function AdminPage() {
-  await requirePermission("VIEW_ADMIN_DASHBOARD");
+  await requirePagePermission("VIEW_ADMIN_DASHBOARD");
 
   const [usersCount, productsCount, ordersCount, salesAgg, latestOrders] =
     await Promise.all([

@@ -9,6 +9,7 @@ import { LightBanner } from "./LightBanner";
 export default async function HomePage() {
   const now = new Date();
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const discountProducts = await prisma.product.findMany({
     where: {
       isActive: true,
@@ -54,10 +55,10 @@ export default async function HomePage() {
     "@context": "https://schema.org",
     "@type": "Store",
     name: siteConfig.name,
-    image: `${process.env.NEXT_PUBLIC_APP_URL}${siteConfig.logo}`,
+    image: `${baseUrl}${siteConfig.logo}`,
     description: siteConfig.description,
-    "@id": `${process.env.NEXT_PUBLIC_APP_URL}`,
-    url: `${process.env.NEXT_PUBLIC_APP_URL}`,
+    "@id": `${baseUrl}`,
+    url: `${baseUrl}`,
     telephone: siteConfig.phone,
     address: {
       "@type": "PostalAddress",

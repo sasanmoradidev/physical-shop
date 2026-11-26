@@ -9,13 +9,15 @@ export async function GET() {
     const token = cookieStore.get("token")?.value;
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = await verifyToken(token);
+    let payload;
+    try {
+      payload = await verifyToken(token);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const orders = await prisma.order.findMany({
       where: {
@@ -36,10 +38,6 @@ export async function GET() {
     return NextResponse.json(orders);
   } catch (error) {
     console.error(error);
-
-    return NextResponse.json(
-      { error: "Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

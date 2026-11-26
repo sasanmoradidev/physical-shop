@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import { CategoryManager } from "@/components/admin/category-manager";
 import { FolderTree } from "lucide-react";
 
 export default async function AdminCategoriesPage() {
-  await requirePermission("MANAGE_CATEGORIES");
+  await requirePagePermission("MANAGE_CATEGORIES");
 
   const categories = await prisma.category.findMany({
     where: { parentId: null },

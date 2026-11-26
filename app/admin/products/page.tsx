@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -25,7 +25,7 @@ type Props = {
 const PAGE_SIZE = 12;
 
 export default async function AdminProductsPage({ searchParams }: Props) {
-  await requirePermission("MANAGE_PRODUCTS");
+  await requirePagePermission("MANAGE_PRODUCTS");
 
   const { page, q, category, sort } = await searchParams;
   const rawPage = Number(page);

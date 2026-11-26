@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import Link from "next/link";
 import { OrderBadge } from "@/components/admin/order-badge";
 import { OrderStatus } from "@prisma/client";
@@ -24,7 +24,7 @@ type Props = {
 };
 
 export default async function AdminOrdersPage({ searchParams }: Props) {
-  await requirePermission("MANAGE_ORDERS");
+  await requirePagePermission("MANAGE_ORDERS");
 
   const { status } = await searchParams;
   const validStatus =

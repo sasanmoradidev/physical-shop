@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import UserForm from "@/components/admin/user-form";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -12,7 +12,7 @@ type Props = {
 };
 
 export default async function EditUserPage({ params }: Props) {
-  await requirePermission("MANAGE_USERS");
+  await requirePagePermission("MANAGE_USERS");
   const { id } = await params;
 
   const user = await prisma.user.findUnique({ where: { id } });

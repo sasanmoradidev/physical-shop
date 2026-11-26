@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import { OrderStatus } from "@/components/admin/order-status";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -23,7 +23,7 @@ type Props = {
 };
 
 export default async function OrderDetailPage({ params }: Props) {
-  await requirePermission("MANAGE_ORDERS");
+  await requirePagePermission("MANAGE_ORDERS");
   const { id } = await params;
 
   const order = await prisma.order.findUnique({

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import ProductForm from "@/components/admin/product-form";
 import { serializeProduct } from "@/lib/mappers/product.mapper";
 import { notFound } from "next/navigation";
@@ -11,7 +11,7 @@ type Props = {
 };
 
 export default async function EditProductPage({ params }: Props) {
-  await requirePermission("MANAGE_PRODUCTS");
+  await requirePagePermission("MANAGE_PRODUCTS");
   const { id } = await params;
 
   const product = await prisma.product.findUnique({

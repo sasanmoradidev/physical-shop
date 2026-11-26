@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import UserForm from "@/components/admin/user-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, UserPlus, Users } from "lucide-react";
 
 export default async function NewUserPage() {
-  await requirePermission("MANAGE_USERS");
+  await requirePagePermission("MANAGE_USERS");
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4 space-y-6 animate-fade-in">

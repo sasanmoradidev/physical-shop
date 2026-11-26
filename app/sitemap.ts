@@ -1,6 +1,9 @@
 import { MetadataRoute } from 'next';
 import { prisma } from "@/lib/prisma";
 
+// export const dynamic = "force-dynamic";// برای کش نبودن صفحه اصلی
+ export const revalidate = 3600;// برای کش نبودن صفحه اصلی
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 

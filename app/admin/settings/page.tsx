@@ -1,11 +1,11 @@
-import { requirePermission } from "@/lib/rbac-server";
+import { requirePagePermission } from "@/lib/rbac-server";
 import { getOtpSetting, updateOtpSetting } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings, ShieldCheck, ToggleLeft, ToggleRight } from "lucide-react";
 
 export default async function AdminSettingsPage() {
-  await requirePermission("MANAGE_SETTINGS");
+  await requirePagePermission("MANAGE_SETTINGS");
 
   const isOtpEnabled = await getOtpSetting();
 
