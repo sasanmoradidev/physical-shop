@@ -38,3 +38,5 @@ export const siteConfig = {
   copyright:
     "© کلیه حقوق این وب‌سایت متعلق به شرکت فروشگاه می‌باشد. هرگونه کپی‌برداری غیرمجاز پیگرد قانونی دارد.",
 };
+
+export type SiteConfig = typeof siteConfig;

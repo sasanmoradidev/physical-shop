@@ -7,7 +7,7 @@ export function LightBanner() {
       <Link href="#" className="block">
         {/* موبایل */}
         <Image
-          src="/uploads/lightbanner02.webp"
+          src="/uploads/lightbanner02.jpg"
           alt="Light Banner"
           width={768}
           height={300}

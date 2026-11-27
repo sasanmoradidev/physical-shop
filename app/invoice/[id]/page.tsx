@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/rbac-server";
 import { hasPermission } from "@/lib/rbac";
+import { getSiteConfig } from "@/lib/site-config";
 import { PrintButton } from "@/components/admin/print-button";
-import { siteConfig } from "@/theme/config";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -13,18 +13,21 @@ export default async function InvoicePage({ params }: Props) {
   const { id } = await params;
   const user = await requireAuth();
 
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: {
-      user: true,
-      items: {
-        include: {
-          product: true,
-          variant: true,
+  const [order, siteConfig] = await Promise.all([
+    prisma.order.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        items: {
+          include: {
+            product: true,
+            variant: true,
+          },
         },
       },
-    },
-  });
+    }),
+    getSiteConfig(),
+  ]);
 
   if (!order) notFound();
 

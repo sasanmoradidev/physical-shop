@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { siteConfig } from "@/theme/config";
+import { getSiteConfig } from "@/lib/site-config";
 import { HeroSwiper } from "./HeroSwiper";
 import { OfferSection } from "./OfferSection";
 import { NewProducts } from "./NewProducts";
@@ -9,22 +9,32 @@ import { LightBanner } from "./LightBanner";
 export default async function HomePage() {
   const now = new Date();
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const discountProducts = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      offerPrice: { not: null },
-      AND: [
-        { OR: [{ offerStartsAt: null }, { offerStartsAt: { lte: now } }] },
-        { OR: [{ offerEndsAt: null }, { offerEndsAt: { gte: now } }] },
-      ],
-    },
-    take: 8,
-    orderBy: { createdAt: "desc" },
-    include: {
-      images: { orderBy: { order: "asc" } },
-    },
-  });
+  const [siteConfig, discountProducts, newProducts] = await Promise.all([
+    getSiteConfig(),
+    prisma.product.findMany({
+      where: {
+        isActive: true,
+        offerPrice: { not: null },
+        AND: [
+          { OR: [{ offerStartsAt: null }, { offerStartsAt: { lte: now } }] },
+          { OR: [{ offerEndsAt: null }, { offerEndsAt: { gte: now } }] },
+        ],
+      },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      include: {
+        images: { orderBy: { order: "asc" } },
+      },
+    }),
+    prisma.product.findMany({
+      where: { isActive: true },
+      take: 10,
+      orderBy: { createdAt: "desc" },
+      include: {
+        images: { orderBy: { order: "asc" } },
+      },
+    }),
+  ]);
 
   const safeDiscountProducts = discountProducts
     .map((p) => ({
@@ -35,15 +45,6 @@ export default async function HomePage() {
     }))
     .filter((p) => p.offerPrice !== null && p.offerPrice < p.price);
 
-  const newProducts = await prisma.product.findMany({
-    where: { isActive: true },
-    take: 10,
-    orderBy: { createdAt: "desc" },
-    include: {
-      images: { orderBy: { order: "asc" } },
-    },
-  });
-
   const safeNewProducts = newProducts.map((p) => ({
     ...p,
     price: p.price.toNumber(),
@@ -51,14 +52,16 @@ export default async function HomePage() {
     images: p.images ?? [],
   }));
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Store",
     name: siteConfig.name,
     image: `${baseUrl}${siteConfig.logo}`,
     description: siteConfig.description,
-    "@id": `${baseUrl}`,
-    url: `${baseUrl}`,
+    "@id": baseUrl,
+    url: baseUrl,
     telephone: siteConfig.phone,
     address: {
       "@type": "PostalAddress",

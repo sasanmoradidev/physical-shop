@@ -1,34 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { Metadata, ResolvingMetadata } from "next";
+import { Metadata } from "next";
+import Link from "next/link";
+import { Tag, FileText, ChevronLeft, Home } from "lucide-react";
 
 import { RelatedProductsSlider } from "@/components/product/related-products-slider";
 import { serializeProduct } from "@/lib/mappers/product.mapper";
 import { ProductGallery } from "@/components/product/product-gallery";
-import { ProductPurchase } from "@/components/product/product-purchase"; // 👈 ایمپورت کامپوننت جدید
+import { ProductPurchase } from "@/components/product/product-purchase";
 import { getFinalPrice } from "@/lib/product-price";
-import { Tag, FileText } from "lucide-react";
-import { ChevronLeft, Home } from "lucide-react";
-import Link from "next/link";
-import { siteConfig } from "@/theme/config";
+import { getSiteConfig } from "@/lib/site-config";
+
 type Props = {
-  params: Promise<{
-    slug: string;
-  }>;
+  params: Promise<{ slug: string }>;
 };
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const [{ slug }, siteConfig] = await Promise.all([params, getSiteConfig()]);
 
-/* ==============================================
-   🚀 GENERATE DYNAMIC METADATA
-============================================== */
-export async function generateMetadata(
-  { params }: Props,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
-  const { slug } = await params;
   const product = await prisma.product.findFirst({
-    where: { slug, isActive: true  },
+    where: { slug, isActive: true },
     include: { images: { orderBy: { order: "asc" } }, variants: true },
   });
 
@@ -41,6 +32,7 @@ export async function generateMetadata(
     offerEndsAt: product.offerEndsAt,
   });
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const imageUrl = product.images?.[0]?.url
     ? `${baseUrl}${product.images[0].url}`
     : `${baseUrl}/placeholder.png`;
@@ -64,18 +56,15 @@ export async function generateMetadata(
   };
 }
 
-/* ==============================================
-   📦 PRODUCT DETAILS PAGE
-============================================== */
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
 
   const product = await prisma.product.findFirst({
-    where: { slug, isActive: true  },
+    where: { slug, isActive: true },
     include: {
       category: true,
       images: { orderBy: { order: "asc" } },
-      variants: true, // 👈 اطمینان از لود تنوع‌ها
+      variants: true,
     },
   });
 
@@ -84,7 +73,11 @@ export default async function ProductPage({ params }: Props) {
   const safeProduct = serializeProduct(product);
 
   const relatedProducts = await prisma.product.findMany({
-    where: { categoryId: product.categoryId, NOT: { id: product.id }, isActive: true  },
+    where: {
+      categoryId: product.categoryId,
+      NOT: { id: product.id },
+      isActive: true,
+    },
     include: {
       images: { orderBy: { order: "asc" } },
       variants: true,
@@ -94,7 +87,6 @@ export default async function ProductPage({ params }: Props) {
 
   const safeRelated = relatedProducts.map(serializeProduct);
 
-  // محاسبه قیمت نهایی برای اسکیما (تبدیل تومان به ریال برای استاندارد جهانی موتورهای جستجو)
   const finalPriceToman = getFinalPrice({
     price: Number(product.price),
     offerPrice: product.offerPrice ? Number(product.offerPrice) : null,
@@ -103,11 +95,11 @@ export default async function ProductPage({ params }: Props) {
   });
   const finalPriceIRR = finalPriceToman * 10;
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const imageUrl = product.images?.[0]?.url
     ? `${baseUrl}${product.images[0].url}`
     : `${baseUrl}/placeholder.png`;
 
-  // 👇 ساخت اسکیمای محصول (Product JSON-LD)
   const jsonLd = {
     "@context": "https://schema.org/",
     "@type": "Product",
@@ -120,54 +112,44 @@ export default async function ProductPage({ params }: Props) {
       url: `${baseUrl}/products/${product.slug}`,
       priceCurrency: "IRR",
       price: finalPriceIRR,
-      priceValidUntil: product.offerEndsAt ? product.offerEndsAt.toISOString().split("T")[0] : undefined,
+      priceValidUntil: product.offerEndsAt
+        ? product.offerEndsAt.toISOString().split("T")[0]
+        : undefined,
       itemCondition: "https://schema.org/NewCondition",
-      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      availability:
+        product.stock > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
     },
   };
 
-  // 👇 ۲. اسکیمای جدید Breadcrumb (مسیر راهنما)
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    "itemListElement": [
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "خانه", item: baseUrl },
+      { "@type": "ListItem", position: 2, name: "محصولات", item: `${baseUrl}/products` },
       {
         "@type": "ListItem",
-        "position": 1,
-        "name": "خانه",
-        "item": `${baseUrl}`
+        position: 3,
+        name: product.category.name,
+        item: `${baseUrl}/products?category=${product.category.slug}`,
       },
       {
         "@type": "ListItem",
-        "position": 2,
-        "name": "محصولات",
-        "item": `${baseUrl}/products`
+        position: 4,
+        name: product.title,
+        item: `${baseUrl}/products/${product.slug}`,
       },
-      {
-        "@type": "ListItem",
-        "position": 3,
-        "name": product.category.name,
-        "item": `${baseUrl}/products?category=${product.category.slug}`
-      },
-      {
-        "@type": "ListItem",
-        "position": 4,
-        "name": product.title,
-        "item": `${baseUrl}/products/${product.slug}`
-      }
-    ]
+    ],
   };
 
   return (
     <>
-      {/* 👇 تزریق اسکیمای محصول به صفحه */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        
       />
-
-      {/* 👇 تزریق اسکیمای Breadcrumb */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
@@ -175,7 +157,6 @@ export default async function ProductPage({ params }: Props) {
 
       <div className="container mx-auto py-8 px-4 max-w-5xl animate-fade-in">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
-
           <ProductGallery images={product.images} productTitle={product.title} />
 
           <div className="space-y-6">
@@ -184,49 +165,43 @@ export default async function ProductPage({ params }: Props) {
               <span>{product.category.name}</span>
             </span>
 
-            {/* نمایش BreadCrumb */}
             <nav className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-6 font-medium bg-zinc-50/50 w-fit px-3 py-1.5 rounded-xl border border-zinc-100">
               <Link href="/" className="hover:text-blue-600 transition flex items-center gap-1">
                 <Home className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">خانه</span>
               </Link>
-
               <ChevronLeft className="w-3.5 h-3.5 text-zinc-300" />
-
               <Link href="/products" className="hover:text-blue-600 transition">
                 محصولات
               </Link>
-
               <ChevronLeft className="w-3.5 h-3.5 text-zinc-300" />
-
-              <Link href={`/products?category=${product.category.slug}`} className="hover:text-blue-600 transition truncate max-w-[80px] sm:max-w-none">
+              <Link
+                href={`/products?category=${product.category.slug}`}
+                className="hover:text-blue-600 transition truncate max-w-[80px] sm:max-w-none"
+              >
                 {product.category.name}
               </Link>
-
               <ChevronLeft className="w-3.5 h-3.5 text-zinc-300" />
-
               <span className="text-zinc-800 font-bold truncate max-w-[120px] sm:max-w-[200px]">
                 {product.title}
               </span>
             </nav>
-            {/*End نمایش BreadCrumb */}
 
             <h1 className="text-xl md:text-2xl font-bold text-zinc-900 tracking-tight leading-8">
               {product.title}
             </h1>
 
-            {/* 👇 فراخوانی کامپوننت کلاینتِ خرید و انتخاب تنوع */}
             <ProductPurchase product={safeProduct} />
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto border-t border-zinc-100 mt-5 space-y-2">
+      <div className="container mx-auto border-t border-zinc-100 mt-5 px-4 space-y-2">
         <h2 className="text-md font-bold text-zinc-800 pt-5 flex items-center gap-1.5 mr-0.5">
           <FileText className="h-4 w-4 text-zinc-400" />
           <span>توضیحات محصول</span>
         </h2>
-        <p className="leading-6 text-md text-zinc-500 font-medium leading-relaxed">
+        <p className="text-md text-zinc-500 font-medium leading-relaxed whitespace-pre-line">
           {product.description}
         </p>
       </div>

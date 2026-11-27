@@ -9,9 +9,9 @@ import {
   Globe,
   Send,
 } from "lucide-react";
-import { siteConfig } from "@/theme/config";
+import type { SiteConfig } from "@/theme/config";
 
-export function Footer() {
+export function Footer({ config }: { config: SiteConfig }) {
   return (
     <footer className="bg-zinc-200 text-zinc-400 border-t border-zinc-300 mt-8">
       <div className="container mx-auto px-4 py-8 border-b border-zinc-300">
@@ -53,18 +53,18 @@ export function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <span className="text-base font-extrabold text-zinc-900 block">{siteConfig.name}</span>
-            <p className="text-[12px] leading-relaxed text-zinc-500">{siteConfig.description}</p>
+            <span className="text-base font-extrabold text-zinc-900 block">{config.name}</span>
+            <p className="text-[12px] leading-relaxed text-zinc-500">{config.description}</p>
             <div className="flex items-center gap-3 pt-2">
               <a
-                href={siteConfig.socials.website}
+                href={config.socials.website}
                 aria-label="وب‌سایت"
                 className="p-2.5 bg-zinc-300 hover:bg-brand hover:text-brand-foreground rounded-xl transition text-zinc-400"
               >
                 <Globe className="h-4 w-4" />
               </a>
               <a
-                href={siteConfig.socials.telegram}
+                href={config.socials.telegram}
                 aria-label="پیام‌رسان"
                 className="p-2.5 bg-zinc-300 hover:bg-brand hover:text-brand-foreground rounded-xl transition text-zinc-400"
               >
@@ -76,7 +76,7 @@ export function Footer() {
           <div className="space-y-4">
             <span className="text-[12px] font-bold text-zinc-800 block">دسترسی سریع</span>
             <ul className="space-y-3 text-[12px] text-zinc-500">
-              {siteConfig.navLinks.map((item) => (
+              {config.navLinks.map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} className="hover:text-zinc-900 transition">
                     {item.label}
@@ -96,15 +96,15 @@ export function Footer() {
             <ul className="space-y-3.5 text-[12px] text-zinc-500">
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-zinc-600 flex-shrink-0" />
-                <span dir="ltr">{siteConfig.phoneDisplay}</span>
+                <span dir="ltr">{config.phoneDisplay}</span>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-zinc-600 flex-shrink-0" />
-                <span>{siteConfig.email}</span>
+                <span>{config.email}</span>
               </li>
               <li className="flex items-start gap-2 leading-relaxed">
                 <MapPin className="h-4 w-4 text-zinc-600 flex-shrink-0 mt-0.5" />
-                <span>{siteConfig.address.full}</span>
+                <span>{config.address.full}</span>
               </li>
             </ul>
           </div>
@@ -124,7 +124,7 @@ export function Footer() {
       </div>
 
       <div className="bg-zinc-950/40 py-5 border-t border-zinc-300/40 text-center">
-        <p className="text-[10px] text-zinc-200 leading-relaxed px-4">{siteConfig.copyright}</p>
+        <p className="text-[10px] text-zinc-200 leading-relaxed px-4">{config.copyright}</p>
       </div>
     </footer>
   );

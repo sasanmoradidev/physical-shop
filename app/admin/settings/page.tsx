@@ -1,5 +1,7 @@
 import { requirePagePermission } from "@/lib/rbac-server";
+import { getSiteConfig } from "@/lib/site-config";
 import { getOtpSetting, updateOtpSetting } from "./actions";
+import { SiteSettingsForm } from "@/components/admin/site-settings-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings, ShieldCheck, ToggleLeft, ToggleRight } from "lucide-react";
@@ -7,7 +9,10 @@ import { Settings, ShieldCheck, ToggleLeft, ToggleRight } from "lucide-react";
 export default async function AdminSettingsPage() {
   await requirePagePermission("MANAGE_SETTINGS");
 
-  const isOtpEnabled = await getOtpSetting();
+  const [isOtpEnabled, siteConfig] = await Promise.all([
+    getOtpSetting(),
+    getSiteConfig(),
+  ]);
 
   async function handleToggle() {
     "use server";
@@ -22,10 +27,13 @@ export default async function AdminSettingsPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">تنظیمات فروشگاه</h1>
-          <p className="text-xs text-zinc-400 mt-1">تنظیمات عمومی، روش‌های احراز هویت و پارامترهای اصلی سیستم</p>
+          <p className="text-xs text-zinc-400 mt-1">
+            مشخصات برند، سئو، اطلاعات تماس، نقشه و تنظیمات احراز هویت سیستم
+          </p>
         </div>
       </div>
 
+      {/* بخش احراز هویت OTP */}
       <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
         <CardHeader className="border-b border-zinc-100 bg-zinc-50/10 pb-4">
           <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
@@ -36,9 +44,11 @@ export default async function AdminSettingsPage() {
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1">
-              <span className="font-bold text-sm text-zinc-800 block">ورود با رمز یکبار مصرف پیامکی (OTP)</span>
+              <span className="font-bold text-sm text-zinc-800 block">
+                ورود با رمز یکبار مصرف پیامکی (OTP)
+              </span>
               <span className="text-xs text-zinc-400 block max-w-lg leading-relaxed">
-                با فعال بودن این گزینه، کاربران می‌توانند به جای نام کاربری و رمز عبور، با وارد کردن شماره همراه و کد تایید دریافتی پیامکی وارد حساب خود شوند. در صورت غیرفعال‌سازی، تب OTP در صفحه لاگین سایت مخفی خواهد شد.
+                با فعال بودن این گزینه، کاربران می‌توانند با وارد کردن شماره همراه و کد تایید پیامکی وارد حساب خود شوند. در صورت غیرفعال‌سازی، تب OTP در صفحه لاگین مخفی خواهد شد.
               </span>
             </div>
 
@@ -68,6 +78,9 @@ export default async function AdminSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* فرم کامل تنظیمات سایت (SiteConfig) */}
+      <SiteSettingsForm initialConfig={siteConfig} />
     </div>
   );
 }

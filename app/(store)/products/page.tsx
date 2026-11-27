@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ProductCard } from "@/theme/product/ProductCard";
 import { ProductFilters } from "@/components/product/product-filters";
 import { ProductPagination } from "@/components/product/product-pagination";
-import { siteConfig } from "@/theme/config";
+import { getSiteConfig } from "@/lib/site-config";
 import { Metadata } from "next";
 
 type Props = {
@@ -18,11 +18,15 @@ type Props = {
 const PAGE_SIZE = 15;
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const { category, q, page } = await searchParams;
+  const [{ category, q, page }, siteConfig] = await Promise.all([
+    searchParams,
+    getSiteConfig(),
+  ]);
+
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const canonicalUrl = new URL(`${baseUrl}/products`);
 
-  let title = siteConfig.name;
+  let title = `محصولات | ${siteConfig.name}`;
   const description = siteConfig.description;
 
   if (category) {
@@ -90,20 +94,21 @@ export default async function ProductsPage({ searchParams }: Props) {
         ? { price: "desc" as const }
         : { createdAt: "desc" as const };
 
-  const products = await prisma.product.findMany({
-    where,
-    include: {
-      images: { orderBy: { order: "asc" } },
-      category: true,
-    },
-    orderBy,
-    skip: (currentPage - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
-  });
-
-  const categories = await prisma.category.findMany({
-    orderBy: { name: "asc" },
-  });
+  const [products, categories] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: {
+        images: { orderBy: { order: "asc" } },
+        category: true,
+      },
+      orderBy,
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.category.findMany({
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="container mx-auto py-10 px-4 space-y-8 animate-fade-in">

@@ -20,7 +20,7 @@ import { useCartStore } from "@/stores/cart-store";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useMounted } from "@/hooks/use-mounted";
 import { hasPermission } from "@/lib/rbac";
-import { siteConfig } from "@/theme/config";
+import type { SiteConfig } from "@/theme/config";
 
 type Category = {
   id: string;
@@ -29,7 +29,7 @@ type Category = {
   subcategories?: Category[];
 };
 
-export function Navbar() {
+export function Navbar({ config }: { config: SiteConfig }) {
   const [open, setOpen] = useState(false);
   const [showMegaMenu, setShowMegaMenu] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -86,8 +86,8 @@ export function Navbar() {
 
         <Link href="/" className="shrink-0 flex items-center">
           <Image
-            src={siteConfig.logo}
-            alt={siteConfig.name}
+            src={config.logo}
+            alt={config.name}
             width={160}
             height={50}
             priority
@@ -223,7 +223,7 @@ export function Navbar() {
             )}
           </div>
 
-          {siteConfig.navLinks.map((item) => (
+          {config.navLinks.map((item) => (
             <Link key={item.href} className="hover:text-zinc-900 transition py-1" href={item.href}>
               {item.label}
             </Link>
@@ -243,7 +243,7 @@ export function Navbar() {
             />
           </form>
 
-          {siteConfig.navLinks.map((item) => (
+          {config.navLinks.map((item) => (
             <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
               {item.label}
             </Link>
