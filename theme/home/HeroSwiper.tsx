@@ -17,39 +17,31 @@ export function HeroSwiper() {
         loop
         className="w-full"
       >
+
         <SwiperSlide>
-          <div className="relative w-full h-[180px] sm:h-[280px] md:h-[400px] lg:h-[450px]">
+          <div className="relative w-full h-[75vh] md:h-auto md:aspect-[3061/1369]">
+            {/* عکس مخصوص دسکتاپ (3061x1369) */}
             <Image
               src="/uploads/slide01.jpg"
-              alt="Hero banner"
+              alt="Hero banner desktop"
               fill
               priority
-              className="object-cover"
+              sizes="100vw"
+              className="hidden md:block object-cover"
+            />
+
+            {/* عکس مخصوص موبایل (1376x3027) */}
+            <Image
+              src="/uploads/slide01-mobile.jpg" // آدرس عکس موبایل را اینجا بگذارید
+              alt="Hero banner mobile"
+              fill
+              priority
+              sizes="100vw"
+              className="block md:hidden object-cover"
             />
           </div>
         </SwiperSlide>
 
-        <SwiperSlide>
-          <div className="relative w-full h-[180px] sm:h-[280px] md:h-[400px] lg:h-[450px]">
-            <Image
-              src="/uploads/slide02.jpg"
-              alt="Hero banner"
-              fill
-              className="object-cover"
-            />
-          </div>
-        </SwiperSlide>
-
-        <SwiperSlide>
-          <div className="relative w-full h-[180px] sm:h-[280px] md:h-[400px] lg:h-[450px]">
-            <Image
-              src="/uploads/slide03.jpg"
-              alt="Hero banner"
-              fill
-              className="object-cover"
-            />
-          </div>
-        </SwiperSlide>
       </Swiper>
     </div>
   );

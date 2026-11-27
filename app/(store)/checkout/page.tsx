@@ -147,6 +147,14 @@ export default function CheckoutPage() {
         return;
       }
 
+      // ۱. پرداخت کارت به کارت -> انتقال به صفحه ثبت رسید
+      if (paymentMethodCode === "CARD") {
+        useCartStore.getState().clearCart();
+        window.location.assign(`/payment/card/${data.id}`);
+        return;
+      }
+
+      // ۲. پرداخت در محل یا سایر روش‌های غیرآنلاین
       if (paymentMethodCode !== "ONLINE") {
         toast.success("سفارش شما با موفقیت ثبت شد.");
         useCartStore.getState().clearCart();
@@ -154,6 +162,7 @@ export default function CheckoutPage() {
         return;
       }
 
+      // ۳. درگاه پرداخت آنلاین
       const paymentRes = await fetch("/api/payment/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -444,7 +453,11 @@ export default function CheckoutPage() {
               </span>
             ) : (
               <span className="flex items-center gap-2 text-xs font-bold">
-                <span>پرداخت و ثبت نهایی سفارش</span>
+                <span>
+                  {paymentMethodCode === "CARD"
+                    ? "ثبت سفارش و انتقال به صفحه کارت به کارت"
+                    : "پرداخت و ثبت نهایی سفارش"}
+                </span>
                 <CreditCard className="w-4 h-4" />
               </span>
             )}

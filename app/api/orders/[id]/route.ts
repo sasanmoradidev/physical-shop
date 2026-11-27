@@ -30,6 +30,9 @@ export async function GET(
         userId: payload.userId,
       },
       include: {
+        paymentMethod: {
+          select: { code: true, name: true },
+        },
         items: {
           include: {
             product: true,

@@ -52,6 +52,7 @@ export function OrderStatus({
       className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-xs font-semibold bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition disabled:opacity-50"
     >
       <option value="PENDING">در انتظار پرداخت</option>
+      <option value="AWAITING_VERIFICATION">در انتظار تایید رسید</option>
       <option value="PAID">پرداخت شده</option>
       <option value="PROCESSING">در حال پردازش</option>
       <option value="SHIPPED">ارسال شده</option>

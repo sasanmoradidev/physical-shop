@@ -12,7 +12,9 @@ export default async function AdminTransactionsPage() {
       OR: [
         { status: "PAID" },
         { status: "PENDING" },
+        { status: "AWAITING_VERIFICATION" },
         { authority: { not: null } },
+        { receiptTrackingCode: { not: null } },
       ],
     },
     orderBy: { createdAt: "desc" },
@@ -31,7 +33,7 @@ export default async function AdminTransactionsPage() {
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">تاریخچه تراکنش‌های مالی</h1>
           <p className="text-xs text-zinc-400 mt-1">
-            مدیریت و نظارت بر تراکنش‌های درگاه بانکی و کدهای پیگیری خریدها ({orders.length.toLocaleString("fa-IR")} تراکنش)
+            مدیریت و نظارت بر تراکنش‌های آنلاین و کارت به کارت ({orders.length.toLocaleString("fa-IR")} تراکنش)
           </p>
         </div>
       </div>
@@ -76,16 +78,16 @@ export default async function AdminTransactionsPage() {
                       </div>
 
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-zinc-400">کد رهگیری (RefID):</span>
+                        <span className="text-[10px] text-zinc-400">کد رهگیری:</span>
                         <span className="font-mono font-bold text-zinc-700">
-                          {order.refId || "ندارد (ثبت‌نشده)"}
+                          {order.refId || order.receiptTrackingCode || "ندارد (ثبت‌نشده)"}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] text-zinc-400">Authority:</span>
                         <span className="font-mono text-xs text-zinc-600 truncate max-w-[150px]">
-                          {order.authority || "ندارد"}
+                          {order.authority || "—"}
                         </span>
                       </div>
                     </div>

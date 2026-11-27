@@ -4,12 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/rbac-server";
 import { revalidatePath } from "next/cache";
 
+type CardInfo = {
+  cardNumber?: string;
+  cardHolder?: string;
+  bankName?: string;
+};
+
 export async function createPaymentMethod(
   name: string,
   code: string,
   description: string,
   isActive: boolean,
-  merchantId?: string
+  merchantId?: string,
+  cardInfo?: CardInfo
 ) {
   await requirePermission("MANAGE_PAYMENT");
 
@@ -25,7 +32,10 @@ export async function createPaymentMethod(
       code: upperCode,
       description: description.trim(),
       isActive,
-      merchantId: merchantId?.trim() || null,
+      merchantId: upperCode === "ONLINE" ? merchantId?.trim() || null : null,
+      cardNumber: upperCode === "CARD" ? cardInfo?.cardNumber?.trim() || null : null,
+      cardHolder: upperCode === "CARD" ? cardInfo?.cardHolder?.trim() || null : null,
+      bankName: upperCode === "CARD" ? cardInfo?.bankName?.trim() || null : null,
     },
   });
 
@@ -39,7 +49,8 @@ export async function updatePaymentMethod(
   code: string,
   description: string,
   isActive: boolean,
-  merchantId?: string
+  merchantId?: string,
+  cardInfo?: CardInfo
 ) {
   await requirePermission("MANAGE_PAYMENT");
 
@@ -61,7 +72,10 @@ export async function updatePaymentMethod(
       code: upperCode,
       description: description.trim(),
       isActive,
-      merchantId: merchantId?.trim() || null,
+      merchantId: upperCode === "ONLINE" ? merchantId?.trim() || null : null,
+      cardNumber: upperCode === "CARD" ? cardInfo?.cardNumber?.trim() || null : null,
+      cardHolder: upperCode === "CARD" ? cardInfo?.cardHolder?.trim() || null : null,
+      bankName: upperCode === "CARD" ? cardInfo?.bankName?.trim() || null : null,
     },
   });
 

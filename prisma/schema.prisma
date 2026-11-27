@@ -144,6 +144,9 @@ model PaymentMethod {
   description String?  // توضیحات راهنما برای خریدار
   isActive    Boolean  @default(true)
   merchantId  String?
+  cardNumber  String?  // شماره کارت ۱۶ رقمی (برای CARD)
+  cardHolder  String?  // نام صاحب کارت
+  bankName    String?  // نام بانک
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   orders      Order[]
@@ -194,6 +197,11 @@ model Order {
   @@index([userId])
   @@index([status, createdAt(sort: Desc)])
   @@index([authority])
+
+  receiptImage        String?
+  receiptTrackingCode String?
+  receiptNote         String?
+  receiptSubmittedAt  DateTime?
 }
 
 model OrderItem {
@@ -219,6 +227,7 @@ enum Role {
 
 enum OrderStatus {
   PENDING
+  AWAITING_VERIFICATION
   PAID
   PROCESSING
   SHIPPED

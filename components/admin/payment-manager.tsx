@@ -19,6 +19,9 @@ type PaymentMethod = {
   description: string | null;
   isActive: boolean;
   merchantId?: string | null;
+  cardNumber?: string | null;
+  cardHolder?: string | null;
+  bankName?: string | null;
 };
 
 type Props = {
@@ -34,6 +37,9 @@ export function PaymentManager({ initialMethods }: Props) {
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [merchantId, setMerchantId] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
+  const [bankName, setBankName] = useState("");
 
   const [isPending, startTransition] = useTransition();
 
@@ -44,6 +50,9 @@ export function PaymentManager({ initialMethods }: Props) {
     setDescription(method.description || "");
     setIsActive(method.isActive);
     setMerchantId(method.merchantId || "");
+    setCardNumber(method.cardNumber || "");
+    setCardHolder(method.cardHolder || "");
+    setBankName(method.bankName || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -54,6 +63,9 @@ export function PaymentManager({ initialMethods }: Props) {
     setDescription("");
     setIsActive(true);
     setMerchantId("");
+    setCardNumber("");
+    setCardHolder("");
+    setBankName("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -64,13 +76,25 @@ export function PaymentManager({ initialMethods }: Props) {
       return;
     }
 
-    if (code.trim().toUpperCase() === "ONLINE" && !merchantId.trim()) {
+    const upperCode = code.trim().toUpperCase();
+
+    if (upperCode === "ONLINE" && !merchantId.trim()) {
       toast.warning("برای روش پرداخت آنلاین، وارد کردن شناسه پذیرنده (Merchant ID) الزامی است.");
+      return;
+    }
+
+    if (upperCode === "CARD" && (!cardNumber.trim() || !cardHolder.trim())) {
+      toast.warning("برای روش کارت به کارت، وارد کردن شماره کارت و نام صاحب کارت الزامی است.");
       return;
     }
 
     startTransition(async () => {
       try {
+        const cardInfo =
+          upperCode === "CARD"
+            ? { cardNumber, cardHolder, bankName }
+            : undefined;
+
         const result =
           isEditMode && selectedMethod
             ? await updatePaymentMethod(
@@ -79,14 +103,16 @@ export function PaymentManager({ initialMethods }: Props) {
                 code,
                 description,
                 isActive,
-                code.trim().toUpperCase() === "ONLINE" ? merchantId : undefined
+                upperCode === "ONLINE" ? merchantId : undefined,
+                cardInfo
               )
             : await createPaymentMethod(
                 name,
                 code,
                 description,
                 isActive,
-                code.trim().toUpperCase() === "ONLINE" ? merchantId : undefined
+                upperCode === "ONLINE" ? merchantId : undefined,
+                cardInfo
               );
 
         if (result.success) {
@@ -123,6 +149,8 @@ export function PaymentManager({ initialMethods }: Props) {
     });
   };
 
+  const upperCode = code.trim().toUpperCase();
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start animate-fade-in">
       <Card className="border-zinc-100 shadow-sm rounded-2xl bg-white">
@@ -139,7 +167,7 @@ export function PaymentManager({ initialMethods }: Props) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                placeholder="مثال: پرداخت آنلاین، کارت به کارت"
+                placeholder="مثال: پرداخت کارت به کارت"
                 className="w-full px-4 py-3 border border-zinc-200 rounded-xl bg-zinc-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-xs font-semibold"
               />
             </div>
@@ -150,12 +178,13 @@ export function PaymentManager({ initialMethods }: Props) {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 required
-                placeholder="مثال: ONLINE یا COD یا CARD"
+                dir="ltr"
+                placeholder="CARD یا ONLINE یا COD"
                 className="w-full px-4 py-3 border border-zinc-200 rounded-xl bg-zinc-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-xs font-mono font-bold"
               />
             </div>
 
-            {code.trim().toUpperCase() === "ONLINE" && (
+            {upperCode === "ONLINE" && (
               <div className="animate-fade-in">
                 <label className="block text-[10px] font-bold text-red-500 mb-2">
                   شناسه پذیرنده درگاه (Merchant ID)
@@ -164,9 +193,49 @@ export function PaymentManager({ initialMethods }: Props) {
                   value={merchantId}
                   onChange={(e) => setMerchantId(e.target.value)}
                   required
+                  dir="ltr"
                   placeholder="00000000-0000-0000-0000-000000000000"
                   className="w-full px-4 py-3 border border-red-200 rounded-xl bg-red-50/10 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition text-xs font-mono font-bold text-red-600 placeholder:text-red-300"
                 />
+              </div>
+            )}
+
+            {upperCode === "CARD" && (
+              <div className="space-y-3 p-4 rounded-2xl bg-blue-50/40 border border-blue-100 animate-fade-in">
+                <p className="text-[11px] font-bold text-blue-700">مشخصات کارت بانکی مقصد</p>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-500 mb-1.5">شماره کارت ۱۶ رقمی</label>
+                  <input
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(e.target.value)}
+                    required
+                    dir="ltr"
+                    placeholder="6037-9912-3456-7890"
+                    className="w-full px-3.5 py-2.5 border border-blue-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-xs font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-500 mb-1.5">نام و نام خانوادگی صاحب کارت</label>
+                  <input
+                    value={cardHolder}
+                    onChange={(e) => setCardHolder(e.target.value)}
+                    required
+                    placeholder="مثال: علی محمدی"
+                    className="w-full px-3.5 py-2.5 border border-blue-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-xs font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-500 mb-1.5">نام بانک (اختیاری)</label>
+                  <input
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    placeholder="مثال: بانک ملی ایران"
+                    className="w-full px-3.5 py-2.5 border border-blue-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-xs font-semibold"
+                  />
+                </div>
               </div>
             )}
 
@@ -272,9 +341,18 @@ export function PaymentManager({ initialMethods }: Props) {
                       <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
                         توضیحات: {method.description || "ثبت‌نشده"}
                       </p>
+
                       {method.merchantId && (
                         <p className="text-[9px] text-zinc-400 font-mono tracking-wide">
                           مرچنت فعال: {method.merchantId}
+                        </p>
+                      )}
+
+                      {method.cardNumber && (
+                        <p className="text-[10px] text-blue-600 font-semibold">
+                          کارت: <span className="font-mono" dir="ltr">{method.cardNumber}</span>
+                          {method.cardHolder ? ` (${method.cardHolder})` : ""}
+                          {method.bankName ? ` - ${method.bankName}` : ""}
                         </p>
                       )}
                     </div>

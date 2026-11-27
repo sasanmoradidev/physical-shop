@@ -17,6 +17,8 @@ import {
   Phone,
   Hash,
   Printer,
+  Upload,
+  FileImage,
 } from "lucide-react";
 
 type Order = {
@@ -31,6 +33,13 @@ type Order = {
   shippingProvince: string;
   shippingAddressLine: string;
   shippingPostalCode: string;
+  receiptImage?: string | null;
+  receiptTrackingCode?: string | null;
+  receiptNote?: string | null;
+  paymentMethod?: {
+    code: string;
+    name: string;
+  } | null;
   items: {
     id: string;
     quantity: number;
@@ -117,6 +126,7 @@ export default function OrderDetailPage() {
     ? new Date(order.createdAt).toLocaleDateString("fa-IR")
     : "";
   const shippingCostNum = Number(order.shippingCost || 0);
+  const isCardPayment = order.paymentMethod?.code === "CARD";
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -239,7 +249,21 @@ export default function OrderDetailPage() {
                 <OrderBadge status={order.status} />
               </div>
 
-              {order.status === "PENDING" && (
+              {order.status === "PENDING" && isCardPayment && (
+                <div className="pt-2 border-t border-zinc-100">
+                  <Button
+                    asChild
+                    className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-10 flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <Link href={`/payment/card/${order.id}`}>
+                      <Upload className="h-4 w-4" />
+                      <span>ثبت رسید کارت به کارت</span>
+                    </Link>
+                  </Button>
+                </div>
+              )}
+
+              {order.status === "PENDING" && !isCardPayment && (
                 <div className="pt-2 border-t border-zinc-100">
                   <Button
                     disabled={repaying}
@@ -253,6 +277,56 @@ export default function OrderDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* نمایش رسید ارسالی کاربر در صورت وجود */}
+          {(order.receiptImage || order.receiptTrackingCode) && (
+            <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
+              <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
+                <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
+                  <FileImage className="h-4.5 w-4.5 text-indigo-600" />
+                  <span>رسید کارت به کارت ارسالی</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-5 space-y-4 text-xs">
+                {order.receiptImage && (
+                  <a
+                    href={order.receiptImage}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-xl overflow-hidden border border-zinc-200 bg-zinc-50 p-2 hover:opacity-90 transition"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={order.receiptImage}
+                      alt="رسید پرداخت"
+                      className="max-h-48 w-full object-contain rounded-lg"
+                    />
+                  </a>
+                )}
+
+                {order.receiptTrackingCode && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400">شماره پیگیری:</span>
+                    <span className="font-mono font-bold text-zinc-800">
+                      {order.receiptTrackingCode}
+                    </span>
+                  </div>
+                )}
+
+                {order.receiptNote && (
+                  <p className="text-zinc-500 bg-zinc-50 p-3 rounded-xl leading-relaxed">
+                    {order.receiptNote}
+                  </p>
+                )}
+
+                {order.status === "AWAITING_VERIFICATION" && (
+                  <Button variant="outline" size="sm" asChild className="w-full rounded-xl text-xs">
+                    <Link href={`/payment/card/${order.id}`}>ویرایش یا ارسال مجدد رسید</Link>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">

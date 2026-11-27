@@ -48,6 +48,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const filterButtons = [
     { label: "همه سفارش‌ها", status: undefined, href: "/admin/orders" },
     { label: "در انتظار پرداخت", status: "PENDING", href: "/admin/orders?status=PENDING" },
+    { label: "در انتظار تایید رسید", status: "AWAITING_VERIFICATION", href: "/admin/orders?status=AWAITING_VERIFICATION" },
     { label: "پرداخت شده", status: "PAID", href: "/admin/orders?status=PAID" },
     { label: "در حال پردازش", status: "PROCESSING", href: "/admin/orders?status=PROCESSING" },
     { label: "ارسال شده", status: "SHIPPED", href: "/admin/orders?status=SHIPPED" },

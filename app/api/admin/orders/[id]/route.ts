@@ -49,7 +49,7 @@ export async function PATCH(
         return existingOrder;
       }
 
-      // اگر سفارش لغو شد -> موجودی اقلام به انبار برگردانده شود
+      // لغو سفارش -> بازگشت موجودی به انبار
       if (existingOrder.status !== "CANCELLED" && newStatus === "CANCELLED") {
         for (const item of existingOrder.items) {
           if (item.variantId) {
@@ -65,7 +65,7 @@ export async function PATCH(
         }
       }
 
-      // اگر سفارش لغوشده دوباره فعال شد -> بررسی و کسر مجدد موجودی از انبار
+      // فعال‌سازی مجدد سفارش لغوشده -> کسر مجدد موجودی
       if (existingOrder.status === "CANCELLED" && newStatus !== "CANCELLED") {
         for (const item of existingOrder.items) {
           if (item.variantId) {
@@ -89,7 +89,18 @@ export async function PATCH(
 
       return await tx.order.update({
         where: { id },
-        data: { status: newStatus },
+        data: {
+          status: newStatus,
+          ...(newStatus === "PAID"
+            ? {
+                paidAt: existingOrder.paidAt ?? new Date(),
+                refId:
+                  existingOrder.refId ||
+                  existingOrder.receiptTrackingCode ||
+                  null,
+              }
+            : {}),
+        },
       });
     });
 

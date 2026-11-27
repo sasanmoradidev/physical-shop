@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requirePagePermission } from "@/lib/rbac-server";
 import { OrderStatus } from "@/components/admin/order-status";
+import { ReceiptReviewCard } from "@/components/admin/receipt-review-card";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,12 @@ export default async function OrderDetailPage({ params }: Props) {
     minute: "2-digit",
   });
 
+  const receiptSubmittedLabel = order.receiptSubmittedAt
+    ? `${new Date(order.receiptSubmittedAt).toLocaleDateString("fa-IR")} - ${new Date(
+        order.receiptSubmittedAt
+      ).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}`
+    : null;
+
   return (
     <div className="container max-w-5xl mx-auto py-8 px-4 space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-zinc-100">
@@ -86,6 +93,18 @@ export default async function OrderDetailPage({ params }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 space-y-6">
+          {/* کارت بررسی رسید کارت به کارت (در صورت ثبت رسید توسط مشتری) */}
+          {(order.receiptImage || order.receiptTrackingCode) && (
+            <ReceiptReviewCard
+              orderId={order.id}
+              status={order.status}
+              receiptImage={order.receiptImage}
+              receiptTrackingCode={order.receiptTrackingCode}
+              receiptNote={order.receiptNote}
+              receiptSubmittedAt={receiptSubmittedLabel}
+            />
+          )}
+
           <Card className="border-zinc-100 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardHeader className="border-b border-zinc-50 bg-zinc-50/20 pb-4">
               <div className="flex items-center gap-2 text-zinc-800">
