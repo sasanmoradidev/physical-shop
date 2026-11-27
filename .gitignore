@@ -42,3 +42,10 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# Dynamic admin uploads (keep static banners & default logo in git)
+/public/uploads/products/*
+!/public/uploads/products/.gitkeep
+/public/uploads/logo-*.png
+/public/uploads/logo-*.jpg
+/public/uploads/logo-*.webp
