@@ -52,3 +52,6 @@ next-env.d.ts
 
 # Private uploaded payment receipts
 /private-uploads/
+
+/public/uploads/home/*
+!/public/uploads/home/.gitkeep

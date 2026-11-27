@@ -13,6 +13,8 @@ const ADMIN_ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/admin/payments", permission: "MANAGE_PAYMENT" },
   { prefix: "/admin/users", permission: "MANAGE_USERS" },
   { prefix: "/admin/settings", permission: "MANAGE_SETTINGS" },
+  { prefix: "/admin/homepage", permission: "MANAGE_PRODUCTS" },
+  { prefix: "/api/admin/homepage", permission: "MANAGE_PRODUCTS" },
 ];
 
 function getRequiredAdminPermission(pathname: string): Permission {

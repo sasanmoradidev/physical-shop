@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { ProductCard } from "@/theme/product/ProductCard";
-import Link from "next/link";
+import type { OfferBannerConfig } from "./config";
 
 export type HomeProduct = {
   id: string;
@@ -19,34 +20,50 @@ export type HomeProduct = {
   images?: { url: string }[];
 };
 
-export function OfferSection({ products }: { products: HomeProduct[] }) {
+export function OfferSection({
+  products,
+  banner,
+}: {
+  products: HomeProduct[];
+  banner: OfferBannerConfig;
+}) {
   return (
     <div className="container mx-auto px-4 mt-10">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-        <div className="relative overflow-hidden rounded-2xl h-[220px] md:h-auto md:min-h-[420px] shadow-sm">
-          <Image
-            src="/uploads/offer02.jpg"
-            alt="offer"
-            fill
-            className="object-cover transition duration-500 hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/15" />
+        <div className="relative overflow-hidden rounded-2xl h-[220px] md:h-auto md:min-h-[420px] shadow-sm bg-zinc-900">
+          {banner.image && (
+            <Image
+              src={banner.image}
+              alt={banner.title || "پیشنهاد ویژه"}
+              fill
+              className="object-cover transition duration-500 hover:scale-105"
+            />
+          )}
+          <div className="absolute inset-0 bg-black/20" />
           <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8 text-white">
-            <span className="bg-red-600 w-fit px-3 py-1 rounded-full text-xs font-bold shadow-sm">
-              تا ۵۰٪ تخفیف
-            </span>
-            <h3 className="text-2xl md:text-3xl font-extrabold mt-3 tracking-tight">
-              جشنواره تابستانه
-            </h3>
-            <p className="mt-2 text-xs text-gray-200 leading-relaxed max-w-xs">
-              فقط تا پایان امروز فرصت داری؛ دست بجنبان!
-            </p>
-            <Link
-              href="/products"
-              className="mt-5 w-fit rounded-xl bg-white text-zinc-900 px-5 py-2 text-xs font-bold hover:bg-gray-100 transition shadow-sm"
-            >
-              مشاهده محصولات
-            </Link>
+            {banner.badge && (
+              <span className="bg-red-600 w-fit px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                {banner.badge}
+              </span>
+            )}
+            {banner.title && (
+              <h3 className="text-2xl md:text-3xl font-extrabold mt-3 tracking-tight">
+                {banner.title}
+              </h3>
+            )}
+            {banner.subtitle && (
+              <p className="mt-2 text-xs text-gray-200 leading-relaxed max-w-xs">
+                {banner.subtitle}
+              </p>
+            )}
+            {banner.buttonText && (
+              <Link
+                href={banner.buttonLink || "/products"}
+                className="mt-5 w-fit rounded-xl bg-white text-zinc-900 px-5 py-2 text-xs font-bold hover:bg-gray-100 transition shadow-sm"
+              >
+                {banner.buttonText}
+              </Link>
+            )}
           </div>
         </div>
 

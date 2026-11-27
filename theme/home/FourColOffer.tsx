@@ -1,68 +1,36 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { BannerItem } from "./config";
 
-export function FourColOffer() {
-    return (
-        <div className="container mx-auto px-4 mt-10 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-8">
-            <Link
-                href="#"
-            >
-                <div className="rounded-md overflow-hidden">
-                    <Image
-                        src="/uploads/offercol4-1.webp"
-                        alt="col offer"
-                        width={700}
-                        height={355}
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                        className="block w-full h-auto"
-                    />
-                </div>
-            </Link>
-            <Link
-                href="#"
-            >
+export function FourColOffer({ items }: { items: BannerItem[] }) {
+  const validItems = items.filter((item) => Boolean(item.image));
+  if (validItems.length === 0) return null;
 
-                <div className="rounded-md overflow-hidden">
-                    <Image
-                        src="/uploads/offercol4-2.webp"
-                        alt="col offer"
-                        width={700}
-                        height={355}
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                        className="block w-full h-auto"
-                    />
-                </div>
-            </Link>
+  return (
+    <div className="container mx-auto px-4 mt-10 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-8">
+      {validItems.map((item) => {
+        const hasLink = Boolean(item.link && item.link.trim() !== "" && item.link.trim() !== "#");
+        const imageBox = (
+          <div className="rounded-md overflow-hidden">
+            <Image
+              src={item.image}
+              alt={item.alt || "بنر تبلیغاتی"}
+              width={700}
+              height={355}
+              sizes="(max-width: 768px) 50vw, 25vw"
+              className="block w-full h-auto"
+            />
+          </div>
+        );
 
-            <Link
-                href="#"
-            >
-                <div className="rounded-md overflow-hidden">
-                    <Image
-                        src="/uploads/offercol4-3.webp"
-                        alt="col offer"
-                        width={700}
-                        height={355}
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                        className="block w-full h-auto"
-                    />
-                </div>
-            </Link>
-
-            <Link
-                href="#"
-            >
-                <div className="rounded-md overflow-hidden">
-                    <Image
-                        src="/uploads/offercol4-4.webp"
-                        alt="col offer"
-                        width={700}
-                        height={355}
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                        className="block w-full h-auto"
-                    />
-                </div>
-            </Link>
-        </div>
-    );
+        return hasLink ? (
+          <Link key={item.id} href={item.link}>
+            {imageBox}
+          </Link>
+        ) : (
+          <div key={item.id}>{imageBox}</div>
+        );
+      })}
+    </div>
+  );
 }

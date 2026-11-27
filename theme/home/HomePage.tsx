@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSiteConfig } from "@/lib/site-config";
+import { getHomeConfig } from "@/lib/home-config";
 import { HeroSwiper } from "./HeroSwiper";
 import { OfferSection } from "./OfferSection";
 import { NewProducts } from "./NewProducts";
@@ -9,32 +10,34 @@ import { LightBanner } from "./LightBanner";
 export default async function HomePage() {
   const now = new Date();
 
-  const [siteConfig, discountProducts, newProducts] = await Promise.all([
-    getSiteConfig(),
-    prisma.product.findMany({
-      where: {
-        isActive: true,
-        offerPrice: { not: null },
-        AND: [
-          { OR: [{ offerStartsAt: null }, { offerStartsAt: { lte: now } }] },
-          { OR: [{ offerEndsAt: null }, { offerEndsAt: { gte: now } }] },
-        ],
-      },
-      take: 8,
-      orderBy: { createdAt: "desc" },
-      include: {
-        images: { orderBy: { order: "asc" } },
-      },
-    }),
-    prisma.product.findMany({
-      where: { isActive: true },
-      take: 10,
-      orderBy: { createdAt: "desc" },
-      include: {
-        images: { orderBy: { order: "asc" } },
-      },
-    }),
-  ]);
+  const [siteConfig, homeConfig, discountProducts, newProducts] =
+    await Promise.all([
+      getSiteConfig(),
+      getHomeConfig(),
+      prisma.product.findMany({
+        where: {
+          isActive: true,
+          offerPrice: { not: null },
+          AND: [
+            { OR: [{ offerStartsAt: null }, { offerStartsAt: { lte: now } }] },
+            { OR: [{ offerEndsAt: null }, { offerEndsAt: { gte: now } }] },
+          ],
+        },
+        take: 8,
+        orderBy: { createdAt: "desc" },
+        include: {
+          images: { orderBy: { order: "asc" } },
+        },
+      }),
+      prisma.product.findMany({
+        where: { isActive: true },
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        include: {
+          images: { orderBy: { order: "asc" } },
+        },
+      }),
+    ]);
 
   const safeDiscountProducts = discountProducts
     .map((p) => ({
@@ -78,16 +81,28 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <HeroSwiper />
-      <FourColOffer />
+      <HeroSwiper slides={homeConfig.heroSlides} />
 
-      {safeDiscountProducts.length > 0 && (
-        <OfferSection products={safeDiscountProducts} />
+      {homeConfig.showFirstFourCol && (
+        <FourColOffer items={homeConfig.firstFourCol} />
       )}
 
-      <FourColOffer />
-      <NewProducts products={safeNewProducts} />
-      <LightBanner />
+      {homeConfig.offerSection.enabled && safeDiscountProducts.length > 0 && (
+        <OfferSection
+          products={safeDiscountProducts}
+          banner={homeConfig.offerSection}
+        />
+      )}
+
+      {homeConfig.showSecondFourCol && (
+        <FourColOffer items={homeConfig.secondFourCol} />
+      )}
+
+      {homeConfig.showNewProducts && safeNewProducts.length > 0 && (
+        <NewProducts products={safeNewProducts} />
+      )}
+
+      <LightBanner banner={homeConfig.lightBanner} />
     </div>
   );
 }

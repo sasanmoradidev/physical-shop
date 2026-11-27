@@ -16,6 +16,7 @@ import {
   FolderTree,
   Settings,
   Tag,
+  Images
 } from "lucide-react";
 
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -49,6 +50,12 @@ export function AdminSidebar() {
       title: "برندها",
       href: "/admin/brands",
       icon: Tag,
+      permission: "MANAGE_PRODUCTS" as Permission,
+    },
+    {
+      title: "صفحه اصلی (بنرها)",
+      href: "/admin/homepage",
+      icon: Images,
       permission: "MANAGE_PRODUCTS" as Permission,
     },
     {
