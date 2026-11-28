@@ -18,6 +18,7 @@ import {
   LayoutGrid,
   Sparkles,
   RectangleHorizontal,
+  X,
 } from "lucide-react";
 
 type TabId = "hero" | "fourcol" | "offer" | "light";
@@ -145,7 +146,7 @@ export function HomepageManager({
         </Button>
       </div>
 
-      {/* تب ۱: اسلایدر اصلی (HeroSwiper) */}
+      {/* تب ۱: اسلایدر اصلی (دسکتاپ 1920x860 + موبایل 800x1000) */}
       {activeTab === "hero" && (
         <Card className="border-zinc-100 shadow-sm rounded-2xl bg-white">
           <CardHeader className="border-b border-zinc-100 bg-zinc-50/20 pb-4 flex flex-row items-center justify-between">
@@ -163,6 +164,7 @@ export function HomepageManager({
                     {
                       id: crypto.randomUUID(),
                       image: "",
+                      mobileImage: "",
                       title: `اسلاید ${config.heroSlides.length + 1}`,
                       link: "",
                     },
@@ -182,54 +184,126 @@ export function HomepageManager({
               </div>
             ) : (
               config.heroSlides.map((slide, index) => {
-                const key = `hero-${slide.id}`;
-                const isUploading = uploadingKey === key;
+                const desktopKey = `hero-desktop-${slide.id}`;
+                const mobileKey = `hero-mobile-${slide.id}`;
+                const isUploadingDesktop = uploadingKey === desktopKey;
+                const isUploadingMobile = uploadingKey === mobileKey;
 
                 return (
                   <div
                     key={slide.id}
-                    className="p-4 rounded-2xl border border-zinc-200 bg-zinc-50/40 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center"
+                    className="p-4 sm:p-5 rounded-2xl border border-zinc-200 bg-zinc-50/40 space-y-4"
                   >
-                    {/* پیش‌نمایش و دکمه آپلود */}
-                    <div className="lg:col-span-5 space-y-2">
-                      <div className="relative w-full h-36 rounded-xl border border-zinc-200 bg-white overflow-hidden flex items-center justify-center">
-                        {slide.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={slide.image}
-                            alt={slide.title}
-                            className="w-full h-full object-cover"
+                    {/* ردیف تصاویر: دسکتاپ + موبایل */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                      {/* تصویر دسکتاپ 1920x860 */}
+                      <div className="md:col-span-8 space-y-2">
+                        <span className="text-[11px] font-bold text-zinc-600 block">
+                          تصویر دسکتاپ (ابعاد پیشنهادی: 1920×860)
+                        </span>
+                        <div className="relative w-full aspect-[1920/860] rounded-xl border border-zinc-200 bg-white overflow-hidden flex items-center justify-center">
+                          {slide.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={slide.image}
+                              alt={slide.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs text-zinc-400">بدون تصویر دسکتاپ</span>
+                          )}
+                        </div>
+
+                        <label className="cursor-pointer w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-bold text-zinc-700 transition">
+                          {isUploadingDesktop ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                          ) : (
+                            <Upload className="h-4 w-4 text-blue-600" />
+                          )}
+                          <span>
+                            {isUploadingDesktop ? "در حال آپلود..." : "آپلود تصویر دسکتاپ"}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/avif"
+                            disabled={isUploadingDesktop}
+                            onChange={(e) =>
+                              handleUpload(desktopKey, e.target.files?.[0], (url) => {
+                                const next = [...config.heroSlides];
+                                next[index] = { ...next[index], image: url };
+                                setConfig({ ...config, heroSlides: next });
+                              })
+                            }
+                            className="hidden"
                           />
-                        ) : (
-                          <span className="text-xs text-zinc-400">بدون تصویر</span>
-                        )}
+                        </label>
                       </div>
 
-                      <label className="cursor-pointer w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-bold text-zinc-700 transition">
-                        {isUploading ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                        ) : (
-                          <Upload className="h-4 w-4 text-blue-600" />
-                        )}
-                        <span>{isUploading ? "در حال آپلود..." : "آپلود تصویر اسلاید"}</span>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/avif"
-                          disabled={isUploading}
-                          onChange={(e) =>
-                            handleUpload(key, e.target.files?.[0], (url) => {
-                              const next = [...config.heroSlides];
-                              next[index] = { ...next[index], image: url };
-                              setConfig({ ...config, heroSlides: next });
-                            })
-                          }
-                          className="hidden"
-                        />
-                      </label>
+                      {/* تصویر موبایل 800x1000 */}
+                      <div className="md:col-span-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-zinc-600">
+                            تصویر موبایل (800×1000)
+                          </span>
+                          {slide.mobileImage && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = [...config.heroSlides];
+                                next[index] = { ...next[index], mobileImage: "" };
+                                setConfig({ ...config, heroSlides: next });
+                              }}
+                              className="text-[10px] text-red-500 hover:text-red-700 font-bold inline-flex items-center gap-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                              <span>حذف</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="relative w-full max-w-[180px] mx-auto aspect-[800/1000] rounded-xl border border-zinc-200 bg-white overflow-hidden flex items-center justify-center">
+                          {slide.mobileImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={slide.mobileImage}
+                              alt={`${slide.title} - موبایل`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-[10px] text-zinc-400 text-center px-2">
+                              اختیاری (در نبود آن عکس دسکتاپ نمایش داده می‌شود)
+                            </span>
+                          )}
+                        </div>
+
+                        <label className="cursor-pointer w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-bold text-zinc-700 transition">
+                          {isUploadingMobile ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                          ) : (
+                            <Upload className="h-4 w-4 text-blue-600" />
+                          )}
+                          <span>
+                            {isUploadingMobile ? "در حال آپلود..." : "آپلود تصویر موبایل"}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/avif"
+                            disabled={isUploadingMobile}
+                            onChange={(e) =>
+                              handleUpload(mobileKey, e.target.files?.[0], (url) => {
+                                const next = [...config.heroSlides];
+                                next[index] = { ...next[index], mobileImage: url };
+                                setConfig({ ...config, heroSlides: next });
+                              })
+                            }
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                     </div>
 
-                    {/* فیلدها و کنترل ترتیب */}
-                    <div className="lg:col-span-7 space-y-3">
+                    {/* فیلدهای عنوان، لینک و دکمه‌های ترتیب/حذف */}
+                    <div className="space-y-3 pt-3 border-t border-zinc-200/70">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[10px] font-bold text-zinc-500 mb-1">
@@ -242,7 +316,7 @@ export function HomepageManager({
                               next[index] = { ...next[index], title: e.target.value };
                               setConfig({ ...config, heroSlides: next });
                             }}
-                            placeholder="مثلاً: جشنواره فروش ویژه"
+                            placeholder="مثلاً: کالکشن جدید"
                             className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-xl bg-white text-xs font-semibold outline-none focus:border-blue-500"
                           />
                         </div>
@@ -265,7 +339,7 @@ export function HomepageManager({
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-zinc-200/70">
+                      <div className="flex items-center justify-between pt-2">
                         <div className="flex items-center gap-1.5">
                           <Button
                             type="button"
@@ -305,7 +379,7 @@ export function HomepageManager({
                           className="h-8 rounded-lg text-xs px-3 flex items-center gap-1"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
-                          <span>حذف</span>
+                          <span>حذف اسلاید</span>
                         </Button>
                       </div>
                     </div>

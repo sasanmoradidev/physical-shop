@@ -58,6 +58,8 @@ model Category {
   id            String     @id @default(cuid())
   name          String
   slug          String     @unique
+  image         String?
+  showInHome    Boolean    @default(false) 
   parentId      String?    // 👈 فیلد اختیاری شناسه دسته‌بندی مادر
   parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   subcategories Category[] @relation("CategoryHierarchy")

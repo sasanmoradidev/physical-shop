@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSiteConfig } from "@/lib/site-config";
 import { getHomeConfig } from "@/lib/home-config";
 import { HeroSwiper } from "./HeroSwiper";
+import { CategorySlider } from "./CategorySlider";
 import { OfferSection } from "./OfferSection";
 import { NewProducts } from "./NewProducts";
 import { FourColOffer } from "./FourColOffer";
@@ -10,10 +11,28 @@ import { LightBanner } from "./LightBanner";
 export default async function HomePage() {
   const now = new Date();
 
-  const [siteConfig, homeConfig, discountProducts, newProducts] =
+  const [siteConfig, homeConfig, homeCategories, discountProducts, newProducts] =
     await Promise.all([
       getSiteConfig(),
       getHomeConfig(),
+      prisma.category.findMany({
+        where: {
+          showInHome: true,
+          image: { not: null },
+        },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          image: true,
+          _count: {
+            select: {
+              products: { where: { isActive: true } },
+            },
+          },
+        },
+      }),
       prisma.product.findMany({
         where: {
           isActive: true,
@@ -38,6 +57,16 @@ export default async function HomePage() {
         },
       }),
     ]);
+
+  const safeHomeCategories = homeCategories
+    .filter((c): c is typeof c & { image: string } => Boolean(c.image))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      image: c.image,
+      productCount: c._count.products,
+    }));
 
   const safeDiscountProducts = discountProducts
     .map((p) => ({
@@ -82,6 +111,10 @@ export default async function HomePage() {
       />
 
       <HeroSwiper slides={homeConfig.heroSlides} />
+
+      {safeHomeCategories.length > 0 && (
+        <CategorySlider categories={safeHomeCategories} />
+      )}
 
       {homeConfig.showFirstFourCol && (
         <FourColOffer items={homeConfig.firstFourCol} />

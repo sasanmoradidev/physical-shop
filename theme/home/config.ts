@@ -1,6 +1,7 @@
 export type HeroSlide = {
   id: string;
   image: string;
+  mobileImage?: string;
   title: string;
   link: string;
 };
@@ -43,9 +44,9 @@ export type HomeConfig = {
 
 export const defaultHomeConfig: HomeConfig = {
   heroSlides: [
-    { id: "slide-1", image: "/uploads/slide01.jpg", title: "اسلاید ۱", link: "" },
-    { id: "slide-2", image: "/uploads/slide02.jpg", title: "اسلاید ۲", link: "" },
-    { id: "slide-3", image: "/uploads/slide03.jpg", title: "اسلاید ۳", link: "" },
+    { id: "slide-1", image: "/uploads/slide01.jpg", mobileImage: "", title: "اسلاید ۱", link: "" },
+    { id: "slide-2", image: "/uploads/slide02.jpg", mobileImage: "", title: "اسلاید ۲", link: "" },
+    { id: "slide-3", image: "/uploads/slide03.jpg", mobileImage: "", title: "اسلاید ۳", link: "" },
   ],
   showFirstFourCol: true,
   firstFourCol: [

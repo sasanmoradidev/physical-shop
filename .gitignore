@@ -55,3 +55,6 @@ next-env.d.ts
 
 /public/uploads/home/*
 !/public/uploads/home/.gitkeep
+
+/public/uploads/categories/*
+!/public/uploads/categories/.gitkeep
