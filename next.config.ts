@@ -9,7 +9,6 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: "25mb",
   },
   images: {
-    unoptimized: true,
     formats: ["image/avif", "image/webp"],
     deviceSizes: [375, 640, 750, 828, 1080, 1200, 1600, 1920],
     imageSizes: [64, 96, 128, 256, 384],
