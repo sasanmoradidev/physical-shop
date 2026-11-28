@@ -31,10 +31,7 @@ function mergeSiteConfig(partial: Partial<SiteConfig> | null | undefined): SiteC
           ? partial.map.lng
           : defaultSiteConfig.map.lng,
     },
-    navLinks:
-      Array.isArray(partial.navLinks) && partial.navLinks.length > 0
-        ? partial.navLinks
-        : defaultSiteConfig.navLinks,
+    navLinks: defaultSiteConfig.navLinks,
     socials: {
       ...defaultSiteConfig.socials,
       ...(partial.socials || {}),

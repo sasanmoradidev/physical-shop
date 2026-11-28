@@ -29,6 +29,9 @@ export const siteConfig = {
   navLinks: [
     { label: "خانه", href: "/" },
     { label: "همه محصولات", href: "/products" },
+    { label: "درباره ما", href: "/about" },
+    { label: "قوانین و مقررات", href: "/terms" },
+    { label: "شرایط تعویض و مرجوع", href: "/returns" },
     { label: "تماس با ما", href: "/contactus" },
   ],
   socials: {

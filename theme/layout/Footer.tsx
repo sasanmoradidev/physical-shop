@@ -46,11 +46,12 @@ export function Footer({ config }: { config: SiteConfig }) {
     },
   ];
 
-  const accountLinks = [
-    { label: "سبد خرید من", href: "/cart" },
-    { label: "پیگیری سفارش‌ها", href: "/profile/orders" },
-    { label: "آدرس‌های من", href: "/profile/addresses" },
-    { label: "حساب کاربری", href: "/profile" },
+  const guideLinks = [
+    { label: "درباره ما", href: "/about" },
+    { label: "حریم خصوصی کاربران", href: "/about/privacy" },
+    { label: "شرایط تعویض و مرجوع", href: "/returns" },
+    { label: "پیگیری شکایات", href: "/complaints" },
+    { label: "قوانین و مقررات", href: "/terms" },
   ];
 
   return (
@@ -183,10 +184,10 @@ export function Footer({ config }: { config: SiteConfig }) {
 
           <div className="lg:col-span-2 space-y-4">
             <h3 className="text-sm font-extrabold text-zinc-900">
-              خدمات مشتریان
+              دسترسی سریع
             </h3>
             <ul className="space-y-3 text-xs text-zinc-500">
-              {accountLinks.map((item) => (
+              {guideLinks.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}
