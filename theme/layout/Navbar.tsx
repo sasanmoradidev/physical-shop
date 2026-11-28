@@ -91,7 +91,7 @@ export function Navbar({ config }: { config: SiteConfig }) {
             width={160}
             height={50}
             priority
-            className="h-11 w-auto object-contain"
+            className="w-[125px] sm:w-[160px] h-auto object-contain"
           />
         </Link>
 
